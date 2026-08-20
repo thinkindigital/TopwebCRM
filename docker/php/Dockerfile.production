@@ -1,0 +1,87 @@
+FROM php:8.3-apache-bookworm AS php-base
+
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    APACHE_DOCUMENT_ROOT=/var/www/html/public
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        curl \
+        gosu \
+        libfreetype6-dev \
+        libicu-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        libzip-dev \
+        unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j"$(nproc)" \
+        bcmath \
+        calendar \
+        exif \
+        gd \
+        intl \
+        opcache \
+        pcntl \
+        pdo_mysql \
+        zip \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && a2enmod rewrite headers remoteip \
+    && sed -ri 's!Listen 80!Listen 8080!g' /etc/apache2/ports.conf \
+    && sed -ri 's!:80>!:8080>!g' /etc/apache2/sites-available/*.conf \
+    && printf '\nServerName localhost\n' >> /etc/apache2/apache2.conf \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM php-base AS build
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+WORKDIR /app
+
+COPY . .
+
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-scripts \
+    --prefer-dist \
+    --classmap-authoritative
+
+FROM php-base AS runtime
+
+WORKDIR /var/www/html
+
+COPY --from=build --chown=www-data:www-data /app ./
+COPY docker/php/production-vhost.conf /etc/apache2/sites-available/000-default.conf
+COPY docker/php/production-entrypoint.sh /usr/local/bin/topwebcrm-entrypoint
+
+RUN chmod 0755 /usr/local/bin/topwebcrm-entrypoint \
+    && mkdir -p \
+        storage/app/private \
+        storage/app/public \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+        /var/run/apache2 \
+        /var/lock/apache2 \
+        /var/log/apache2 \
+    && chown -R www-data:www-data \
+        storage \
+        bootstrap/cache \
+        /var/run/apache2 \
+        /var/lock/apache2 \
+        /var/log/apache2 \
+    && ln -sfn /var/www/html/storage/app/public /var/www/html/public/storage \
+    && php artisan package:discover --ansi \
+    && php vendor/composer/platform_check.php
+
+EXPOSE 8080
+
+ENTRYPOINT ["topwebcrm-entrypoint"]
+CMD ["apache2-foreground"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl --fail --silent http://127.0.0.1:8080/up || exit 1

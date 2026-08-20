@@ -1,0 +1,8 @@
+# Princípios arquiteturais e padrões de extensão do fork
+
+**Contexto**: Evoluir o Krayin sem reescrita, mantendo estabilidade e permitindo extensibilidade.
+**Decisão**: Seguir ordem de preferência: 1) Aproveitar mecanismo nativo Krayin, 2) Criar extensão local coesa (pacote Concord), 3) Criar serviço/adapter desacoplado, 4) Modificar core apenas quando não houver extensão segura. Nunca: refatorar por estética, renomear massa de arquivos, mover diretórios por gosto, introduzir dependências sem justificativa, espalhar regra de permissão, duplicar autorização sensível, resolver sensível só no frontend, acoplar provedor direto na UI.
+**Por que**: Mantém fork reconhecível como Krayin evoluído; baixo acoplamento; reversibilidade; auditabilidade; manutenibilidade futura.
+
+**Pontos seguros de extensão**: Novo domínio → pacote em `packages/Webkul/`; Ações nas telas → eventos `view_render_event`; Integrações externas → contrato + adapter + service + job; Dados sensíveis → `SensitiveDataService` na saída + autorização backend; Arquivos sensíveis → `SensitiveFileService` + disco `private`.
+**Zonas de risco**: `bootstrap/providers.php`, `config/concord.php`, `composer.json` (erro impede bootstrap); Bouncer, ACL, DataGrid, Resources (afetam várias telas/APIs/exports); Atributos EAV e JSON de contato (filtros/updates ingênuos apagam/revelam dados); Migrations de pacote (não devem controlar colunas globais); Eventos Blade recebem models crus (exigem reautorização); `storage/app/private`, `APP_KEY`, campos criptografados (não podem ser perdidos entre releases).

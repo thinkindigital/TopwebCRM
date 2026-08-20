@@ -1,0 +1,17 @@
+{
+    "name": "topwebcrm/topweb-chat",
+    "description": "Topweb Chat extension for TopwebCRM",
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "Webkul\\TopwebChat\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Webkul\\TopwebChat\\Providers\\TopwebChatServiceProvider"
+            ]
+        }
+    }
+}

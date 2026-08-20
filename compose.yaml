@@ -1,0 +1,67 @@
+x-topwebcrm-local-app: &topwebcrm-app
+  image: topwebcrm-dev:latest
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+  working_dir: /var/www/html
+  depends_on:
+    mysql:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  environment:
+    CACHE_DRIVER: redis
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+    REDIS_HOST: redis
+  volumes:
+    - ./:/var/www/html
+
+services:
+  app:
+    <<: *topwebcrm-app
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    ports:
+      - "8000:8000"
+
+  queue:
+    <<: *topwebcrm-app
+    command: php artisan queue:work redis --sleep=2 --tries=3 --timeout=120
+
+  scheduler:
+    <<: *topwebcrm-app
+    command: php artisan schedule:work
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: topwebcrm
+      MYSQL_USER: topwebcrm
+      MYSQL_PASSWORD: topwebcrm
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "3307:3306"
+    volumes:
+      - topwebcrm_mysql:/var/lib/mysql
+
+  redis:
+    image: redis:7.4-alpine
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "6380:6379"
+    volumes:
+      - topwebcrm_redis:/data
+
+volumes:
+  topwebcrm_mysql:
+  topwebcrm_redis:

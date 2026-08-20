@@ -1,0 +1,114 @@
+<?php
+
+namespace Webkul\TopwebChat\Http\Controllers;
+
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\View\View;
+use Webkul\TopwebChat\Jobs\MarkConversationRead;
+use Webkul\TopwebChat\Jobs\SyncConversationHistory;
+use Webkul\TopwebChat\Models\Conversation;
+use Webkul\TopwebChat\Repositories\ConversationRepository;
+use Webkul\TopwebChat\Services\ConversationAccessService;
+use Webkul\User\Models\User;
+
+class ConversationController
+{
+    public function __construct(
+        protected ConversationRepository $conversationRepository,
+        protected ConversationAccessService $access
+    ) {}
+
+    public function index(Request $request): View
+    {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox'), 403);
+
+        $user = auth()->guard('user')->user();
+        $queue = $request->string('queue', 'mine')->toString();
+
+        if (! in_array($queue, ['mine', 'unassigned', 'all'], true)) {
+            $queue = 'mine';
+        }
+
+        if (! $this->access->isAdministrator($user) && $queue === 'all') {
+            $queue = 'mine';
+        }
+
+        return view('topweb_chat::conversations.index', [
+            'queue' => $queue,
+            'conversations' => $this->conversationRepository
+                ->accessibleQuery($user, $queue)
+                ->paginate(30)
+                ->withQueryString(),
+            'selectedConversation' => null,
+        ]);
+    }
+
+    public function show(Conversation $conversation): View
+    {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
+
+        $user = auth()->guard('user')->user();
+        $this->access->authorizeView($user, $conversation);
+
+        $conversation->load([
+            'person',
+            'lead',
+            'assignedUser',
+            'instance',
+            'messages' => fn ($query) => $query->latest()->limit(100),
+            'internalNotes' => fn ($query) => $query->with('user')->latest()->limit(100),
+        ]);
+
+        if ($conversation->instance?->enabled) {
+            Bus::chain([
+                new SyncConversationHistory($conversation->id, true),
+                new MarkConversationRead($conversation->id),
+            ])->dispatch();
+        }
+
+        return view('topweb_chat::conversations.show', [
+            'conversation' => $conversation,
+            'pipelineStages' => $conversation->lead
+                ? $conversation->lead->pipeline->stages
+                : collect(),
+            'assignableUsers' => $this->access->isAdministrator($user)
+                ? User::query()->where('status', 1)->orderBy('name')->get()
+                : collect(),
+        ]);
+    }
+
+    public function messages(Request $request, Conversation $conversation): JsonResponse
+    {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
+
+        $this->access->authorizeView(
+            auth()->guard('user')->user(),
+            $conversation
+        );
+
+        $messages = $conversation->messages()
+            ->latest('id')
+            ->limit(100)
+            ->get()
+            ->sortBy('id')
+            ->values()
+            ->map(fn ($message) => [
+                'id' => $message->id,
+                'direction' => $message->direction,
+                'type' => $message->type,
+                'content' => $message->content,
+                'status' => $message->status,
+                'sent_at' => ($message->sent_at ?? $message->created_at)
+                    ?->toIso8601String(),
+            ]);
+
+        return response()->json([
+            'messages' => $messages,
+            'instance' => [
+                'status' => $conversation->instance()->value('status') ?: 'unknown',
+            ],
+        ]);
+    }
+}
