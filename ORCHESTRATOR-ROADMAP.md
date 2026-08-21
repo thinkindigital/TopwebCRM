@@ -74,7 +74,7 @@ Bússola estratégica do TopwebCRM. Epics com IDs estáveis (E##) e milestones e
 
 ---
 
-### **[E06] Reconciliação Completa e Domínios Pendentes** `todo`
+### **[E06] Reconciliação Completa e Domínios Pendentes** `todo` [[#1](https://github.com/thinkindigital/TopwebCRM/issues/1)]
 - **Objetivo**: Completar gaps operacionais do chat
 - **Critérios de sucesso**: Reconciliação automática drift webhook; fila administrativa identidade ambígua (quarentena); mídia privada (download server-side, validação, disco privado); respostas/botões/listas normalizadas; domínio Grupos (ACL + auditoria própria); PIX (ACL + auditoria financeira); LIDs/Newsletters
 - **Status**: todo
@@ -88,7 +88,7 @@ Bússola estratégica do TopwebCRM. Epics com IDs estáveis (E##) e milestones e
 
 ---
 
-### **[E07] Auditoria e Trilha Operacional** `todo`
+### **[E07] Auditoria e Trilha Operacional** `todo` [[#2](https://github.com/thinkindigital/TopwebCRM/issues/2)]
 - **Objetivo**: Trilha de auditoria para ações sensíveis (visualização dados sensíveis, exportação, alteração permissões, mudança integração, ações mensageria)
 - **Critérios de sucesso**: Log estruturado imutável; quem/quando/o que/entidade/impacto; consulta/filtro por admin; retenção configurável
 - **Status**: todo
@@ -100,7 +100,7 @@ Bússola estratégica do TopwebCRM. Epics com IDs estáveis (E##) e milestones e
 
 ---
 
-### **[E08] Melhorias de UX Operacional** `todo`
+### **[E08] Melhorias de UX Operacional** `todo` [[#3](https://github.com/thinkindigital/TopwebCRM/issues/3)]
 - **Objetivo**: Reduzir atrito interno (busca, timeline, Kanban, dashboard, autocomplete)
 - **Critérios de sucesso**: Busca global unificada respeitando sensibilidade; timeline conversacional em contexto (Lead/Person/Org); Kanban Lead com drag-drop estável; dashboard com métricas relevantes; autocomplete server-side com autorização
 - **Status**: todo
@@ -112,7 +112,7 @@ Bússola estratégica do TopwebCRM. Epics com IDs estáveis (E##) e milestones e
 
 ---
 
-### **[E09] Multi-provider e Evolution API** `todo`
+### **[E09] Multi-provider e Evolution API** `todo` [[#4](https://github.com/thinkindigital/TopwebCRM/issues/4)]
 - **Objetivo**: Suporte a Evolution API como provider alternativo/intercambiável
 - **Critérios de sucesso**: Adapter `EvolutionApiProvider` implementando `MessagingProvider`; config por env; testes de contrato; documentação migração
 - **Status**: todo
@@ -148,5 +148,6 @@ Bússola estratégica do TopwebCRM. Epics com IDs estáveis (E##) e milestones e
 
 - Epics E01–E05 já entregues e validados (ver `docs/CHANGELOG_AI.md` para evidências: testes, lint, build, healthcheck, migrações)
 - Este roadmap vive localmente; para rastreabilidade em equipe, publicar cada Epic como Issue no GitHub (usar `/to-issues`)
+- **Issues GitHub criadas**: E06 [#1](https://github.com/thinkindigital/TopwebCRM/issues/1), E07 [#2](https://github.com/thinkindigital/TopwebCRM/issues/2), E08 [#3](https://github.com/thinkindigital/TopwebCRM/issues/3), E09 [#4](https://github.com/thinkindigital/TopwebCRM/issues/4)
 - IDs E## são estáveis — não renumerar. Novos Epics usam próximo número disponível.
 - **Provedor WhatsApp**: OpenWA (primário, self-hosted) → Evolution API (futuro). RyzeAPI descontinuada (paga, sem acesso teste).

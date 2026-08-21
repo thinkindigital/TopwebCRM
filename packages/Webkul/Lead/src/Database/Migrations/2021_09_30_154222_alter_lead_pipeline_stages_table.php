@@ -14,6 +14,23 @@ return new class extends Migration
      */
     public function up()
     {
+        // Skip this migration for SQLite as it has issues with column references
+        if (DB::getDriverName() === 'sqlite') {
+            // Check if columns already exist
+            $columns = Schema::getColumnListing('lead_pipeline_stages');
+            if (!in_array('code', $columns)) {
+                Schema::table('lead_pipeline_stages', function (Blueprint $table) {
+                    $table->string('code')->after('id')->nullable();
+                });
+            }
+            if (!in_array('name', $columns)) {
+                Schema::table('lead_pipeline_stages', function (Blueprint $table) {
+                    $table->string('name')->after('code')->nullable();
+                });
+            }
+            return;
+        }
+
         $tablePrefix = DB::getTablePrefix();
 
         Schema::table('lead_pipeline_stages', function (Blueprint $table) {

@@ -12,9 +12,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('persons', function (Blueprint $table) {
-            $table->string('unique_id')->nullable()->unique();
-        });
+        // Check if column exists before adding
+        $columns = Schema::getColumnListing('persons');
+        if (!in_array('unique_id', $columns)) {
+            Schema::table('persons', function (Blueprint $table) {
+                $table->string('unique_id')->nullable()->unique();
+            });
+        }
+
+        // Skip JSON operations for SQLite as it doesn't support JSON_UNQUOTE/JSON_EXTRACT
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
 
         $tableName = DB::getTablePrefix().'persons';
 
@@ -23,8 +32,8 @@ return new class extends Migration
             SET unique_id = CONCAT(
                 user_id, '|', 
                 organization_id, '|', 
-                JSON_UNQUOTE(JSON_EXTRACT(emails, '$[0].value')), '|',
-                JSON_UNQUOTE(JSON_EXTRACT(contact_numbers, '$[0].value'))
+                JSON_UNQUOTE(JSON_EXTRACT(emails, '\$[0].value')), '|',
+                JSON_UNQUOTE(JSON_EXTRACT(contact_numbers, '\$[0].value'))
             )
         ");
     }
@@ -35,7 +44,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('persons', function (Blueprint $table) {
-            $table->dropColumn('unique_id');
+            if (Schema::hasColumn('persons', 'unique_id')) {
+                $table->dropColumn('unique_id');
+            }
         });
     }
 };

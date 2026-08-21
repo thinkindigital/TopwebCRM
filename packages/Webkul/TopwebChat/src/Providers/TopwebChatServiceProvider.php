@@ -9,6 +9,7 @@ use Illuminate\Support\ServiceProvider;
 use Webkul\Core\ViewRenderEventManager;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
+use Webkul\TopwebChat\Providers\OpenWaProvider;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 
 class TopwebChatServiceProvider extends ServiceProvider
@@ -20,7 +21,7 @@ class TopwebChatServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(dirname(__DIR__).'/Config/acl.php', 'acl');
 
         $this->app->singleton(ConversationAccessService::class);
-        $this->app->bind(MessagingProvider::class, RyzeApiProvider::class);
+        $this->app->bind(MessagingProvider::class, OpenWaProvider::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([ReconcileTopwebChat::class]);

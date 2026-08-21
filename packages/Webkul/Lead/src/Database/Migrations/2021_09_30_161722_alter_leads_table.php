@@ -14,6 +14,17 @@ return new class extends Migration
      */
     public function up()
     {
+        // Skip foreign key operations for SQLite
+        if (DB::getDriverName() === 'sqlite') {
+            $columns = Schema::getColumnListing('leads');
+            if (!in_array('lead_pipeline_stage_id', $columns)) {
+                Schema::table('leads', function (Blueprint $table) {
+                    $table->integer('lead_pipeline_stage_id')->after('lead_pipeline_id')->unsigned()->nullable();
+                });
+            }
+            return;
+        }
+
         $tablePrefix = DB::getTablePrefix();
 
         Schema::table('leads', function (Blueprint $table) {
@@ -39,6 +50,15 @@ return new class extends Migration
      */
     public function down()
     {
+        if (DB::getDriverName() === 'sqlite') {
+            Schema::table('leads', function (Blueprint $table) {
+                if (Schema::hasColumn('leads', 'lead_pipeline_stage_id')) {
+                    $table->dropColumn('lead_pipeline_stage_id');
+                }
+            });
+            return;
+        }
+
         Schema::table('leads', function (Blueprint $table) {
             $table->dropForeign(DB::getTablePrefix().'leads_lead_pipeline_stage_id_foreign');
             $table->dropColumn('lead_pipeline_stage_id');
