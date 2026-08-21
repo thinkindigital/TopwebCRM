@@ -275,113 +275,143 @@ Breadcrumbs::for('settings.data_transfer.imports.edit', function (Generator $bre
 });
 
 // Leads
-Breadcrumbs::for('leads.index', function (Generator $breadcrumbs) {
+Breadcrumbs::for('leads', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('admin');
     $breadcrumbs->push(__('admin::app.leads.title'), route('admin.leads.index'));
 });
 
+Breadcrumbs::for('leads.index', function (Generator $breadcrumbs) {
+    $breadcrumbs->parent('leads');
+    $breadcrumbs->push(__('admin::app.leads.title'), route('admin.leads.index'));
+});
+
 Breadcrumbs::for('leads.create', function (Generator $breadcrumbs) {
-    $breadcrumbs->parent('leads.index');
+    $breadcrumbs->parent('leads');
     $breadcrumbs->push(__('admin::app.leads.create'), route('admin.leads.create'));
 });
 
 Breadcrumbs::for('leads.edit', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('leads.index');
+    $breadcrumbs->parent('leads');
     $breadcrumbs->push(__('admin::app.leads.edit'), route('admin.leads.edit', ['id' => $id]));
 });
 
 Breadcrumbs::for('leads.view', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('leads.index');
+    $breadcrumbs->parent('leads');
     $breadcrumbs->push(__('admin::app.leads.view'), route('admin.leads.view', ['id' => $id]));
 });
 
 // Contacts - Persons
-Breadcrumbs::for('contacts.persons.index', function (Generator $breadcrumbs) {
+Breadcrumbs::for('contacts.persons', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('admin');
     $breadcrumbs->push(__('admin::app.contacts.persons.title'), route('admin.contacts.persons.index'));
 });
 
+Breadcrumbs::for('contacts.persons.index', function (Generator $breadcrumbs) {
+    $breadcrumbs->parent('contacts.persons');
+    $breadcrumbs->push(__('admin::app.contacts.persons.title'), route('admin.contacts.persons.index'));
+});
+
 Breadcrumbs::for('contacts.persons.create', function (Generator $breadcrumbs) {
-    $breadcrumbs->parent('contacts.persons.index');
+    $breadcrumbs->parent('contacts.persons');
     $breadcrumbs->push(__('admin::app.contacts.persons.create'), route('admin.contacts.persons.create'));
 });
 
 Breadcrumbs::for('contacts.persons.edit', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('contacts.persons.index');
+    $breadcrumbs->parent('contacts.persons');
     $breadcrumbs->push(__('admin::app.contacts.persons.edit'), route('admin.contacts.persons.edit', ['id' => $id]));
 });
 
 Breadcrumbs::for('contacts.persons.view', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('contacts.persons.index');
+    $breadcrumbs->parent('contacts.persons');
     $breadcrumbs->push(__('admin::app.contacts.persons.view'), route('admin.contacts.persons.view', ['id' => $id]));
 });
 
 // Contacts - Organizations
-Breadcrumbs::for('contacts.organizations.index', function (Generator $breadcrumbs) {
+Breadcrumbs::for('contacts.organizations', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('admin');
     $breadcrumbs->push(__('admin::app.contacts.organizations.title'), route('admin.contacts.organizations.index'));
 });
 
+Breadcrumbs::for('contacts.organizations.index', function (Generator $breadcrumbs) {
+    $breadcrumbs->parent('contacts.organizations');
+    $breadcrumbs->push(__('admin::app.contacts.organizations.title'), route('admin.contacts.organizations.index'));
+});
+
 Breadcrumbs::for('contacts.organizations.create', function (Generator $breadcrumbs) {
-    $breadcrumbs->parent('contacts.organizations.index');
+    $breadcrumbs->parent('contacts.organizations');
     $breadcrumbs->push(__('admin::app.contacts.organizations.create'), route('admin.contacts.organizations.create'));
 });
 
 Breadcrumbs::for('contacts.organizations.edit', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('contacts.organizations.index');
+    $breadcrumbs->parent('contacts.organizations');
     $breadcrumbs->push(__('admin::app.contacts.organizations.edit'), route('admin.contacts.organizations.edit', ['id' => $id]));
 });
 
 // Products
-Breadcrumbs::for('products.index', function (Generator $breadcrumbs) {
+Breadcrumbs::for('products', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('admin');
     $breadcrumbs->push(__('admin::app.products.title'), route('admin.products.index'));
 });
 
+Breadcrumbs::for('products.index', function (Generator $breadcrumbs) {
+    $breadcrumbs->parent('products');
+    $breadcrumbs->push(__('admin::app.products.title'), route('admin.products.index'));
+});
+
 Breadcrumbs::for('products.create', function (Generator $breadcrumbs) {
-    $breadcrumbs->parent('products.index');
+    $breadcrumbs->parent('products');
     $breadcrumbs->push(__('admin::app.products.create'), route('admin.products.create'));
 });
 
 Breadcrumbs::for('products.edit', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('products.index');
+    $breadcrumbs->parent('products');
     $breadcrumbs->push(__('admin::app.products.edit'), route('admin.products.edit', ['id' => $id]));
 });
 
 Breadcrumbs::for('products.view', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('products.index');
+    $breadcrumbs->parent('products');
     $breadcrumbs->push(__('admin::app.products.view'), route('admin.products.view', ['id' => $id]));
 });
 
 // Quotes
-Breadcrumbs::for('quotes.index', function (Generator $breadcrumbs) {
+Breadcrumbs::for('quotes', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('admin');
     $breadcrumbs->push(__('admin::app.quotes.title'), route('admin.quotes.index'));
 });
 
+Breadcrumbs::for('quotes.index', function (Generator $breadcrumbs) {
+    $breadcrumbs->parent('quotes');
+    $breadcrumbs->push(__('admin::app.quotes.title'), route('admin.quotes.index'));
+});
+
 Breadcrumbs::for('quotes.create', function (Generator $breadcrumbs) {
-    $breadcrumbs->parent('quotes.index');
+    $breadcrumbs->parent('quotes');
     $breadcrumbs->push(__('admin::app.quotes.create'), route('admin.quotes.create'));
 });
 
 Breadcrumbs::for('quotes.edit', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('quotes.index');
+    $breadcrumbs->parent('quotes');
     $breadcrumbs->push(__('admin::app.quotes.edit'), route('admin.quotes.edit', ['id' => $id]));
 });
 
 // Activities
-Breadcrumbs::for('activities.index', function (Generator $breadcrumbs) {
+Breadcrumbs::for('activities', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('admin');
     $breadcrumbs->push(__('admin::app.activities.title'), route('admin.activities.index'));
 });
 
+Breadcrumbs::for('activities.index', function (Generator $breadcrumbs) {
+    $breadcrumbs->parent('activities');
+    $breadcrumbs->push(__('admin::app.activities.title'), route('admin.activities.index'));
+});
+
 Breadcrumbs::for('activities.create', function (Generator $breadcrumbs) {
-    $breadcrumbs->parent('activities.index');
+    $breadcrumbs->parent('activities');
     $breadcrumbs->push(__('admin::app.activities.create'), route('admin.activities.create'));
 });
 
 Breadcrumbs::for('activities.edit', function (Generator $breadcrumbs, $id) {
-    $breadcrumbs->parent('activities.index');
+    $breadcrumbs->parent('activities');
     $breadcrumbs->push(__('admin::app.activities.edit'), route('admin.activities.edit', ['id' => $id]));
 });
 
@@ -402,18 +432,23 @@ Breadcrumbs::for('topweb_chat.settings.index', function (Generator $breadcrumbs)
 });
 
 // Configuration
-Breadcrumbs::for('configuration.index', function (Generator $breadcrumbs) {
+Breadcrumbs::for('configuration', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('admin');
     $breadcrumbs->push(__('admin::app.configuration.title'), route('admin.configuration.index'));
 });
 
+Breadcrumbs::for('configuration.index', function (Generator $breadcrumbs) {
+    $breadcrumbs->parent('configuration');
+    $breadcrumbs->push(__('admin::app.configuration.title'), route('admin.configuration.index'));
+});
+
 Breadcrumbs::for('configuration.search', function (Generator $breadcrumbs) {
-    $breadcrumbs->parent('configuration.index');
+    $breadcrumbs->parent('configuration');
     $breadcrumbs->push(__('admin::app.configuration.search'), route('admin.configuration.search'));
 });
 
 Breadcrumbs::for('configuration.edit', function (Generator $breadcrumbs, $slug, $slug2 = null) {
-    $breadcrumbs->parent('configuration.index');
+    $breadcrumbs->parent('configuration');
     $breadcrumbs->push(__('admin::app.configuration.edit'), route('admin.configuration.index', ['slug' => $slug, 'slug2' => $slug2]));
 });
 
