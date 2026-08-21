@@ -57,12 +57,12 @@ Breadcrumbs::for('settings.roles', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('settings.roles.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('settings.roles');
-    $breadcrumbs->push(__('admin::app.settings.roles.create'), route('admin.settings.roles.create'));
+    $breadcrumbs->push(__('admin::app.settings.roles.create.title'), route('admin.settings.roles.create'));
 });
 
 Breadcrumbs::for('settings.roles.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('settings.roles');
-    $breadcrumbs->push(__('admin::app.settings.roles.edit'), route('admin.settings.roles.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.settings.roles.edit.title'), route('admin.settings.roles.edit', ['id' => $id]));
 });
 
 // Settings - Users
@@ -89,12 +89,12 @@ Breadcrumbs::for('settings.pipelines', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('settings.pipelines.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('settings.pipelines');
-    $breadcrumbs->push(__('admin::app.settings.pipelines.create'), route('admin.settings.pipelines.create'));
+    $breadcrumbs->push(__('admin::app.settings.pipelines.create.title'), route('admin.settings.pipelines.create'));
 });
 
 Breadcrumbs::for('settings.pipelines.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('settings.pipelines');
-    $breadcrumbs->push(__('admin::app.settings.pipelines.edit'), route('admin.settings.pipelines.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.settings.pipelines.edit.title'), route('admin.settings.pipelines.edit', ['id' => $id]));
 });
 
 // Settings - Sources
@@ -121,12 +121,12 @@ Breadcrumbs::for('settings.attributes', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('settings.attributes.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('settings.attributes');
-    $breadcrumbs->push(__('admin::app.settings.attributes.create'), route('admin.settings.attributes.create'));
+    $breadcrumbs->push(__('admin::app.settings.attributes.create.title'), route('admin.settings.attributes.create'));
 });
 
 Breadcrumbs::for('settings.attributes.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('settings.attributes');
-    $breadcrumbs->push(__('admin::app.settings.attributes.edit'), route('admin.settings.attributes.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.settings.attributes.edit.title'), route('admin.settings.attributes.edit', ['id' => $id]));
 });
 
 // Settings - Warehouses
@@ -137,17 +137,17 @@ Breadcrumbs::for('settings.warehouses', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('settings.warehouses.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('settings.warehouses');
-    $breadcrumbs->push(__('admin::app.settings.warehouses.create'), route('admin.settings.warehouses.create'));
+    $breadcrumbs->push(__('admin::app.settings.warehouses.create.title'), route('admin.settings.warehouses.create'));
 });
 
 Breadcrumbs::for('settings.warehouses.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('settings.warehouses');
-    $breadcrumbs->push(__('admin::app.settings.warehouses.edit'), route('admin.settings.warehouses.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.settings.warehouses.edit.title'), route('admin.settings.warehouses.edit', ['id' => $id]));
 });
 
 Breadcrumbs::for('settings.warehouses.view', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('settings.warehouses');
-    $breadcrumbs->push(__('admin::app.settings.warehouses.view'), route('admin.settings.warehouses.view', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.layouts.warehouses'), route('admin.settings.warehouses.view', ['id' => $id]));
 });
 
 // Settings - Email Templates
@@ -190,12 +190,12 @@ Breadcrumbs::for('settings.webhooks', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('settings.webhooks.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('settings.webhooks');
-    $breadcrumbs->push(__('admin::app.settings.webhooks.create'), route('admin.settings.webhooks.create'));
+    $breadcrumbs->push(__('admin::app.settings.webhooks.create.title'), route('admin.settings.webhooks.create'));
 });
 
 Breadcrumbs::for('settings.webhooks.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('settings.webhooks');
-    $breadcrumbs->push(__('admin::app.settings.webhooks.edit'), route('admin.settings.webhooks.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.settings.webhooks.edit.title'), route('admin.settings.webhooks.edit', ['id' => $id]));
 });
 
 // Settings - Tags
@@ -212,12 +212,12 @@ Breadcrumbs::for('settings.workflows', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('settings.workflows.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('settings.workflows');
-    $breadcrumbs->push(__('admin::app.settings.workflows.create'), route('admin.settings.workflows.create'));
+    $breadcrumbs->push(__('admin::app.settings.workflows.create.title'), route('admin.settings.workflows.create'));
 });
 
 Breadcrumbs::for('settings.workflows.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('settings.workflows');
-    $breadcrumbs->push(__('admin::app.settings.workflows.edit'), route('admin.settings.workflows.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.settings.workflows.edit.title'), route('admin.settings.workflows.edit', ['id' => $id]));
 });
 
 // Settings - Marketing Events
@@ -281,17 +281,17 @@ Breadcrumbs::for('leads.index', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('leads.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('leads');
-    $breadcrumbs->push(__('admin::app.leads.create'), route('admin.leads.create'));
+    $breadcrumbs->push(__('admin::app.leads.create.title'), route('admin.leads.create'));
 });
 
 Breadcrumbs::for('leads.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('leads');
-    $breadcrumbs->push(__('admin::app.leads.edit'), route('admin.leads.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.leads.edit.title'), route('admin.leads.edit', ['id' => $id]));
 });
 
 Breadcrumbs::for('leads.view', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('leads');
-    $breadcrumbs->push(__('admin::app.leads.view'), route('admin.leads.view', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.leads.view.title'), route('admin.leads.view', ['id' => $id]));
 });
 
 // Contacts - Persons
@@ -307,17 +307,17 @@ Breadcrumbs::for('contacts.persons.index', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('contacts.persons.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('contacts.persons');
-    $breadcrumbs->push(__('admin::app.contacts.persons.create'), route('admin.contacts.persons.create'));
+    $breadcrumbs->push(__('admin::app.contacts.persons.create.title'), route('admin.contacts.persons.create'));
 });
 
 Breadcrumbs::for('contacts.persons.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('contacts.persons');
-    $breadcrumbs->push(__('admin::app.contacts.persons.edit'), route('admin.contacts.persons.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.contacts.persons.edit.title'), route('admin.contacts.persons.edit', ['id' => $id]));
 });
 
 Breadcrumbs::for('contacts.persons.view', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('contacts.persons');
-    $breadcrumbs->push(__('admin::app.contacts.persons.view'), route('admin.contacts.persons.view', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.contacts.persons.view.title', ['name' => $id]), route('admin.contacts.persons.view', ['id' => $id]));
 });
 
 // Contacts - Organizations
@@ -333,12 +333,12 @@ Breadcrumbs::for('contacts.organizations.index', function (Generator $breadcrumb
 
 Breadcrumbs::for('contacts.organizations.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('contacts.organizations');
-    $breadcrumbs->push(__('admin::app.contacts.organizations.create'), route('admin.contacts.organizations.create'));
+    $breadcrumbs->push(__('admin::app.contacts.organizations.create.title'), route('admin.contacts.organizations.create'));
 });
 
 Breadcrumbs::for('contacts.organizations.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('contacts.organizations');
-    $breadcrumbs->push(__('admin::app.contacts.organizations.edit'), route('admin.contacts.organizations.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.contacts.organizations.edit.title'), route('admin.contacts.organizations.edit', ['id' => $id]));
 });
 
 // Products
@@ -354,17 +354,17 @@ Breadcrumbs::for('products.index', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('products.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('products');
-    $breadcrumbs->push(__('admin::app.products.create'), route('admin.products.create'));
+    $breadcrumbs->push(__('admin::app.products.create.title'), route('admin.products.create'));
 });
 
 Breadcrumbs::for('products.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('products');
-    $breadcrumbs->push(__('admin::app.products.edit'), route('admin.products.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.products.edit.title'), route('admin.products.edit', ['id' => $id]));
 });
 
 Breadcrumbs::for('products.view', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('products');
-    $breadcrumbs->push(__('admin::app.products.view'), route('admin.products.view', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.layouts.products'), route('admin.products.view', ['id' => $id]));
 });
 
 // Quotes
@@ -380,12 +380,12 @@ Breadcrumbs::for('quotes.index', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('quotes.create', function (Generator $breadcrumbs) {
     $breadcrumbs->parent('quotes');
-    $breadcrumbs->push(__('admin::app.quotes.create'), route('admin.quotes.create'));
+    $breadcrumbs->push(__('admin::app.quotes.create.title'), route('admin.quotes.create'));
 });
 
 Breadcrumbs::for('quotes.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('quotes');
-    $breadcrumbs->push(__('admin::app.quotes.edit'), route('admin.quotes.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.quotes.edit.title'), route('admin.quotes.edit', ['id' => $id]));
 });
 
 // Activities
@@ -401,7 +401,7 @@ Breadcrumbs::for('activities.index', function (Generator $breadcrumbs) {
 
 Breadcrumbs::for('activities.edit', function (Generator $breadcrumbs, $id) {
     $breadcrumbs->parent('activities');
-    $breadcrumbs->push(__('admin::app.activities.edit'), route('admin.activities.edit', ['id' => $id]));
+    $breadcrumbs->push(__('admin::app.activities.edit.title'), route('admin.activities.edit', ['id' => $id]));
 });
 
 // TopwebChat

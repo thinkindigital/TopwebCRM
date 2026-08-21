@@ -18,6 +18,14 @@ it('has translations for every admin breadcrumb label', function () {
         ->all();
 
     expect($missing)->toBe([], 'Missing pt_BR breadcrumb translations: '.implode(', ', $missing));
+
+    $nonStrings = collect($matches[1])
+        ->unique()
+        ->reject(fn (string $key) => is_string(Lang::get($key, [], 'pt_BR')))
+        ->values()
+        ->all();
+
+    expect($nonStrings)->toBe([], 'Non-string pt_BR breadcrumb translations: '.implode(', ', $nonStrings));
 });
 
 it('defines every static admin breadcrumb used by a view', function () {

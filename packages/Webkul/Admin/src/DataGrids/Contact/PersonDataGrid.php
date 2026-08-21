@@ -11,6 +11,13 @@ use Webkul\DataGrid\DataGrid;
 class PersonDataGrid extends DataGrid
 {
     /**
+     * Default sort column of datagrid.
+     *
+     * @var string
+     */
+    protected $sortColumn = 'persons.id';
+
+    /**
      * Create a new class instance.
      *
      * @return void
