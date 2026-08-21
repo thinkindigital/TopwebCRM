@@ -95,6 +95,10 @@ return [
     'settings' => [
         'title' => 'Topweb Chat settings',
         'description' => 'Register only instances previously created in RyzeAPI.',
+        'openwa_sessions' => 'OpenWA sessions',
+        'engine_loaded' => 'Engine loaded',
+        'no_openwa_sessions' => 'No OpenWA sessions found.',
+        'openwa_unavailable' => 'OpenWA could not be reached right now.',
         'instance_title' => 'RyzeAPI instance',
         'instance_name' => 'Instance name',
         'instance_token' => 'TokenInstance',

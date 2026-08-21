@@ -9,6 +9,8 @@
             <p class="text-sm text-gray-600 dark:text-gray-300">@lang('topweb_chat::app.settings.description')</p>
         </div>
 
+        @include('topweb_chat::settings.openwa-sessions')
+
         <section class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
             <h2 class="font-semibold text-gray-800 dark:text-white">@lang('topweb_chat::app.settings.instance_title')</h2>
 

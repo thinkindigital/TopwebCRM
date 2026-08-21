@@ -4,6 +4,7 @@ namespace Webkul\TopwebChat\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Webkul\TopwebChat\Jobs\ReconcileInstance;
@@ -23,9 +24,41 @@ class SettingsController
     {
         $this->authorizeAdministrator();
 
+        $instances = Instance::query()->orderBy('name')->get();
+        $openWaInstance = $instances->first(fn (Instance $instance) => $instance->isOpenWA());
+        $openWaHealth = null;
+        $openWaSessions = [];
+        $openWaUnavailable = false;
+
+        if ($openWaInstance) {
+            try {
+                $health = $this->provider->health($openWaInstance);
+                $openWaHealth = [
+                    'status' => $health['status'] ?? null,
+                    'version' => $health['version'] ?? null,
+                ];
+
+                $openWaSessions = array_map(fn (array $session) => [
+                    'id' => $session['id'] ?? null,
+                    'name' => $session['name'] ?? null,
+                    'status' => $session['status'] ?? null,
+                    'engine_loaded' => (bool) ($session['engineLoaded'] ?? false),
+                ], $this->provider->listSessions($openWaInstance));
+            } catch (\Throwable) {
+                $openWaUnavailable = true;
+
+                Log::warning('OpenWA is unavailable while loading Topweb Chat settings.', [
+                    'instance_id' => $openWaInstance->id,
+                ]);
+            }
+        }
+
         return view('topweb_chat::settings.index', [
-            'instances' => Instance::query()->orderBy('name')->get(),
+            'instances' => $instances,
             'users' => User::query()->with('role')->orderBy('name')->get(),
+            'openWaHealth' => $openWaHealth,
+            'openWaSessions' => $openWaSessions,
+            'openWaUnavailable' => $openWaUnavailable,
         ]);
     }
 
