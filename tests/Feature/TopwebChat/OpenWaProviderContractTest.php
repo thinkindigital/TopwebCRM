@@ -165,7 +165,9 @@ it('registers the literal HMAC secret on an OpenWA webhook', function () {
 
     Http::assertSent(fn (Request $request) => $request->method() === 'POST'
         && $request->data()['secret'] === 'literal-hmac-secret'
-        && $request->data()['events'] === ['message.received']);
+        && $request->data()['events'] === ['message.received']
+        && ! array_key_exists('headers', $request->data())
+        && ! array_key_exists('filters', $request->data()));
 });
 
 it('lists and tests OpenWA webhooks using raw responses', function () {

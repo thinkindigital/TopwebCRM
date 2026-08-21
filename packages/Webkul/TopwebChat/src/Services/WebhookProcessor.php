@@ -15,9 +15,9 @@ class WebhookProcessor
     public function process(WebhookEvent $event): void
     {
         match ($event->event_type) {
-            'message.exchange' => $this->processMessage($event),
-            'message.status' => $this->processStatus($event),
-            'instance.state' => $this->processInstanceState($event),
+            'message.received', 'message.sent' => $this->processMessage($event),
+            'message.ack', 'message.failed' => $this->processStatus($event),
+            'session.status' => $this->processInstanceState($event),
             default => null,
         };
 
@@ -32,17 +32,20 @@ class WebhookProcessor
     private function processMessage(WebhookEvent $event): void
     {
         $payload = $event->payload;
-        $messageData = data_get($payload, 'data.message', []);
-        $providerMessageId = $messageData['id'] ?? data_get($payload, 'data.id');
+        $messageData = data_get($payload, 'data', []);
+        $providerMessageId = $messageData['id'] ?? null;
 
         if (! $providerMessageId) {
             return;
         }
 
         $providerKey = hash('sha256', $event->instance_id.'|'.$providerMessageId);
-        $remoteId = data_get($messageData, 'chat.jid')
-            ?: data_get($messageData, 'chat.lid')
-            ?: data_get($messageData, 'sender.jid');
+        $direction = $event->event_type === 'message.sent' || ($messageData['fromMe'] ?? false)
+            ? 'outgoing'
+            : 'incoming';
+        $remoteId = $direction === 'outgoing'
+            ? ($messageData['to'] ?? null)
+            : ($messageData['senderPhone'] ?? $messageData['from'] ?? null);
 
         if (! $remoteId) {
             return;
@@ -51,17 +54,14 @@ class WebhookProcessor
         $conversation = $this->conversationService->findOrCreateInbound(
             $event->instance,
             $remoteId,
-            data_get($messageData, 'chat.name') ?: data_get($messageData, 'sender.name')
+            data_get($messageData, 'contact.name') ?: data_get($messageData, 'contact.pushName')
         );
 
-        $direction = $messageData['direction'] ?? 'incoming';
         $timestamp = isset($messageData['timestamp'])
-            ? Carbon::parse($messageData['timestamp'])
+            ? Carbon::createFromTimestamp($messageData['timestamp'])
             : now();
-        $type = data_get($messageData, 'media.type')
-            ?: ($messageData['type'] ?? 'text');
-        $content = data_get($messageData, 'content.text')
-            ?: data_get($messageData, 'media.caption');
+        $type = $messageData['type'] ?? 'text';
+        $content = $messageData['body'] ?? null;
 
         DB::transaction(function () use (
             $conversation,
@@ -96,12 +96,12 @@ class WebhookProcessor
                 'type' => $type,
                 'content' => $content,
                 'status' => $direction === 'incoming' ? 'received' : 'sent',
-                'source' => data_get($messageData, 'source', 'ryzeapi'),
+                'source' => 'openwa',
                 'metadata' => [
-                    'chat_type' => data_get($messageData, 'chat.type'),
-                    'media' => data_get($messageData, 'media'),
-                    'reply' => data_get($messageData, 'reply'),
-                    'ad_origin' => data_get($messageData, 'adOrigin'),
+                    'chat_id' => $messageData['chatId'] ?? null,
+                    'is_group' => $messageData['isGroup'] ?? false,
+                    'has_media' => $messageData['hasMedia'] ?? false,
+                    'kind' => $messageData['kind'] ?? null,
                 ],
                 'sent_at' => $timestamp,
             ]);
@@ -124,9 +124,11 @@ class WebhookProcessor
     private function processStatus(WebhookEvent $event): void
     {
         $status = data_get($event->payload, 'data.status');
-        $timestamp = data_get($event->payload, 'data.timestamp');
+        $timestamp = $event->payload['timestamp'] ?? null;
+        $providerMessageId = data_get($event->payload, 'data.messageId')
+            ?: data_get($event->payload, 'data.id');
 
-        foreach (data_get($event->payload, 'data.messageIds', []) as $providerMessageId) {
+        foreach (array_filter([$providerMessageId]) as $providerMessageId) {
             $message = Message::query()
                 ->where(
                     'provider_message_key',
@@ -147,18 +149,10 @@ class WebhookProcessor
                 $updates['delivered_at'] = $statusAt;
             } elseif (in_array($status, ['read', 'read_self', 'played', 'played_self'], true)) {
                 $updates['read_at'] = $statusAt;
-            } elseif (
-                in_array($status, ['inactive', 'server_error'], true)
-                && ! $this->isFinalDeliveryState($message->status)
-            ) {
+            } elseif ($status === 'failed' && ! $this->isFinalDeliveryState($message->status)) {
                 $updates['status'] = 'failed';
                 $updates['failed_at'] = $statusAt;
                 $updates['last_error'] = 'provider_status_'.$status;
-            } elseif (
-                $status === 'retry'
-                && ! $this->isFinalDeliveryState($message->status)
-            ) {
-                $updates['last_error'] = 'provider_status_retry';
             }
 
             $message->update($updates);
@@ -209,13 +203,11 @@ class WebhookProcessor
 
     private function processInstanceState(WebhookEvent $event): void
     {
-        $state = data_get($event->payload, 'data.state')
-            ?: data_get($event->payload, 'data.instance.state')
-            ?: 'unknown';
+        $state = data_get($event->payload, 'data.status', 'unknown');
 
         $event->instance->update([
             'status' => $state,
-            'last_connected_at' => $state === 'connected'
+            'last_connected_at' => $state === 'ready'
                 ? now()
                 : $event->instance->last_connected_at,
             'last_synced_at' => now(),

@@ -39,7 +39,7 @@
 
             <div
                 id="topweb-chat-connection-warning"
-                class="{{ $conversation->instance?->status === 'connected' ? 'hidden' : '' }} border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                class="{{ $conversation->instance?->status === 'ready' ? 'hidden' : '' }} border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
             >
                 @lang('topweb_chat::app.messages.instance_not_connected')
             </div>
@@ -82,12 +82,12 @@
                         rows="3"
                         class="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-800 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
                         placeholder="@lang('topweb_chat::app.messages.placeholder')"
-                        @disabled($conversation->instance?->status !== 'connected')
+                        @disabled($conversation->instance?->status !== 'ready')
                         required
                     >{{ old('content') }}</textarea>
 
                     <div class="flex justify-end">
-                        <button class="primary-button" @disabled($conversation->instance?->status !== 'connected')>
+                        <button class="primary-button" @disabled($conversation->instance?->status !== 'ready')>
                             @lang('topweb_chat::app.messages.send')
                         </button>
                     </div>
@@ -277,7 +277,7 @@
 
                     if (response.ok) {
                         const payload = await response.json();
-                        const connected = payload.instance?.status === 'connected';
+                        const connected = payload.instance?.status === 'ready';
 
                         renderMessages(payload.messages);
 
@@ -319,7 +319,7 @@
                     } finally {
                         submit?.toggleAttribute(
                             'disabled',
-                            instanceStatus?.textContent !== 'connected'
+                            instanceStatus?.textContent !== 'ready'
                         );
                     }
                 });

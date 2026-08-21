@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('topweb_chat_instances', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->string('provider')->default('ryzeapi');
+            $table->string('provider')->default('openwa');
             $table->text('token');
             $table->text('webhook_secret');
             $table->string('status')->default('unknown');

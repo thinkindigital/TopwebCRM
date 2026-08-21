@@ -6,13 +6,13 @@ Modulo nativo do TopwebCRM para operar conversas WhatsApp vinculadas a Pessoas e
 
 O dominio local de `Instance`, `Conversation`, `Message`, `InternalNote` e `WebhookEvent` existe. Tambem existem inbox, notas, atribuicao, envio enfileirado, botao em Pessoa/Lead e um adapter `OpenWaProvider`.
 
-O fluxo OpenWA ainda nao e funcional de ponta a ponta. A aplicacao conserva contratos RyzeAPI em Settings, webhooks, estados, respostas de envio e historico. Recursos abaixo devem ser tratados como pendentes ate os respectivos testes passarem.
+O OpenWA e o unico provedor implementado. O fluxo ainda nao foi validado de ponta a ponta; recursos abaixo devem ser tratados como pendentes ate os respectivos testes passarem.
 
 ## Contratos decididos
 
 ### Provedor e sessoes
 
-- OpenWA e o unico provedor suportado nesta etapa; RyzeAPI sera removida.
+- OpenWA e o unico provedor suportado nesta etapa.
 - O CRM podera descobrir, importar e criar varias sessoes OpenWA.
 - Uma sessao sera a padrao para novas conversas.
 - Cada conversa permanece vinculada a sua sessao; migracao exige acao administrativa explicita.

@@ -31,6 +31,26 @@
                 </div>
 
                 <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-800 dark:text-white">@lang('topweb_chat::app.settings.session_uuid')</label>
+                    <input
+                        name="session_uuid"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-800 dark:text-white">@lang('topweb_chat::app.settings.base_url')</label>
+                    <input
+                        name="base_url"
+                        type="url"
+                        value="{{ old('base_url', config('topweb-chat.base_url')) }}"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
+                        required
+                    >
+                </div>
+
+                <div>
                     <label class="mb-1 block text-sm font-medium text-gray-800 dark:text-white">@lang('topweb_chat::app.settings.instance_token')</label>
                     <input
                         name="token"

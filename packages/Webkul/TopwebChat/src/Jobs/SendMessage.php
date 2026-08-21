@@ -34,7 +34,7 @@ class SendMessage implements ShouldQueue
 
         if (
             ! $message->conversation->instance->enabled
-            || $message->conversation->instance->status !== 'connected'
+            || $message->conversation->instance->status !== 'ready'
         ) {
             $message->update([
                 'status' => 'failed',

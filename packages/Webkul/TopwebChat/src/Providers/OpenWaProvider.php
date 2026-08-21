@@ -536,10 +536,16 @@ class OpenWaProvider implements MessagingProvider
                 'call.missed',
                 'status.received',
             ]),
-            'headers' => $headers,
-            'filters' => $filters,
             'retryCount' => $retryCount,
         ];
+
+        if ($headers) {
+            $payload['headers'] = $headers;
+        }
+
+        if ($filters) {
+            $payload['filters'] = $filters;
+        }
 
         $response = $this->client($instance)->post(
             "/api/sessions/{$instance->session_uuid}/webhooks",

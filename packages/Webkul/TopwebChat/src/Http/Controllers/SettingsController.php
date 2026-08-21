@@ -68,14 +68,18 @@ class SettingsController
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
+            'session_uuid' => ['required', 'uuid'],
+            'base_url' => ['required', 'url:http,https', 'max:2048'],
             'token' => ['required', 'string', 'max:2000'],
             'enabled' => ['nullable', 'boolean'],
         ]);
 
-        $instance = Instance::query()->firstOrNew(['name' => $data['name']]);
+        $instance = Instance::query()->firstOrNew(['session_uuid' => $data['session_uuid']]);
 
         $instance->fill([
-            'provider' => 'ryzeapi',
+            'name' => $data['name'],
+            'provider' => 'openwa',
+            'base_url' => rtrim($data['base_url'], '/'),
             'token' => $data['token'],
             'enabled' => (bool) ($data['enabled'] ?? false),
         ]);
@@ -100,7 +104,7 @@ class SettingsController
             $this->provider->configureWebhook(
                 $instance,
                 $url,
-                'Bearer '.$instance->webhook_secret
+                $instance->webhook_secret
             );
 
             $instance->update(['last_synced_at' => now()]);

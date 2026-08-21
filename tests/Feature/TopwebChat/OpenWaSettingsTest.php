@@ -1,17 +1,19 @@
 <?php
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Schema;
 use Mockery\MockInterface;
 use Webkul\TopwebChat\Http\Controllers\SettingsController;
+use Webkul\TopwebChat\Jobs\ReconcileInstance;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\WebhookUrlService;
 
 beforeEach(function () {
     Schema::dropIfExists('topweb_chat_instances');
-    Schema::dropIfExists('users');
 
     Schema::create('topweb_chat_instances', function (Blueprint $table) {
         $table->id();
@@ -30,13 +32,15 @@ beforeEach(function () {
         $table->timestamps();
     });
 
-    Schema::create('users', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('email');
-        $table->unsignedBigInteger('role_id')->nullable();
-        $table->timestamps();
-    });
+    if (! Schema::hasTable('users')) {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email');
+            $table->unsignedBigInteger('role_id')->nullable();
+            $table->timestamps();
+        });
+    }
 
     Auth::shouldReceive('guard->user')->andReturn((object) [
         'role' => (object) ['permission_type' => 'all'],
@@ -127,4 +131,31 @@ it('keeps Settings available when OpenWA cannot be reached', function () {
     expect($view->getData()['openWaHealth'])->toBeNull()
         ->and($view->getData()['openWaSessions'])->toBe([])
         ->and($view->getData()['openWaUnavailable'])->toBeTrue();
+});
+
+it('stores only complete OpenWA sessions', function () {
+    Bus::fake();
+
+    $request = Request::create('/settings/topweb-chat/instances', 'POST', [
+        'name' => 'Suporte',
+        'session_uuid' => 'be23262e-5ffb-405b-95e3-8658f043fb30',
+        'base_url' => 'http://openwa.test:2785/',
+        'token' => 'private-api-key',
+        'enabled' => true,
+    ]);
+
+    (new SettingsController(
+        mock(MessagingProvider::class),
+        mock(WebhookUrlService::class)
+    ))->storeInstance($request);
+
+    $instance = Instance::query()->sole();
+
+    expect($instance->provider)->toBe('openwa')
+        ->and($instance->session_uuid)->toBe('be23262e-5ffb-405b-95e3-8658f043fb30')
+        ->and($instance->base_url)->toBe('http://openwa.test:2785')
+        ->and($instance->token)->toBe('private-api-key')
+        ->and($instance->webhook_secret)->toHaveLength(64);
+
+    Bus::assertDispatched(ReconcileInstance::class);
 });

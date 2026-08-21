@@ -211,7 +211,7 @@ class SyncConversationHistory implements ShouldQueue
                     'status' => ($providerMessage['fromMe'] ?? false)
                         ? 'sent'
                         : 'received',
-                    'source' => 'ryzeapi_history',
+                    'source' => 'openwa_history',
                     'metadata' => [
                         'chat_jid' => $providerMessage['chatJid'] ?? null,
                         'sender_jid' => $providerMessage['senderJid'] ?? null,

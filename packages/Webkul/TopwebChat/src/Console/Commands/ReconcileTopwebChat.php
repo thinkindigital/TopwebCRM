@@ -12,7 +12,7 @@ class ReconcileTopwebChat extends Command
 {
     protected $signature = 'topweb-chat:reconcile {--history : Sync recent known conversations}';
 
-    protected $description = 'Reconcile RyzeAPI instance state and known chat history';
+    protected $description = 'Reconcile OpenWA session state and known chat history';
 
     public function handle(): int
     {

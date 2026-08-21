@@ -50,7 +50,7 @@ class MessageService
 
             $instance = $lockedConversation->instance()->first();
 
-            if (! $instance?->enabled || $instance->status !== 'connected') {
+            if (! $instance?->enabled || $instance->status !== 'ready') {
                 throw new DomainException(
                     trans('topweb_chat::app.messages.instance_not_connected')
                 );

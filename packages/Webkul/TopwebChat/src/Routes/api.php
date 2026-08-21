@@ -8,5 +8,5 @@ Route::get('health', fn () => response()->json([
     'status' => 'ok',
 ]))->name('api.topweb_chat.health');
 
-Route::post('webhooks/ryze/{instance}', [WebhookController::class, 'store'])
-    ->name('api.topweb_chat.webhooks.ryze');
+Route::post('webhooks/openwa/{instance}', [WebhookController::class, 'store'])
+    ->name('api.topweb_chat.webhooks.openwa');

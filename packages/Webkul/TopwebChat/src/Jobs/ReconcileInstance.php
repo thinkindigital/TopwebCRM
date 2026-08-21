@@ -35,7 +35,7 @@ class ReconcileInstance implements ShouldQueue
 
         $instance->update([
             'status' => $status,
-            'last_connected_at' => $status === 'connected'
+            'last_connected_at' => $status === 'ready'
                 ? now()
                 : $instance->last_connected_at,
             'last_synced_at' => now(),
