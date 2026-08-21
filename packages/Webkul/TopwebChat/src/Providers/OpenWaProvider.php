@@ -14,14 +14,29 @@ class OpenWaProvider implements MessagingProvider
 {
     // --- Session Management ---
 
+    public function health(Instance $instance): array
+    {
+        $response = $this->client($instance)->get('/api/health');
+
+        $this->ensureSuccessful(
+            $response,
+            trans('topweb_chat::app.provider.health_failed')
+        );
+
+        return $response->json();
+    }
+
     public function createSession(Instance $instance, array $options = []): array
     {
         $payload = [
             'name' => $options['name'] ?? $instance->name,
-            'config' => $options['config'] ?? [],
-            'proxyUrl' => $options['proxyUrl'] ?? null,
-            'proxyType' => $options['proxyType'] ?? null,
         ];
+
+        foreach (['config', 'proxyUrl', 'proxyType'] as $option) {
+            if (array_key_exists($option, $options) && $options[$option] !== null) {
+                $payload[$option] = $options[$option];
+            }
+        }
 
         $response = $this->client($instance)->post('/api/sessions', $payload);
 
@@ -462,9 +477,13 @@ class OpenWaProvider implements MessagingProvider
 
     public function markChatRead(Instance $instance, string $recipient, bool $read = true): void
     {
+        if (! $read) {
+            return;
+        }
+
         $response = $this->client($instance)->post(
-            "/api/sessions/{$instance->session_uuid}/chats/{$recipient}/read",
-            ['read' => $read]
+            "/api/sessions/{$instance->session_uuid}/chats/read",
+            ['chatId' => $recipient]
         );
 
         $this->ensureSuccessful(
