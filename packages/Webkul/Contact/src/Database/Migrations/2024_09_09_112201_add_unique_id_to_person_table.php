@@ -14,7 +14,7 @@ return new class extends Migration
     {
         // Check if column exists before adding
         $columns = Schema::getColumnListing('persons');
-        if (!in_array('unique_id', $columns)) {
+        if (! in_array('unique_id', $columns)) {
             Schema::table('persons', function (Blueprint $table) {
                 $table->string('unique_id')->nullable()->unique();
             });

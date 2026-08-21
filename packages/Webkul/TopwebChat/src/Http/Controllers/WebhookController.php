@@ -65,7 +65,7 @@ class WebhookController
             return false;
         }
 
-        $expectedSignature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
+        $expectedSignature = 'sha256='.hash_hmac('sha256', $payload, $secret);
 
         return hash_equals($expectedSignature, $signature);
     }
@@ -78,28 +78,28 @@ class WebhookController
 
         $identity = match ($event) {
             'message.received', 'message.sent' => data_get($data, 'data.id') ?? data_get($data, 'id'),
-            'message.ack', 'message.failed' => data_get($data, 'data.id') . '|' . data_get($data, 'data.status'),
+            'message.ack', 'message.failed' => data_get($data, 'data.id').'|'.data_get($data, 'data.status'),
             'message.revoked' => data_get($data, 'data.revokedId') ?? data_get($data, 'data.id'),
             'message.reaction' => implode(',', [
                 data_get($data, 'data.messageId'),
                 data_get($data, 'data.senderId'),
                 data_get($data, 'data.reaction'),
             ]),
-            'message.edited' => data_get($data, 'data.messageId') . '|' . data_get($data, 'data.timestamp'),
-            'session.status' => $sessionId . '|' . data_get($data, 'data.status'),
-            'session.authenticated' => $sessionId . '|' . hash('sha256', json_encode($data)) . '|' . data_get($data, 'data.timestamp'),
-            'session.disconnected' => $sessionId . '|' . hash('sha256', data_get($data, 'data.reason')) . '|' . data_get($data, 'data.timestamp'),
-            'group.join', 'group.leave' => data_get($data, 'data.groupId') . '|' . hash('sha256', json_encode(data_get($data, 'data.participantIds', []))) . '|join|leave|' . data_get($data, 'data.timestamp'),
-            'group.update' => data_get($data, 'data.groupId') . '|' . hash('sha256', json_encode(data_get($data, 'data.changes', []))) . '|' . data_get($data, 'data.timestamp'),
-            'group.join_request' => data_get($data, 'data.groupId') . '|' . hash('sha256', json_encode(data_get($data, 'data.participantIds', []))) . '|join_request|' . data_get($data, 'data.timestamp'),
+            'message.edited' => data_get($data, 'data.messageId').'|'.data_get($data, 'data.timestamp'),
+            'session.status' => $sessionId.'|'.data_get($data, 'data.status'),
+            'session.authenticated' => $sessionId.'|'.hash('sha256', json_encode($data)).'|'.data_get($data, 'data.timestamp'),
+            'session.disconnected' => $sessionId.'|'.hash('sha256', data_get($data, 'data.reason')).'|'.data_get($data, 'data.timestamp'),
+            'group.join', 'group.leave' => data_get($data, 'data.groupId').'|'.hash('sha256', json_encode(data_get($data, 'data.participantIds', []))).'|join|leave|'.data_get($data, 'data.timestamp'),
+            'group.update' => data_get($data, 'data.groupId').'|'.hash('sha256', json_encode(data_get($data, 'data.changes', []))).'|'.data_get($data, 'data.timestamp'),
+            'group.join_request' => data_get($data, 'data.groupId').'|'.hash('sha256', json_encode(data_get($data, 'data.participantIds', []))).'|join_request|'.data_get($data, 'data.timestamp'),
             'call.received' => data_get($data, 'data.callId'),
-            'call.accepted', 'call.rejected', 'call.missed' => data_get($data, 'data.callId') . '|' . data_get($data, 'data.outcome') . '|' . data_get($data, 'data.timestamp'),
-            'status.received' => data_get($data, 'data.statusId') . '|' . data_get($data, 'data.timestamp'),
+            'call.accepted', 'call.rejected', 'call.missed' => data_get($data, 'data.callId').'|'.data_get($data, 'data.outcome').'|'.data_get($data, 'data.timestamp'),
+            'status.received' => data_get($data, 'data.statusId').'|'.data_get($data, 'data.timestamp'),
             default => json_encode($data),
         };
 
         $idempotencyKey = $payload['idempotencyKey'] ?? $identity;
 
-        return hash('sha256', $instance->id . '|' . $event . '|' . $idempotencyKey);
+        return hash('sha256', $instance->id.'|'.$event.'|'.$idempotencyKey);
     }
 }

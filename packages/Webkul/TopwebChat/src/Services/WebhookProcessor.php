@@ -4,9 +4,7 @@ namespace Webkul\TopwebChat\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Webkul\TopwebChat\Models\Conversation;
-use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Models\WebhookEvent;
 

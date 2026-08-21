@@ -17,11 +17,12 @@ return new class extends Migration
         // Skip foreign key operations for SQLite
         if (DB::getDriverName() === 'sqlite') {
             $columns = Schema::getColumnListing('leads');
-            if (!in_array('lead_pipeline_stage_id', $columns)) {
+            if (! in_array('lead_pipeline_stage_id', $columns)) {
                 Schema::table('leads', function (Blueprint $table) {
                     $table->integer('lead_pipeline_stage_id')->after('lead_pipeline_id')->unsigned()->nullable();
                 });
             }
+
             return;
         }
 
@@ -56,6 +57,7 @@ return new class extends Migration
                     $table->dropColumn('lead_pipeline_stage_id');
                 }
             });
+
             return;
         }
 

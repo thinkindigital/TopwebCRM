@@ -476,6 +476,7 @@ class OpenWaProvider implements MessagingProvider
     public function connectionStatus(Instance $instance): string
     {
         $data = $this->getSessionStatus($instance);
+
         return $data['status'] ?? 'unknown';
     }
 

@@ -18,16 +18,17 @@ return new class extends Migration
         if (DB::getDriverName() === 'sqlite') {
             // Check if columns already exist
             $columns = Schema::getColumnListing('lead_pipeline_stages');
-            if (!in_array('code', $columns)) {
+            if (! in_array('code', $columns)) {
                 Schema::table('lead_pipeline_stages', function (Blueprint $table) {
                     $table->string('code')->after('id')->nullable();
                 });
             }
-            if (!in_array('name', $columns)) {
+            if (! in_array('name', $columns)) {
                 Schema::table('lead_pipeline_stages', function (Blueprint $table) {
                     $table->string('name')->after('code')->nullable();
                 });
             }
+
             return;
         }
 
