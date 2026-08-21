@@ -35,5 +35,5 @@ Não sobrescrever snapshots silenciosamente. Quando houver atualização:
 1. baixar a fonte canônica;
 2. comparar hash e diff;
 3. revisar divergências com o fork;
-4. atualizar este documento e `docs/CHANGELOG_AI.md`;
+4. atualizar este documento e o GitHub Issue aplicável;
 5. validar novamente agentes e skills.

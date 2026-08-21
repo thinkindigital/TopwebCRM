@@ -3,10 +3,8 @@ Este documento define as regras de produto do TopwebCRM.
 
 Ele existe para orientar decisões funcionais, evitar implementação tecnicamente correta porém desalinhada do objetivo do sistema, e servir como base para análise, arquitetura, segurança, UX e priorização.
 
-Toda implementação deve respeitar este documento junto com:
-- `docs/AI_CONTEXT.md`
-- `docs/ARCHITECTURE.md`
-- `docs/SECURITY_RULES.md`
+Toda implementação deve respeitar este documento junto com `AGENTS.md`,
+`CONTEXT.md`, `docs/ARCHITECTURE.md` e `docs/SECURITY_RULES.md`.
 
 ## 2. Visão do produto
 O TopwebCRM é um fork evoluído do Krayin CRM com foco em uso interno, robustez operacional, governança de dados, extensibilidade e integração com canais de atendimento.
@@ -87,10 +85,10 @@ A primeira melhoria real prioritária é:
 Essa funcionalidade é obrigatória para elevar o nível de maturidade do sistema.
 
 ### 7.1 Objetivo funcional
-Garantir que usuários comuns não tenham acesso integral a dados sensíveis, enquanto administradores ou perfis autorizados possam operar com visão completa quando necessário.
+Garantir que usuários sem concessão individual não tenham acesso integral a dados sensíveis. Acesso administrativo ou contextual não substitui automaticamente essa concessão.
 
 ### 7.2 Resultado esperado
-- admins, roles e usuários permitidos veem o valor integral;
+- usuários com concessão individual veem o valor integral;
 - usuários comuns veem valor mascarado ou nenhum valor;
 - a regra vale em todas as superfícies aplicáveis;
 - o sistema permanece operacional para o usuário comum.
@@ -153,7 +151,27 @@ Permitir atendimento e histórico conversacional dentro do CRM.
 - Integrar com o funil do CRM;
 - manter segurança e controle por perfil.
 
-### 11.3 Regra crítica
+### 11.3 Propriedade e visibilidade
+- o dono do Lead é a fonte de verdade para acesso à conversa vinculada;
+- administradores podem consultar todas as conversas;
+- conversas sem responsável ficam restritas a administradores;
+- transferências de Lead devem atualizar o acesso ao chat de forma atômica;
+- usuários responsáveis leem o conteúdo operacional, mas dados detectados como sensíveis continuam protegidos.
+
+### 11.4 Histórico operacional
+- cada mensagem permanece no histórico do chat, sem virar uma Activity duplicada;
+- a primeira mensagem enviada por usuário do CRM abre uma Activity de Atendimento WhatsApp;
+- mensagens reais renovam a janela de 24 horas;
+- após inatividade, a Activity é encerrada e pode receber relato textual;
+- nova mensagem enviada pelo usuário do CRM abre Atendimento Continuado;
+- reações e eventos técnicos não abrem nem renovam atendimento.
+
+### 11.5 Sessões
+- o CRM deve descobrir, importar e criar múltiplas sessões OpenWA;
+- uma sessão padrão atende novas conversas;
+- cada conversa permanece vinculada à sessão escolhida.
+
+### 11.6 Regra crítica
 Mensagens e metadados também devem obedecer a visibilidade por perfil quando aplicável.
 
 ## 12. Benchmark com Evo CRM

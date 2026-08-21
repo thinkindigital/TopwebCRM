@@ -1,7 +1,7 @@
 # Visibilidade de Dados Sensíveis — Guia Operacional
 
-> **Decisão arquitetural:** `docs/adr/0003-sensitive-data-visibility-by-role.md`  
-> **Serviço central:** `app/Services/SensitiveDataService.php` + `SensitiveFileService.php`  
+> **Decisão arquitetural vigente:** `docs/adr/0007-sensitive-data-individual-and-contextual-access.md`
+> **Serviço central:** `app/Services/SensitiveDataService.php` + `SensitiveFileService.php`
 > **Configuração:** `config/sensitive-data.php`
 
 ---
@@ -42,11 +42,13 @@ A visualização integral de dados sensíveis é **negada por padrão** e conced
 | **Atributos Customizados** | Tipos/nomes documentais em `config/sensitive-data.php` (ex: `cpf`, `cnpj`, `rg`, `tax_id`) |
 | **Conversas (TopwebChat)** | telefone/JID, identificadores externos, metadados estruturados |
 
-> **Texto livre** (mensagens WhatsApp, notas internas) **não** recebe redação automática — regra de produto.
+> **Texto de mensagens WhatsApp** terá mascaramento seletivo de padrões sensíveis. Notas e outros textos livres seguem a classificação do contexto correspondente.
 
 ---
 
-## Superfícies Cobertas (Checklist)
+## Superfícies a Revalidar
+
+**Estado:** planejado na Epic E02. Os itens permanecem desmarcados porque a suíte citada pelo histórico não existe no checkout atual.
 
 - [ ] Resources / API responses (`PersonResource`, `LeadResource`, `ConversationResource`, etc.)
 - [ ] DataGrids (listagens, filtros, ordenação, exportação — campos sensíveis não pesquisáveis/exportáveis)
@@ -102,8 +104,8 @@ Mídias: usar `SensitiveFileService` → armazenar em disco privado; **não** re
 ## Testes e Validação
 
 ```bash
-# Testes específicos (Pest)
-php artisan test tests/Feature/SensitiveDataVisibilityTest.php
+# Comando alvo após a Epic E02 restaurar testes versionados
+php artisan test
 
 # Lint + style
 ./vendor/bin/pint
@@ -119,6 +121,7 @@ curl -f https://crm.seudominio.com/up
 
 ## Referências
 
-- ADR: `docs/adr/0003-sensitive-data-visibility-by-role.md`
-- Changelog: `docs/CHANGELOG_AI.md` (entradas 2026-07-14)
-- Tasks: `docs/tasks/IMPLEMENT_SENSITIVE_DATA_VISIBILITY.md`
+- ADR vigente: `docs/adr/0007-sensitive-data-individual-and-contextual-access.md`
+- ADR histórico superado: `docs/adr/0003-sensitive-data-visibility-by-role.md`
+- Histórico: `docs/archive/CHANGELOG_AI.md` (entradas 2026-07-14)
+- Task arquivada: `docs/archive/IMPLEMENT_SENSITIVE_DATA_VISIBILITY.md`

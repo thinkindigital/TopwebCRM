@@ -2,7 +2,7 @@
 
 ## Como usar este mapa
 
-Este documento descreve o fork real, não apenas convenções Laravel. Para criar ou alterar pacotes, consulte também `docs/krayincrm/llms-full.txt` e o código local. O fork usa PHP 8.3, Laravel 12, Concord, repositories Prettus, Blade com componentes Vue, Vite e Pest.
+Este documento descreve o fork real, não apenas convenções Laravel. Para criar ou alterar pacotes, consulte também `docs/krayincrm/llms-full.txt` e o código local. O fork usa PHP 8.3, Laravel 12, Concord, repositories Prettus, Blade com componentes Vue e Vite. O baseline Pest está restaurado e inclui testes de contrato do OpenWA.
 
 ## Estrutura da raiz
 
@@ -18,9 +18,9 @@ Este documento descreve o fork real, não apenas convenções Laravel. Para cria
 | `routes/` | Rotas globais e agendamentos em `routes/console.php`. Módulos registram rotas próprias. |
 | `public/` | Document root e manifests compilados de root, Admin, Installer e WebForm. |
 | `storage/` | Logs, cache e arquivos. Dados privados ficam em `storage/app/private`. |
-| `tests/` | Testes Pest de integração e unidade do fork. |
+| `tests/` | Diretório esperado para testes do fork; ausente no checkout atual e rastreado pela Epic E03. |
 | `docker/` e `compose*.yaml` | Ambiente local e imagem/stack de produção. |
-| `docs/` | Regras, mapas, operação, decisões e changelog assistido. |
+| `docs/` | Regras, mapas, operação, decisões, referências e histórico arquivado. |
 
 ## Módulos Webkul
 
@@ -38,7 +38,7 @@ Este documento descreve o fork real, não apenas convenções Laravel. Para cria
 | `DataGrid` / `DataTransfer` | Listagem, filtro, ordenação, exportação e importação. |
 | `Automation` / `Marketing` | Workflows, campanhas, jobs e tarefas agendadas. |
 | `Tag`, `Warehouse`, `WebForm`, `Installer` | Tags, depósitos, formulários públicos e instalação. |
-| `TopwebChat` | Extensão Topweb para atendimento WhatsApp integrado à RyzeAPI. |
+| `TopwebChat` | Extensão Topweb para atendimento WhatsApp integrado ao OpenWA; integração ponta a ponta ainda em correção. |
 
 ## Anatomia de um pacote
 
@@ -120,4 +120,3 @@ O TopwebChat reutiliza Blade, Vue e classes do Admin; não possui build Vite pr�
 - Migrations de pacote: não devem controlar colunas globais de outro domínio.
 - Eventos Blade recebem models; qualquer extensão deve reaplicar autorização e sanitização.
 - `storage/app/private`, `APP_KEY` e campos criptografados não podem ser perdidos entre releases.
-

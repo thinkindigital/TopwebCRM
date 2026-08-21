@@ -56,7 +56,9 @@ Exemplos:
 
 ## 5. Regras gerais de visualização
 ### 5.1 Admin
-- pode ver dado integral, se isso fizer parte do escopo funcional.
+- pode acessar os registros do seu escopo administrativo;
+- só vê dado sensível integral quando a concessão individual ou uma exceção contextual documentada autorizar;
+- nunca recebe credenciais ou segredos de integração no navegador.
 
 ### 5.2 Usuário comum
 - não deve ver dado integral altamente sensível;
@@ -184,12 +186,22 @@ Considerar sensíveis:
 - webhooks brutos.
 
 ### 14.2 Regras
-- acesso por perfil;
+- acesso à conversa vinculado ao dono do Lead;
+- administradores veem todas as conversas e conversas sem responsável;
+- usuários comuns não acessam conversas sem responsável;
 - histórico rastreável;
 - anexos controlados;
 - provedor desacoplado;
 - falha/retry seguros;
 - cuidado extra com logs.
+
+### 14.3 Conteúdo e anexos
+- o responsável pelo Lead pode ler o conteúdo operacional da conversa;
+- documentos, telefones, e-mails e cartões de contato detectados continuam sujeitos a mascaramento;
+- sem análise de conteúdo, todo anexo de documento é sensível para usuário sem concessão;
+- imagens não são classificadas automaticamente nesta fase;
+- autorização deve ser verificada na rota de download, não apenas na interface;
+- histórico importado não pode criar Pessoa nem Activity silenciosamente.
 
 ## 15. Critérios mínimos de segurança por implementação
 Toda mudança relevante deve responder:

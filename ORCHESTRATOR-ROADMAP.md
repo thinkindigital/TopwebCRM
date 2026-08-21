@@ -1,153 +1,77 @@
-# ORCHESTRATOR-ROADMAP.md
+# Roadmap do TopwebCRM
 
-Bússola estratégica do TopwebCRM. Epics com IDs estáveis (E##) e milestones entregáveis.
-
----
+O GitHub Issue de cada Epic e a fonte detalhada. Este arquivo resume objetivo, estado e ordem estrategica. IDs `E##` sao estaveis e nunca sao reutilizados.
 
 ## Epics
 
-### **[E01] Fundação Documental e Governança** `done`
-- **Objetivo**: Estabelecer base documental obrigatória (AGENTS.md, AI_CONTEXT.md, ARCHITECTURE.md, SECURITY_RULES.md, PRODUCT_RULES.md, CONTEXT.md, ADRs, docs/agents/)
-- **Critérios de sucesso**: Todos os docs obrigatórios existem, glossário consolidado em CONTEXT.md, ADRs para decisões-chave, skills mapeadas
-- **Status**: done
-- **Milestones**:
-  - [x] Docs obrigatórias criadas/atualizadas
-  - [x] CONTEXT.md com glossário único
-  - [x] 6 ADRs documentando decisões arquiteturais
-  - [x] docs/agents/ configurado (issue-tracker, triage-labels, domain)
-  - [x] AGENTS.md com seção de skills
+### [**[E01] Fundacao Documental e Governanca**](https://github.com/thinkindigital/TopwebCRM/issues/5) - `in_progress`
 
----
+Consolidar fontes de autoridade, glossario, ADRs, tracker e documentacao sem duplicidade.
 
-### **[E02] Visibilidade de Dados Sensíveis por Perfil** `done`
-- **Objetivo**: Centralizar decisão de visibilidade (SensitiveDataService + permissão `sensitive_data.view` + concessão individual `users.can_view_sensitive_data`), cobrir todas as superfícies
-- **Critérios de sucesso**: Admins/perfis com permissão veem integral; usuários comuns veem mascarado/oculto; coberto em listagens, detalhes, formulários, APIs, Resources, busca, autocomplete, filtros, export, relatórios, anexos (disco privado + rotas autorizadas), migração legada idempotente
-- **Status**: done
-- **Milestones**:
-  - [x] Configuração declarativa `config/sensitive-data.php`
-  - [x] Serviço central `SensitiveDataService` + `SensitiveFileService`
-  - [x] Permissão na árvore ACL + concessão individual no User
-  - [x] Resources, DataGrids, formulários, busca, export, dashboard, atividades, anexos, cotações ajustados
-  - [x] Comando `sensitive-data:migrate-attachments` (dry-run + execução)
-  - [x] Testes Pest (10 testes, 34 asserções) + Pint + Blade cache + healthcheck
+### [**[E02] Visibilidade de Dados Sensiveis**](https://github.com/thinkindigital/TopwebCRM/issues/6) - `in_progress`
 
----
+Revalidar a protecao em UI, backend, APIs, busca, exportacao e arquivos. Evidencias anteriores nao sao reproduziveis no checkout atual.
 
-### **[E03] Módulo WhatsApp Nativo (TopwebChat) — Core** `done`
-- **Objetivo**: Pacote `packages/Webkul/TopwebChat` com domínio base, persistência, ACL, UI operacional, provider adapter **OpenWA** (primário) / Evolution API (futuro)
-- **Critérios de sucesso**: Instância OpenWA cadastrável (session_name, base_url, api_key, webhook_secret HMAC); webhook HMAC idempotente; envio texto em job com outbox local (`operation_key`); recebimento via webhook; abertura/reutilização conversa por Pessoa/Lead; atribuição (fila "meus", "sem atendente", "todos" p/ admin); notas internas; alteração etapa Lead; concessão individual dados sensíveis; traduções en/pt_BR
-- **Status**: done
-- **Milestones**:
-  - [x] Entidades: Instance, Conversation, Message, InternalNote, WebhookEvent (Concord contracts + proxies + migrations)
-  - [x] Provider: `MessagingProvider` + `OpenWaProvider` (adapter desacoplado, multi-provider ready)
-  - [x] Webhook: autenticação HMAC SHA256, idempotência, job ProcessWebhookEvent → WebhookProcessor
-  - [x] Envio: MessageController → ConversationAccessService → MessageService → Job SendMessage → Provider
-  - [x] ACL: access, view, start, send, note, assign, change_stage
-  - [x] UI: filas, timeline polling 5s, status monotônico, botões Pessoa/Lead via eventos nativos
-  - [x] Migration aplicada, rotas registradas, testes acesso/provider passando
+### [**[E03] TopwebChat Core OpenWA**](https://github.com/thinkindigital/TopwebCRM/issues/7) - `in_progress`
 
----
+Substituir os contratos RyzeAPI residuais e tornar sessoes, QR, webhook, envio e recebimento OpenWA funcionais de ponta a ponta.
 
-### **[E04] Infraestrutura de Produção (Setup Orion)** `done`
-- **Objetivo**: Stack Docker Swarm parametrizada com imagem imutável, secrets externos, healthchecks, isolamento
-- **Critérios de sucesso**: `Dockerfile.production` (código, deps, assets, Apache 8080, www-data, healthcheck); `compose.production.yaml` (app, worker, scheduler, MySQL, Redis, secrets, rede Traefik, volumes estáveis); build validado, healthcheck HTTP 200, ausência .env/docs/testes na imagem
-- **Status**: done
-- **Milestones**:
-  - [x] Dockerfile.production + auxiliares + .dockerignore
-  - [x] compose.production.yaml parametrizado (imagem, domínio, rede, SMTP)
-  - [x] Secrets externos, volumes com placement fixo
-  - [x] Migrations separadas por fase, espera ativa DB, healthchecks
-  - [x] Imagem `topwebcrm:validation` buildada, healthy, respondendo /up
+### [**[E04] Infraestrutura de Producao**](https://github.com/thinkindigital/TopwebCRM/issues/8) - `in_progress`
 
----
+Revalidar imagem, stack, secrets, conectividade OpenWA, healthchecks, backup e rollback.
 
-### **[E05] Confiabilidade Operacional do Chat (Resiliência OpenWA)** `done`
-- **Objetivo**: Reconciliação instância/histórico, catch-up assíncrono, status monotônico, tratamento rate limit, proteção concorrência
-- **Critérios de sucesso**: Reconciliação manual/agendada instância; catch-up histórico conhecido paginado (from/to/hasMore/cursor); leitura remota assíncrona; status monotônico (delivered/read/played não rebaixam para failed); rate limit OpenWA respeita `Retry-After` + teto configurável; locks transacionais em atribuição/associação/ingestão; contadores inbound monotônicos; preservação notas internas; ingestão webhook atômica
-- **Status**: done
-- **Milestones**:
-  - [x] Comando `topweb-chat:reconcile --history` + scheduler (estado 1min, histórico 5min/20 conv)
-  - [x] Outbox local com operation_key, tentativa única, unknown sem retry cego
-  - [x] Timeline JSON sanitizado polling 5s
-  - [x] 25 testes contratos/ACL/dados sensíveis (79 asserções)
-  - [x] Documentação: TOPWEB_CHAT_OPENWA_MAP.md, TOPWEB_CHAT_OPERATIONS.md, TOPWEB_CHAT_ARCHITECTURE.md
+### [**[E05] Confiabilidade Operacional do Chat**](https://github.com/thinkindigital/TopwebCRM/issues/9) - `in_progress`
 
----
+Corrigir reconciliacao, historico, estados monotonicos, idempotencia, concorrencia e observabilidade.
 
-### **[E06] Reconciliação Completa e Domínios Pendentes** `todo` [[#1](https://github.com/thinkindigital/TopwebCRM/issues/1)]
-- **Objetivo**: Completar gaps operacionais do chat
-- **Critérios de sucesso**: Reconciliação automática drift webhook; fila administrativa identidade ambígua (quarentena); mídia privada (download server-side, validação, disco privado); respostas/botões/listas normalizadas; domínio Grupos (ACL + auditoria própria); PIX (ACL + auditoria financeira); LIDs/Newsletters
-- **Status**: todo
-- **Milestones**:
-  - [ ] Job reconciliação automática webhook drift
-  - [ ] Fila admin para identidade inbound ambígua (não criar Pessoa silenciosamente)
-  - [ ] Mídia: download privado + validação + armazenamento disco privado + URLs autorizadas
-  - [ ] Interativos: botões, listas, respostas com normalização retorno
-  - [ ] Grupos: domínio separado com ACL + auditoria
-  - [ ] PIX: domínio separado com ACL + auditoria financeira
+### [**[E06] Reconciliacao Completa e Dominios Pendentes**](https://github.com/thinkindigital/TopwebCRM/issues/1) - `todo`
 
----
+Implementar quarentena de identidade, midia privada, falhas de webhook e recursos interativos depois da base OpenWA estar funcional.
 
-### **[E07] Auditoria e Trilha Operacional** `todo` [[#2](https://github.com/thinkindigital/TopwebCRM/issues/2)]
-- **Objetivo**: Trilha de auditoria para ações sensíveis (visualização dados sensíveis, exportação, alteração permissões, mudança integração, ações mensageria)
-- **Critérios de sucesso**: Log estruturado imutável; quem/quando/o que/entidade/impacto; consulta/filtro por admin; retenção configurável
-- **Status**: todo
-- **Milestones**:
-  - [ ] Modelo/entidade AuditLog
-  - [ ] Listeners/observers nos pontos críticos (SensitiveDataService, export, ACL, TopwebChat)
-  - [ ] UI admin para consulta/filtro
-  - [ ] Testes de cobertura
+### [**[E07] Auditoria e Trilha Operacional**](https://github.com/thinkindigital/TopwebCRM/issues/2) - `todo`
 
----
+Registrar acoes sensiveis, configuracoes, mensagens e atribuicoes em trilha imutavel, consultavel e com retencao definida.
 
-### **[E08] Melhorias de UX Operacional** `todo` [[#3](https://github.com/thinkindigital/TopwebCRM/issues/3)]
-- **Objetivo**: Reduzir atrito interno (busca, timeline, Kanban, dashboard, autocomplete)
-- **Critérios de sucesso**: Busca global unificada respeitando sensibilidade; timeline conversacional em contexto (Lead/Person/Org); Kanban Lead com drag-drop estável; dashboard com métricas relevantes; autocomplete server-side com autorização
-- **Status**: todo
-- **Milestones**:
-  - [ ] Busca global (meilisearch ou DB otimizado) com autorização
-  - [ ] Timeline unificada (Atividades + Emails + Chat + Notas)
-  - [ ] Kanban Lead estável (persistência ordem, validação transições)
-  - [ ] Dashboard operacional (SLA chat, conversas abertas, leads por etapa)
+### [**[E08] Melhorias de UX Operacional**](https://github.com/thinkindigital/TopwebCRM/issues/3) - `todo`
 
----
+Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline contextual, Kanban e metricas confiaveis.
 
-### **[E09] Multi-provider e Evolution API** `todo` [[#4](https://github.com/thinkindigital/TopwebCRM/issues/4)]
-- **Objetivo**: Suporte a Evolution API como provider alternativo/intercambiável
-- **Critérios de sucesso**: Adapter `EvolutionApiProvider` implementando `MessagingProvider`; config por env; testes de contrato; documentação migração
-- **Status**: todo
-- **Milestones**:
-  - [ ] Adapter Evolution API (autenticação, envio texto/mídia, webhook, instâncias)
-  - [ ] Factory/selector de provider por instância
-  - [ ] Testes de contrato compartilhados
-  - [ ] Docs de migração RyzeAPI ↔ Evolution
+### [**[E09] Multi-provider e Evolution API**](https://github.com/thinkindigital/TopwebCRM/issues/4) - `todo`
 
----
+Adicionar Evolution API somente apos contratos compartilhados e OpenWA estabilizado. Nao manter compatibilidade RyzeAPI.
 
-## Milestones Agregados
+### [**[E10] Propriedade e Distribuicao de Leads**](https://github.com/thinkindigital/TopwebCRM/issues/10) - `todo`
 
-| Milestone | Epics | Target |
-|-----------|-------|--------|
-| **M1: Fundação Sólida** | E01, E02, E03, E04, E05 | Concluído |
-| **M2: Completude Operacional Chat** | E06 | Próximo |
-| **M3: Governança e Auditoria** | E07 | Pós-M2 |
-| **M4: Experiência Operacional** | E08 | Contínuo |
-| **M5: Ecossistema Multi-provider** | E09 | Futuro |
+Aplicar o dono do Lead como fronteira de acesso e, depois, implementar roleta concorrente, justa e auditavel.
 
----
+## Marcos
 
-## Próximas Ações Imediatas (E06)
+| Marco | Epics | Saida verificavel |
+|---|---|---|
+| M1 Governanca reproduzivel | E01, E02, E04 | Docs, seguranca e deploy alinhados a evidencias atuais |
+| M2 WhatsApp funcional | E03, E05 | Sessao, QR, envio, recebimento e historico OpenWA testados |
+| M3 Seguranca operacional | E06, E07, E10 | Quarentena, midia, auditoria e isolamento por Lead |
+| M4 Experiencia integrada | E08 | Atendimento em Activities, busca e metricas |
+| M5 Provedores alternativos | E09 | Contrato compartilhado e Evolution validada |
 
-1. **Reconciliação automática webhook drift** — Job que detecta divergência entre estado local e OpenWA (instância, mensagens unknown, conversas órfãs)
-2. **Quarentena identidade ambígua** — Fila admin para inbound sem vínculo seguro (múltiplas Pessoas ou nenhuma); revisão humana antes de criar/associar
-3. **Mídia privada** — Download server-side via OpenWA (`GET /api/v1/sessions/{session}/messages/{id}/media`), validação tipo/tamanho, armazenamento `storage/app/private`, rota autorizada para download
+## Ordem de execucao
 
----
+1. Concluir E01 e restaurar baseline de testes.
+2. Executar E03 e E05 em slices verticais pequenos.
+3. Implementar a fronteira de autorizacao de E10 antes de expor historico amplo.
+4. Executar fundamentos de auditoria de E07.
+5. Avancar E06: reconciliacao, quarentena e midia.
+6. Integrar Atendimento WhatsApp e UX em E08.
+7. Especificar e implementar a roleta de E10.
+8. Considerar E09 somente depois da estabilizacao do OpenWA.
 
-## Notas
+## Criterio de done
 
-- Epics E01–E05 já entregues e validados (ver `docs/CHANGELOG_AI.md` para evidências: testes, lint, build, healthcheck, migrações)
-- Este roadmap vive localmente; para rastreabilidade em equipe, publicar cada Epic como Issue no GitHub (usar `/to-issues`)
-- **Issues GitHub criadas**: E06 [#1](https://github.com/thinkindigital/TopwebCRM/issues/1), E07 [#2](https://github.com/thinkindigital/TopwebCRM/issues/2), E08 [#3](https://github.com/thinkindigital/TopwebCRM/issues/3), E09 [#4](https://github.com/thinkindigital/TopwebCRM/issues/4)
-- IDs E## são estáveis — não renumerar. Novos Epics usam próximo número disponível.
-- **Provedor WhatsApp**: OpenWA (primário, self-hosted) → Evolution API (futuro). RyzeAPI descontinuada (paga, sem acesso teste).
+Uma Epic so pode ser marcada `done` quando:
+
+- criterios do GitHub Issue estao satisfeitos;
+- testes e comandos citados existem e passam;
+- autorizacao e dados sensiveis foram verificados;
+- documentacao canônica reflete o codigo;
+- QA final registrou evidencias;
+- nao ha dependencia critica pendente.

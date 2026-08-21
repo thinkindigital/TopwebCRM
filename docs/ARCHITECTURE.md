@@ -2,7 +2,7 @@ Não faça refatoração estética. Não renomeie sem necessidade. Não reorgani
 
 # ARCHITECTURE.md — Princípios e Padrões (Resumo)
 
-> **Fontes autoritativas:** `CONTEXT.md` (glossário), `docs/adr/0001–0006` (decisões), `docs/krayincrm/llms-full.txt` (Krayin internals)
+> **Fontes autoritativas:** `docs/README.md`, `CONTEXT.md`, ADRs aceitos em `docs/adr/` e código local
 
 ---
 
@@ -25,7 +25,7 @@ Orientar mudanças arquiteturais no TopwebCRM. Não inventa arquitetura — regi
 ## Precedência de Fontes (Krayin)
 
 1. Código, migrations, config do TopwebCRM
-2. `docs/` obrigatórios + tasks
+2. ADRs aceitos e documentos canônicos listados em `docs/README.md`
 3. `docs/krayincrm/llms-full.txt` (consultar por seção)
 4. Documentação online v2.2 / upstream
 
@@ -89,7 +89,7 @@ Ao analisar qualquer módulo Krayin, localizar:
 
 **Arquitetura:** Provider-agnostic via `MessagingProvider`  
 **Provedor Primário:** OpenWA (self-hosted, HMAC webhooks, API Key)  
-**Detalhes:** `docs/adr/0004` + `docs/TOPWEB_CHAT_ARCHITECTURE.md` + `docs/TOPWEB_CHAT_OPENWA_MAP.md` + `docs/TOPWEB_CHAT_OPERATIONS.md`
+**Detalhes:** `docs/adr/0004-topwebchat-whatsapp-module.md` + `docs/topweb-chat/README.md` + `docs/topweb-chat/OPENWA.md` + `docs/topweb-chat/OPERATIONS.md`
 
 **Requisitos Mínimos:**
 - Provedor desacoplado (adapter)
@@ -122,7 +122,7 @@ Comparar: conversas, contatos, inboxes, mensageria, auth/roles, estrutura modula
 5. Propor ponto de extensão mais seguro
 6. Definir testes
 7. Implementar em etapas pequenas
-8. Registrar em `docs/CHANGELOG_AI.md`
+8. Atualizar a documentação canônica e o GitHub Issue aplicável
 
 ---
 

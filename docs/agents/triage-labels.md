@@ -1,13 +1,11 @@
-# Triage Labels
+# Labels de triage
 
-As skills falam em termos de cinco roles canônicos de triage. Este arquivo mapeia esses roles para os labels reais usados no tracker local.
+| Label | Uso |
+|---|---|
+| `needs-triage` | Requer avaliação inicial |
+| `needs-info` | Bloqueada por informação ausente |
+| `ready-for-agent` | Contrato e aceite completos |
+| `ready-for-human` | Requer decisão ou execução humana |
+| `wontfix` | Não será executada |
 
-| Label padrão | Label no nosso tracker | Significado |
-|--------------|------------------------|-------------|
-| `needs-triage` | `needs-triage` | Mantenedor precisa avaliar esta issue |
-| `needs-info` | `needs-info` | Aguardando reporter para mais informação |
-| `ready-for-agent` | `ready-for-agent` | Totalmente especificada, pronta para agente AFK |
-| `ready-for-human` | `ready-for-human` | Requer implementação humana |
-| `wontfix` | `wontfix` | Não será actionada |
-
-Quando uma skill menciona um role (ex: "aplicar label AFK-ready"), usar o label correspondente desta tabela.
+Os labels devem existir no GitHub antes de serem usados. O estado da Issue, e não um arquivo local, é a fonte oficial.
