@@ -5,6 +5,7 @@ namespace Webkul\TopwebChat\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Webkul\TopwebChat\Jobs\ProcessWebhookEvent;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Models\WebhookEvent;
@@ -28,7 +29,7 @@ class WebhookController
             abort(401, 'Invalid signature');
         }
 
-        $data = $request->validate([
+        $validator = Validator::make($request->all(), [
             'event' => ['required', 'string', 'max:120'],
             'timestamp' => ['nullable', 'string'],
             'sessionId' => ['nullable', 'string'],
@@ -36,6 +37,18 @@ class WebhookController
             'deliveryId' => ['nullable', 'string'],
             'data' => ['required', 'array'],
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Invalid OpenWA webhook payload.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+        if ($data['event'] === 'test') {
+            return response()->json(['accepted' => true], 202);
+        }
 
         $eventKey = $this->eventKey($instance, $data);
         $event = WebhookEvent::query()->firstOrCreate([

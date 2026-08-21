@@ -74,4 +74,54 @@ class MessageService
 
         return $message->fresh();
     }
+
+    public function retry(Message $message, Conversation $conversation, User $user): Message
+    {
+        $retryMessage = DB::transaction(function () use ($message, $conversation, $user) {
+            $lockedConversation = Conversation::query()
+                ->lockForUpdate()
+                ->findOrFail($conversation->id);
+
+            $this->access->authorizeView($user, $lockedConversation);
+
+            $lockedMessage = Message::query()
+                ->where('conversation_id', $lockedConversation->id)
+                ->lockForUpdate()
+                ->findOrFail($message->id);
+
+            if (! $this->canRetry($lockedMessage)) {
+                throw new DomainException(
+                    trans('topweb_chat::app.messages.retry_not_available')
+                );
+            }
+
+            $instance = $lockedConversation->instance()->first();
+
+            if (! $instance?->enabled || $instance->status !== 'ready') {
+                throw new DomainException(
+                    trans('topweb_chat::app.messages.instance_not_connected')
+                );
+            }
+
+            $lockedMessage->update([
+                'status' => 'queued',
+                'failed_at' => null,
+                'last_error' => null,
+            ]);
+
+            return $lockedMessage;
+        });
+
+        SendMessage::dispatchAfterResponse($retryMessage->id);
+
+        return $retryMessage->fresh();
+    }
+
+    public function canRetry(Message $message): bool
+    {
+        return $message->direction === 'outgoing'
+            && $message->status === 'failed'
+            && $message->last_error === 'provider_instance_not_connected'
+            && $message->provider_message_id === null;
+    }
 }

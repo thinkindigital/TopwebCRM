@@ -10,7 +10,7 @@ Consolidar fontes de autoridade, glossario, ADRs, tracker e documentacao sem dup
 
 ### [**[E02] Visibilidade de Dados Sensiveis**](https://github.com/thinkindigital/TopwebCRM/issues/6) - `in_progress`
 
-Revalidar a protecao em UI, backend, APIs, busca, exportacao e arquivos. Evidencias anteriores nao sao reproduziveis no checkout atual.
+Revalidar a protecao em UI, backend, APIs, busca, exportacao, arquivos e midias. Evidencias anteriores nao sao reproduziveis no checkout atual.
 
 ### [**[E03] TopwebChat Core OpenWA**](https://github.com/thinkindigital/TopwebCRM/issues/7) - `in_progress`
 
@@ -22,7 +22,7 @@ Revalidar imagem, stack, secrets, conectividade OpenWA, healthchecks, backup e r
 
 ### [**[E05] Confiabilidade Operacional do Chat**](https://github.com/thinkindigital/TopwebCRM/issues/9) - `in_progress`
 
-Corrigir reconciliacao, historico, estados monotonicos, idempotencia, concorrencia e observabilidade.
+Corrigir reconciliacao, historico, estados monotonicos, retry seguro, idempotencia, concorrencia e observabilidade.
 
 ### [**[E06] Reconciliacao Completa e Dominios Pendentes**](https://github.com/thinkindigital/TopwebCRM/issues/1) - `todo`
 
@@ -34,7 +34,7 @@ Registrar acoes sensiveis, configuracoes, mensagens e atribuicoes em trilha imut
 
 ### [**[E08] Melhorias de UX Operacional**](https://github.com/thinkindigital/TopwebCRM/issues/3) - `todo`
 
-Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline contextual, Kanban e metricas confiaveis.
+Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronologica e rolavel, Kanban e metricas confiaveis.
 
 ### [**[E09] Multi-provider e Evolution API**](https://github.com/thinkindigital/TopwebCRM/issues/4) - `todo`
 
@@ -42,7 +42,7 @@ Adicionar Evolution API somente apos contratos compartilhados e OpenWA estabiliz
 
 ### [**[E10] Propriedade e Distribuicao de Leads**](https://github.com/thinkindigital/TopwebCRM/issues/10) - `todo`
 
-Aplicar o dono do Lead como fronteira de acesso e, depois, implementar roleta concorrente, justa e auditavel.
+Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API.
 
 ## Marcos
 

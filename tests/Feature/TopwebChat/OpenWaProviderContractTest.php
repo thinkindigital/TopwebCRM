@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
@@ -18,6 +19,10 @@ function openWaInstance(array $attributes = []): Instance
         'enabled' => true,
     ], $attributes));
 }
+
+beforeEach(function () {
+    Cache::flush();
+});
 
 it('lists OpenWA sessions using the authenticated raw API contract', function () {
     Http::fake([
@@ -85,6 +90,21 @@ it('marks an OpenWA chat as read using the collection endpoint', function () {
         && $request->data() === ['chatId' => '5511999999999@c.us']);
 });
 
+it('accepts an OpenWA read no-op when no message is available in engine memory', function () {
+    Http::fake([
+        'http://openwa.test:2785/api/sessions/*/chats/read' => Http::response([
+            'success' => false,
+        ]),
+    ]);
+
+    app(OpenWaProvider::class)->markChatRead(
+        openWaInstance(),
+        '5511999999999@c.us'
+    );
+
+    Http::assertSentCount(1);
+});
+
 it('creates an OpenWA session without null optional fields', function () {
     Http::fake([
         'http://openwa.test:2785/api/sessions' => Http::response([
@@ -146,6 +166,70 @@ it('sends text using the OpenWA raw response contract', function () {
             'text' => 'Ola',
             'quotedMessageId' => 'quoted-message-id',
         ]);
+});
+
+it('resolves a phone number to an OpenWA chat id before sending', function () {
+    Http::fake([
+        'http://openwa.test:2785/api/sessions/*/contacts/check/*' => Http::response([
+            'number' => '5511999999999',
+            'exists' => true,
+            'whatsappId' => '5511999999999@c.us',
+        ]),
+        'http://openwa.test:2785/api/sessions/*/messages/send-text' => Http::response([
+            'messageId' => 'true_5511999999999@c.us_3EB0ABCD',
+            'timestamp' => 1719312000,
+        ], 201),
+    ]);
+
+    app(OpenWaProvider::class)->sendText(
+        openWaInstance(),
+        '5511999999999',
+        'Ola'
+    );
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'POST'
+        && $request->data()['chatId'] === '5511999999999@c.us');
+});
+
+it('loads only persisted OpenWA history for one conversation', function () {
+    Http::fake([
+        'http://openwa.test:2785/api/sessions/*/contacts/check/*' => Http::response([
+            'number' => '5511999999999',
+            'exists' => true,
+            'whatsappId' => '5511999999999@c.us',
+        ]),
+        'http://openwa.test:2785/api/sessions/*/messages*' => Http::response([
+            'messages' => [[
+                'id' => 'local-id',
+                'waMessageId' => 'wa-id',
+                'chatId' => '5511999999999@c.us',
+                'from' => '5511999999999@c.us',
+                'body' => 'Historico',
+                'type' => 'text',
+                'direction' => 'incoming',
+                'timestamp' => 1719312000,
+            ]],
+            'total' => 1,
+        ]),
+    ]);
+
+    $history = app(OpenWaProvider::class)->history(
+        openWaInstance(),
+        '5511999999999'
+    );
+
+    expect($history['has_more'])->toBeFalse()
+        ->and($history['chat_jid'])->toBe('5511999999999@c.us')
+        ->and($history['messages'])->toHaveCount(1)
+        ->and($history['messages'][0])->toMatchArray([
+            'id' => 'wa-id',
+            'content' => 'Historico',
+            'fromMe' => false,
+        ]);
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'GET'
+        && str_contains($request->url(), '/messages?')
+        && str_contains($request->url(), 'chatId=5511999999999%40c.us'));
 });
 
 it('registers the literal HMAC secret on an OpenWA webhook', function () {

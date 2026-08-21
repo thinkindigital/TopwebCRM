@@ -5,19 +5,24 @@ namespace Webkul\TopwebChat\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Throwable;
 use Webkul\TopwebChat\Jobs\MarkConversationRead;
 use Webkul\TopwebChat\Jobs\SyncConversationHistory;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Repositories\ConversationRepository;
 use Webkul\TopwebChat\Services\ConversationAccessService;
+use Webkul\TopwebChat\Services\MessageService;
 use Webkul\User\Models\User;
 
 class ConversationController
 {
     public function __construct(
         protected ConversationRepository $conversationRepository,
-        protected ConversationAccessService $access
+        protected ConversationAccessService $access,
+        protected MessageService $messages
     ) {}
 
     public function index(Request $request): View
@@ -57,19 +62,50 @@ class ConversationController
             'lead',
             'assignedUser',
             'instance',
-            'messages' => fn ($query) => $query->latest()->limit(100),
+            'messages' => fn ($query) => $query
+                ->orderByRaw('COALESCE(sent_at, created_at) DESC')
+                ->orderByDesc('id')
+                ->limit(100),
             'internalNotes' => fn ($query) => $query->with('user')->latest()->limit(100),
         ]);
 
+        $conversation->setRelation(
+            'messages',
+            $conversation->messages->reverse()->values()
+        );
+
         if ($conversation->instance?->enabled) {
-            Bus::chain([
-                new SyncConversationHistory($conversation->id, true),
-                new MarkConversationRead($conversation->id),
-            ])->dispatch();
+            try {
+                Bus::chain([
+                    new SyncConversationHistory($conversation->id, true),
+                    new MarkConversationRead($conversation->id),
+                ])->dispatch();
+            } catch (Throwable $exception) {
+                Cache::put(
+                    "topweb-chat:provider-unavailable:{$conversation->instance_id}",
+                    true,
+                    now()->addMinutes(5)
+                );
+
+                Log::warning('OpenWA background synchronization failed while loading a conversation.', [
+                    'conversation_id' => $conversation->id,
+                    'instance_id' => $conversation->instance_id,
+                    'exception' => $exception::class,
+                ]);
+            }
         }
 
         return view('topweb_chat::conversations.show', [
             'conversation' => $conversation,
+            'historyUnavailable' => Cache::has(
+                "topweb-chat:history-unavailable:{$conversation->instance_id}"
+            ),
+            'readUnavailable' => Cache::has(
+                "topweb-chat:read-unavailable:{$conversation->instance_id}"
+            ),
+            'providerUnavailable' => Cache::has(
+                "topweb-chat:provider-unavailable:{$conversation->instance_id}"
+            ),
             'pipelineStages' => $conversation->lead
                 ? $conversation->lead->pipeline->stages
                 : collect(),
@@ -89,10 +125,11 @@ class ConversationController
         );
 
         $messages = $conversation->messages()
-            ->latest('id')
+            ->orderByRaw('COALESCE(sent_at, created_at) DESC')
+            ->orderByDesc('id')
             ->limit(100)
             ->get()
-            ->sortBy('id')
+            ->reverse()
             ->values()
             ->map(fn ($message) => [
                 'id' => $message->id,
@@ -102,6 +139,11 @@ class ConversationController
                 'status' => $message->status,
                 'sent_at' => ($message->sent_at ?? $message->created_at)
                     ?->toIso8601String(),
+                'can_retry' => $this->messages->canRetry($message),
+                'retry_url' => route('admin.topweb_chat.messages.retry', [
+                    'conversation' => $conversation,
+                    'message' => $message,
+                ]),
             ]);
 
         return response()->json([

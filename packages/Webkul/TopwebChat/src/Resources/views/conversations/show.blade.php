@@ -13,7 +13,7 @@
     @endphp
 
     <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <section class="flex h-[calc(100dvh-7rem)] min-h-[32rem] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <header class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-800">
                 <div>
                     <a href="{{ route('admin.topweb_chat.index') }}" class="text-sm text-brandColor">
@@ -44,21 +44,36 @@
                 @lang('topweb_chat::app.messages.instance_not_connected')
             </div>
 
+            @if ($historyUnavailable || $readUnavailable || $providerUnavailable)
+                <div class="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                    @lang('topweb_chat::app.messages.integration_unavailable')
+                </div>
+            @endif
+
             <div
                 id="topweb-chat-timeline"
-                class="grid max-h-[62vh] gap-3 overflow-y-auto bg-gray-50 p-4 dark:bg-gray-950"
+                class="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto bg-gray-50 p-4 dark:bg-gray-950"
                 data-messages-url="{{ route('admin.topweb_chat.messages.index', $conversation) }}"
             >
-                @forelse ($conversation->messages->sortBy('created_at') as $message)
+                @forelse ($conversation->messages as $message)
                     <article
                         class="flex {{ $message->direction === 'outgoing' ? 'justify-end' : 'justify-start' }}"
                         data-message-id="{{ $message->id }}"
                     >
                         <div class="max-w-[78%] rounded-lg px-4 py-3 {{ $message->direction === 'outgoing' ? 'bg-brandColor text-white' : 'bg-white text-gray-800 dark:bg-gray-900 dark:text-white' }}">
                             <p class="whitespace-pre-wrap break-words">{{ $message->content ?: trans('topweb_chat::app.messages.media') }}</p>
-                            <div class="mt-2 flex gap-2 text-xs opacity-75">
+                            <div class="mt-2 flex items-center gap-2 text-xs opacity-75">
                                 <span>{{ $message->sent_at?->format('d/m/Y H:i') ?? $message->created_at?->format('d/m/Y H:i') }}</span>
                                 <span>{{ $message->status }}</span>
+                                @if (app(\Webkul\TopwebChat\Services\MessageService::class)->canRetry($message))
+                                    <button
+                                        type="button"
+                                        class="underline"
+                                        data-retry-url="{{ route('admin.topweb_chat.messages.retry', [$conversation, $message]) }}"
+                                    >
+                                        @lang('topweb_chat::app.messages.retry')
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </article>
@@ -72,7 +87,7 @@
                     id="topweb-chat-send-form"
                     method="POST"
                     action="{{ route('admin.topweb_chat.messages.store', $conversation) }}"
-                    class="grid gap-3 border-t border-gray-200 p-4 dark:border-gray-800"
+                    class="grid shrink-0 gap-3 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
                 >
                     @csrf
                     <input type="hidden" name="operation_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
@@ -215,7 +230,13 @@
                     return;
                 }
 
-                const renderMessages = (messages) => {
+                const renderMessages = (messages, forceScroll = false) => {
+                    const wasNearBottom = timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 80;
+                    const anchor = [...timeline.children].find(
+                        (element) => element.offsetTop + element.offsetHeight >= timeline.scrollTop
+                    );
+                    const anchorId = anchor?.dataset.messageId;
+                    const anchorOffset = anchor ? anchor.offsetTop - timeline.scrollTop : 0;
                     timeline.replaceChildren();
 
                     if (!messages.length) {
@@ -234,6 +255,7 @@
                         const metadata = document.createElement('div');
                         const timestamp = document.createElement('span');
                         const status = document.createElement('span');
+                        const retry = document.createElement('button');
                         const outgoing = message.direction === 'outgoing';
 
                         article.dataset.messageId = message.id;
@@ -255,12 +277,29 @@
                         status.textContent = message.status;
 
                         metadata.append(timestamp, status);
+
+                        if (message.can_retry && message.retry_url) {
+                            retry.type = 'button';
+                            retry.className = 'underline';
+                            retry.dataset.retryUrl = message.retry_url;
+                            retry.textContent = @json(trans('topweb_chat::app.messages.retry'));
+                            metadata.appendChild(retry);
+                        }
+
                         bubble.append(content, metadata);
                         article.appendChild(bubble);
                         timeline.appendChild(article);
                     });
 
-                    timeline.scrollTop = timeline.scrollHeight;
+                    if (forceScroll || wasNearBottom) {
+                        timeline.scrollTop = timeline.scrollHeight;
+                    } else if (anchorId) {
+                        const nextAnchor = timeline.querySelector(`[data-message-id="${anchorId}"]`);
+
+                        if (nextAnchor) {
+                            timeline.scrollTop = nextAnchor.offsetTop - anchorOffset;
+                        }
+                    }
                 };
 
                 const refresh = async () => {
@@ -314,6 +353,7 @@
                         form.querySelector('textarea').value = '';
                         form.querySelector('[name="operation_key"]').value = crypto.randomUUID();
                         await refresh();
+                        timeline.scrollTop = timeline.scrollHeight;
                     } catch (error) {
                         window.alert(@json(trans('topweb_chat::app.messages.send_failed')));
                     } finally {
@@ -321,6 +361,36 @@
                             'disabled',
                             instanceStatus?.textContent !== 'ready'
                         );
+                    }
+                });
+
+                timeline.addEventListener('click', async (event) => {
+                    const retry = event.target.closest('[data-retry-url]');
+
+                    if (!retry) {
+                        return;
+                    }
+
+                    retry.setAttribute('disabled', 'disabled');
+
+                    try {
+                        const response = await fetch(retry.dataset.retryUrl, {
+                            method: 'POST',
+                            headers: {
+                                Accept: 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': form?.querySelector('[name="_token"]')?.value || '',
+                            },
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('message_retry_failed');
+                        }
+
+                        await refresh();
+                    } catch (error) {
+                        retry.removeAttribute('disabled');
+                        window.alert(@json(trans('topweb_chat::app.messages.retry_not_available')));
                     }
                 });
 

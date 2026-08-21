@@ -56,7 +56,11 @@ return [
         'sent' => 'Mensagem enviada.',
         'queued' => 'Mensagem adicionada à fila de envio.',
         'send_failed' => 'Não foi possível enviar a mensagem.',
+        'retry' => 'Tentar novamente',
+        'retry_queued' => 'Mensagem adicionada novamente à fila.',
+        'retry_not_available' => 'Esta mensagem não pode ser reenviada com segurança.',
         'instance_not_connected' => 'Envio temporariamente bloqueado: sincronize a sessão e confirme o estado ready.',
+        'integration_unavailable' => 'O OpenWA está parcialmente indisponível. O CRM continua funcionando, mas o histórico ou a confirmação de leitura podem estar temporariamente desatualizados.',
     ],
     'provider' => [
         'send_failed' => 'O OpenWA rejeitou o envio da mensagem.',
@@ -64,6 +68,8 @@ return [
         'instance_status_failed' => 'Não foi possível consultar o estado da sessão no OpenWA.',
         'history_failed' => 'Não foi possível reconciliar o histórico da conversa.',
         'mark_read_failed' => 'Não foi possível marcar a conversa como lida no OpenWA.',
+        'contact_check_failed' => 'Não foi possível validar o número no OpenWA.',
+        'contact_not_registered' => 'O número informado não está registrado no WhatsApp.',
     ],
     'webhook' => [
         'public_url_required' => 'Defina TOPWEB_CHAT_PUBLIC_URL com um endereço HTTPS público antes de configurar o webhook.',
