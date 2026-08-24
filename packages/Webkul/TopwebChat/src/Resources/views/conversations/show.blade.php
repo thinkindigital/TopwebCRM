@@ -13,7 +13,10 @@
     @endphp
 
     <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section class="flex h-[calc(100dvh-7rem)] min-h-[32rem] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <section
+            class="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+            style="height: clamp(30rem, calc(100dvh - 10rem), 48rem); min-height: 0;"
+        >
             <header class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-800">
                 <div>
                     <a href="{{ route('admin.topweb_chat.index') }}" class="text-sm text-brandColor">
@@ -53,7 +56,9 @@
             <div
                 id="topweb-chat-timeline"
                 class="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto bg-gray-50 p-4 dark:bg-gray-950"
+                style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"
                 data-messages-url="{{ route('admin.topweb_chat.messages.index', $conversation) }}"
+                aria-live="polite"
             >
                 @forelse ($conversation->messages as $message)
                     <article
@@ -88,6 +93,7 @@
                     method="POST"
                     action="{{ route('admin.topweb_chat.messages.store', $conversation) }}"
                     class="grid shrink-0 gap-3 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
+                    style="flex: 0 0 auto;"
                 >
                     @csrf
                     <input type="hidden" name="operation_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
@@ -308,6 +314,7 @@
                     }
 
                     const response = await fetch(timeline.dataset.messagesUrl, {
+                        cache: 'no-store',
                         headers: {
                             Accept: 'application/json',
                             'X-Requested-With': 'XMLHttpRequest',
@@ -395,7 +402,22 @@
                 });
 
                 timeline.scrollTop = timeline.scrollHeight;
-                window.setInterval(() => refresh().catch(() => {}), 5000);
+
+                const poll = async () => {
+                    try {
+                        await refresh();
+                    } finally {
+                        window.setTimeout(poll, 3000);
+                    }
+                };
+
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        refresh().catch(() => {});
+                    }
+                });
+
+                window.setTimeout(poll, 3000);
             });
         </script>
     @endPushOnce

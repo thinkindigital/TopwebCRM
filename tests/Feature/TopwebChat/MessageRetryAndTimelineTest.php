@@ -56,10 +56,15 @@ it('keeps the composer outside the scrollable chronological timeline', function 
 
     expect($view)->toContain(
         'min-h-0 flex-1 content-start',
+        'height: clamp(30rem, calc(100dvh - 10rem), 48rem)',
+        'style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"',
         'id="topweb-chat-send-form"',
+        'style="flex: 0 0 auto;"',
         'data-retry-url',
         'timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 80',
-        'nextAnchor.offsetTop - anchorOffset'
+        'nextAnchor.offsetTop - anchorOffset',
+        "cache: 'no-store'",
+        'window.setTimeout(poll, 3000)'
     )->and(strpos($view, 'id="topweb-chat-timeline"'))
         ->toBeLessThan(strpos($view, 'id="topweb-chat-send-form"'))
         ->and($controller)->toContain(
