@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 
 RUN set -eux; \
-    for package_dir in . packages/Webkul/Admin packages/Webkul/Installer packages/Webkul/WebForm; do \
+    for package_dir in packages/Webkul/Admin packages/Webkul/Installer packages/Webkul/WebForm; do \
         cd "/app/${package_dir}"; \
         npm install --no-audit --no-fund; \
         npm run build; \
