@@ -24,7 +24,7 @@ services:
       - SETUID
     environment:
       NODE_ENV: production
-      HOME: /tmp
+      HOME: /app/data
       XDG_CONFIG_HOME: /tmp/.config
       XDG_CACHE_HOME: /tmp/.cache
       PORT: "2785"
