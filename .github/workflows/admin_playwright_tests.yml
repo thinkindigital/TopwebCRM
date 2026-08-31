@@ -45,13 +45,16 @@ jobs:
           ini-values: error_reporting=E_ALL
           tools: composer:v2
 
+      - name: Prepare Laravel runtime directories
+        run: mkdir -p storage/app/private storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+
       - name: Set Up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Install Node.js Dependencies
-        run: npm install
+        run: npm ci
         working-directory: packages/Webkul/Admin
 
       - name: Install Playwright Browsers

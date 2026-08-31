@@ -4,7 +4,9 @@ namespace Webkul\TopwebChat\Jobs;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Webkul\TopwebChat\Exceptions\ProviderRequestException;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
@@ -31,6 +33,7 @@ class MarkConversationRead implements ShouldQueue
                 $conversation->instance,
                 $conversation->remote_jid
             );
+            Cache::forget("topweb-chat:read-unavailable:{$conversation->instance_id}");
         } catch (ProviderRequestException $exception) {
             if ($exception->statusCode === 429) {
                 $this->release($exception->retryAfter);
@@ -38,7 +41,23 @@ class MarkConversationRead implements ShouldQueue
                 return;
             }
 
-            throw $exception;
+            if ($exception->statusCode !== 501) {
+                throw $exception;
+            }
+
+            Cache::put(
+                "topweb-chat:read-unavailable:{$conversation->instance_id}",
+                true,
+                now()->addMinutes(5)
+            );
+
+            Log::warning('OpenWA read synchronization is unavailable.', [
+                'conversation_id' => $conversation->id,
+                'instance_id' => $conversation->instance_id,
+                'status_code' => $exception->statusCode,
+            ]);
+
+            return;
         }
 
         DB::transaction(function () use ($conversation, $readStartedAt) {

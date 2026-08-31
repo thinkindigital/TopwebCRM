@@ -30,6 +30,17 @@ O codigo atual registra reconciliacao no `TopwebChatServiceProvider`:
 
 As opcoes `--state`, `--full` e `--limit` nao existem atualmente. Jobs usam a fila Laravel padrao ate que filas dedicadas sejam implementadas e documentadas.
 
+### Reenvio de mensagens
+
+- `Tentar novamente` aparece somente para outbound `failed` com `provider_instance_not_connected` e sem ID remoto.
+- O backend revalida permissao, vinculo com a conversa, estado da mensagem e sessao `ready` sob lock.
+- Mensagens `unknown` podem ter sido aceitas antes de um timeout e nunca devem ser reenviadas cegamente.
+- Recuperacao automatica de falhas apos a sessao voltar a `ready` ainda nao esta habilitada.
+
+## Integracoes externas
+
+n8n, Meta e Google nao sao operados pelo TopwebCRM. O projeto pode manter exemplos de payload, contratos e testes HTTP para validar compatibilidade, mas retries, filas e regras executadas nessas ferramentas sao apenas requisitos informativos externos.
+
 ## Desenvolvimento local
 
 - CRM: `http://127.0.0.1:8000`

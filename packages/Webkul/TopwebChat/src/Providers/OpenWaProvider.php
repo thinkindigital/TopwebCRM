@@ -5,6 +5,7 @@ namespace Webkul\TopwebChat\Providers;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Webkul\TopwebChat\Exceptions\ProviderRequestException;
 use Webkul\TopwebChat\Models\Instance;
@@ -185,7 +186,7 @@ class OpenWaProvider implements MessagingProvider
     public function sendText(Instance $instance, string $recipient, string $message, array $options = []): array
     {
         $payload = [
-            'chatId' => $recipient,
+            'chatId' => $this->resolveChatId($instance, $recipient),
             'text' => $message,
         ];
 
@@ -218,7 +219,7 @@ class OpenWaProvider implements MessagingProvider
     public function sendMedia(Instance $instance, string $recipient, array $mediaData): array
     {
         $payload = [
-            'chatId' => $recipient,
+            'chatId' => $this->resolveChatId($instance, $recipient),
         ];
 
         if (isset($mediaData['url'])) {
@@ -268,7 +269,7 @@ class OpenWaProvider implements MessagingProvider
     public function sendLocation(Instance $instance, string $recipient, float $latitude, float $longitude, array $options = []): array
     {
         $payload = [
-            'chatId' => $recipient,
+            'chatId' => $this->resolveChatId($instance, $recipient),
             'latitude' => $latitude,
             'longitude' => $longitude,
         ];
@@ -298,7 +299,7 @@ class OpenWaProvider implements MessagingProvider
         $response = $this->client($instance)->post(
             "/api/sessions/{$instance->session_uuid}/messages/send-contact",
             [
-                'chatId' => $recipient,
+                'chatId' => $this->resolveChatId($instance, $recipient),
                 'contactName' => $contactName,
                 'contactNumber' => $contactNumber,
             ]
@@ -403,7 +404,7 @@ class OpenWaProvider implements MessagingProvider
         $response = $this->client($instance)->post(
             "/api/sessions/{$instance->session_uuid}/messages/send-poll",
             [
-                'chatId' => $recipient,
+                'chatId' => $this->resolveChatId($instance, $recipient),
                 'name' => $name,
                 'options' => $options,
                 'allowMultipleAnswers' => false,
@@ -447,19 +448,14 @@ class OpenWaProvider implements MessagingProvider
         ?CarbonInterface $from = null,
         ?CarbonInterface $to = null
     ): array {
+        $chatId = $this->resolveChatId($instance, $recipient);
         $query = [
-            'limit' => min(max($count, 1), 200),
+            'chatId' => $chatId,
+            'limit' => min(max($count, 1), 100),
         ];
 
-        if ($from) {
-            $query['from'] = $from->toIso8601String();
-        }
-        if ($to) {
-            $query['to'] = $to->toIso8601String();
-        }
-
         $response = $this->client($instance)->get(
-            "/api/sessions/{$instance->session_uuid}/messages/{$recipient}/history",
+            "/api/sessions/{$instance->session_uuid}/messages",
             $query
         );
 
@@ -468,10 +464,22 @@ class OpenWaProvider implements MessagingProvider
             trans('topweb_chat::app.provider.history_failed')
         );
 
+        $messages = collect($response->json('messages', []))
+            ->map(fn (array $message) => [
+                'id' => $message['waMessageId'] ?? $message['id'] ?? null,
+                'chatJid' => $message['chatId'] ?? $chatId,
+                'senderJid' => $message['from'] ?? null,
+                'content' => $message['body'] ?? null,
+                'type' => $message['type'] ?? 'text',
+                'timestamp' => $message['timestamp'] ?? null,
+                'fromMe' => ($message['direction'] ?? null) === 'outgoing',
+            ])
+            ->all();
+
         return [
-            'messages' => $response->json('messages', []),
-            'has_more' => $response->json('hasMore', false),
-            'chat_jid' => $response->json('chat_jid', $recipient),
+            'messages' => $messages,
+            'has_more' => false,
+            'chat_jid' => $chatId,
         ];
     }
 
@@ -483,13 +491,15 @@ class OpenWaProvider implements MessagingProvider
 
         $response = $this->client($instance)->post(
             "/api/sessions/{$instance->session_uuid}/chats/read",
-            ['chatId' => $recipient]
+            ['chatId' => $this->resolveChatId($instance, $recipient)]
         );
 
-        $this->ensureSuccessful(
-            $response,
-            trans('topweb_chat::app.provider.mark_read_failed')
-        );
+        if (! $response->successful()) {
+            $this->ensureSuccessful(
+                $response,
+                trans('topweb_chat::app.provider.mark_read_failed')
+            );
+        }
     }
 
     public function connectionStatus(Instance $instance): string
@@ -872,6 +882,42 @@ class OpenWaProvider implements MessagingProvider
             ])
             ->connectTimeout(config('topweb-chat.connect_timeout', 10))
             ->timeout(config('topweb-chat.timeout', 30));
+    }
+
+    private function resolveChatId(Instance $instance, string $recipient): string
+    {
+        if (str_contains($recipient, '@')) {
+            return $recipient;
+        }
+
+        $number = preg_replace('/\D+/', '', $recipient);
+
+        return Cache::remember(
+            "topweb-chat:openwa-chat-id:{$instance->id}:{$number}",
+            now()->addDay(),
+            function () use ($instance, $number) {
+                $response = $this->client($instance)->get(
+                    "/api/sessions/{$instance->session_uuid}/contacts/check/{$number}"
+                );
+
+                $this->ensureSuccessful(
+                    $response,
+                    trans('topweb_chat::app.provider.contact_check_failed')
+                );
+
+                $chatId = $response->json('whatsappId');
+
+                if (! $response->json('exists') || ! is_string($chatId) || $chatId === '') {
+                    throw new ProviderRequestException(
+                        trans('topweb_chat::app.provider.contact_not_registered'),
+                        false,
+                        422
+                    );
+                }
+
+                return $chatId;
+            }
+        );
     }
 
     private function ensureSuccessful(

@@ -315,9 +315,12 @@ Breadcrumbs::for('contacts.persons.edit', function (Generator $breadcrumbs, $id)
     $breadcrumbs->push(__('admin::app.contacts.persons.edit.title'), route('admin.contacts.persons.edit', ['id' => $id]));
 });
 
-Breadcrumbs::for('contacts.persons.view', function (Generator $breadcrumbs, $id) {
+Breadcrumbs::for('contacts.persons.view', function (Generator $breadcrumbs, $person) {
     $breadcrumbs->parent('contacts.persons');
-    $breadcrumbs->push(__('admin::app.contacts.persons.view.title', ['name' => $id]), route('admin.contacts.persons.view', ['id' => $id]));
+    $breadcrumbs->push(
+        __('admin::app.contacts.persons.view.title', ['name' => strip_tags($person->name)]),
+        route('admin.contacts.persons.view', ['id' => $person->id])
+    );
 });
 
 // Contacts - Organizations

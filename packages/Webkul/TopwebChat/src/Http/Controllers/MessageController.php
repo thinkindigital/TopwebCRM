@@ -58,6 +58,33 @@ class MessageController
         return back()->with('success', trans('topweb_chat::app.messages.queued'));
     }
 
+    public function retry(
+        Request $request,
+        Conversation $conversation,
+        Message $message
+    ): RedirectResponse|JsonResponse {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.send'), 403);
+
+        $user = auth()->guard('user')->user();
+        $this->access->authorizeView($user, $conversation);
+
+        try {
+            $message = $this->messages->retry($message, $conversation, $user);
+        } catch (DomainException $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $exception->getMessage()], 409);
+            }
+
+            return back()->with('error', $exception->getMessage());
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $this->serialize($message)], 202);
+        }
+
+        return back()->with('success', trans('topweb_chat::app.messages.retry_queued'));
+    }
+
     private function serialize(Message $message): array
     {
         return [
@@ -67,6 +94,11 @@ class MessageController
             'content' => $message->content,
             'status' => $message->status,
             'sent_at' => ($message->sent_at ?? $message->created_at)?->toIso8601String(),
+            'can_retry' => $this->messages->canRetry($message),
+            'retry_url' => route('admin.topweb_chat.messages.retry', [
+                'conversation' => $message->conversation_id,
+                'message' => $message->id,
+            ]),
         ];
     }
 }

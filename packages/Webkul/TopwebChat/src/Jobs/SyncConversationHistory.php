@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Webkul\TopwebChat\Exceptions\ProviderRequestException;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
@@ -53,7 +54,27 @@ class SyncConversationHistory implements ShouldQueue
                 return;
             }
 
-            throw $exception;
+            if ($exception->statusCode !== 501) {
+                throw $exception;
+            }
+
+            $conversation = Conversation::query()->find($this->conversationId);
+
+            if ($conversation) {
+                Cache::put(
+                    "topweb-chat:history-unavailable:{$conversation->instance_id}",
+                    true,
+                    now()->addMinutes(5)
+                );
+            }
+
+            Log::warning('OpenWA history synchronization is unavailable.', [
+                'conversation_id' => $this->conversationId,
+                'instance_id' => $conversation?->instance_id,
+                'status_code' => $exception->statusCode,
+            ]);
+
+            return;
         }
 
         if (! $acquired) {
@@ -84,6 +105,9 @@ class SyncConversationHistory implements ShouldQueue
             $this->to ? Carbon::parse($this->to) : null
         );
 
+        Cache::forget("topweb-chat:history-unavailable:{$conversation->instance_id}");
+        Cache::forget("topweb-chat:provider-unavailable:{$conversation->instance_id}");
+
         $this->persist(
             $conversation,
             array_reverse($history['messages']),
@@ -112,6 +136,9 @@ class SyncConversationHistory implements ShouldQueue
             null,
             $to ? Carbon::parse($to) : null
         );
+
+        Cache::forget("topweb-chat:history-unavailable:{$conversation->instance_id}");
+        Cache::forget("topweb-chat:provider-unavailable:{$conversation->instance_id}");
 
         $this->persist(
             $conversation,
@@ -166,8 +193,8 @@ class SyncConversationHistory implements ShouldQueue
     {
         return collect($messages)
             ->pluck('timestamp')
-            ->filter()
-            ->map(fn (string $timestamp) => Carbon::parse($timestamp))
+            ->filter(fn ($timestamp) => $timestamp !== null)
+            ->map(fn ($timestamp) => $this->parseTimestamp($timestamp))
             ->sort()
             ->first();
     }
@@ -192,7 +219,7 @@ class SyncConversationHistory implements ShouldQueue
                 }
 
                 $sentAt = isset($providerMessage['timestamp'])
-                    ? Carbon::parse($providerMessage['timestamp'])
+                    ? $this->parseTimestamp($providerMessage['timestamp'])
                     : now();
                 $providerKey = hash(
                     'sha256',
@@ -237,5 +264,12 @@ class SyncConversationHistory implements ShouldQueue
                 'unread_count' => $lockedConversation->unread_count + $newIncoming,
             ]);
         }, 3);
+    }
+
+    private function parseTimestamp(mixed $timestamp): Carbon
+    {
+        return is_numeric($timestamp)
+            ? Carbon::createFromTimestamp((int) $timestamp)
+            : Carbon::parse($timestamp);
     }
 }
