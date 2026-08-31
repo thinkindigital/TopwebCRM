@@ -10,8 +10,6 @@ services:
       - dist/main
     stop_grace_period: 45s
     read_only: true
-    tmpfs:
-      - /tmp
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -67,6 +65,11 @@ services:
       - openwa_redis_password
     volumes:
       - openwa_data:/app/data
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 268435456
+          mode: 1777
     networks:
       - openwa_data_network
       - topwebcrm_integrations
