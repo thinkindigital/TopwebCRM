@@ -196,7 +196,8 @@ networks:
 
 configs:
   openwa_swarm_entrypoint:
-    file: ./docker/openwa-swarm-entrypoint.sh
+    external: true
+    name: ${OPENWA_ENTRYPOINT_CONFIG:-openwa_swarm_entrypoint_v1}
 
 secrets:
   openwa_api_master_key:

@@ -43,7 +43,12 @@ docker volume create topwebcrm_redis
 docker volume create openwa_data
 docker volume create openwa_db
 docker volume create openwa_redis
+docker config create openwa_swarm_entrypoint_v1 docker/openwa-swarm-entrypoint.sh
 ```
+
+Docker Configs sao imutaveis. Se o entrypoint mudar, crie uma nova versao (por
+exemplo, `openwa_swarm_entrypoint_v2`) e defina `OPENWA_ENTRYPOINT_CONFIG` antes
+do redeploy; nao sobrescreva uma versao que esteja em uso.
 
 Volumes de tentativas anteriores nao devem ser reutilizados sem antes confirmar
 que pertencem a esta instalacao e que nao possuem dados que precisem de backup.
