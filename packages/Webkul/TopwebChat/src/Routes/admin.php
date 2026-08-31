@@ -16,6 +16,7 @@ Route::prefix('topweb-chat')->group(function () {
     Route::get('conversations/{conversation}', [ConversationController::class, 'show'])->name('admin.topweb_chat.show');
     Route::get('conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('admin.topweb_chat.messages.index');
     Route::post('conversations/{conversation}/messages', [MessageController::class, 'store'])->name('admin.topweb_chat.messages.store');
+    Route::post('conversations/{conversation}/messages/{message}/retry', [MessageController::class, 'retry'])->name('admin.topweb_chat.messages.retry');
     Route::post('conversations/{conversation}/notes', [InternalNoteController::class, 'store'])->name('admin.topweb_chat.notes.store');
     Route::put('conversations/{conversation}/assignment', [AssignmentController::class, 'update'])->name('admin.topweb_chat.assignment.update');
     Route::put('conversations/{conversation}/lead-stage', [LeadStageController::class, 'update'])->name('admin.topweb_chat.lead_stage.update');

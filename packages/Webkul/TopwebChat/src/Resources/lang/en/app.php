@@ -56,7 +56,11 @@ return [
         'sent' => 'Message sent.',
         'queued' => 'Message queued for delivery.',
         'send_failed' => 'The message could not be sent.',
+        'retry' => 'Try again',
+        'retry_queued' => 'Message queued again for delivery.',
+        'retry_not_available' => 'This message cannot be retried safely.',
         'instance_not_connected' => 'Sending is temporarily disabled: reconcile the session and confirm it is ready.',
+        'integration_unavailable' => 'OpenWA is partially unavailable. The CRM remains available, but history or read confirmation may be temporarily outdated.',
     ],
     'provider' => [
         'send_failed' => 'OpenWA rejected the message.',
@@ -64,6 +68,8 @@ return [
         'instance_status_failed' => 'The OpenWA session status could not be retrieved.',
         'history_failed' => 'The conversation history could not be reconciled.',
         'mark_read_failed' => 'The conversation could not be marked as read in OpenWA.',
+        'contact_check_failed' => 'The number could not be validated in OpenWA.',
+        'contact_not_registered' => 'The number is not registered on WhatsApp.',
     ],
     'webhook' => [
         'public_url_required' => 'Set TOPWEB_CHAT_PUBLIC_URL to a public HTTPS address before configuring the webhook.',

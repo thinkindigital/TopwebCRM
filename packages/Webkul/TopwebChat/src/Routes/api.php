@@ -9,4 +9,5 @@ Route::get('health', fn () => response()->json([
 ]))->name('api.topweb_chat.health');
 
 Route::post('webhooks/openwa/{instance}', [WebhookController::class, 'store'])
+    ->withoutMiddleware(['admin_locale', 'user'])
     ->name('api.topweb_chat.webhooks.openwa');

@@ -29,9 +29,18 @@ O OpenWA e o unico provedor implementado. O fluxo ainda nao foi validado de pont
 ### Identidade e historico
 
 - Historico importado e associado somente quando a identidade resolve de forma unica para Pessoa/Lead.
+- A restauracao consulta somente o historico persistido no OpenWA, por conversa e com limite de 100 mensagens; nao dispara busca profunda no WhatsApp.
 - Identidade desconhecida, ambigua ou `@lid` sem telefone vai para quarentena administrativa.
 - Importacao nunca cria Pessoa silenciosamente.
 - Historico importado nao cria Atendimentos WhatsApp retroativos.
+- A timeline ordena por `sent_at`, com fallback para `created_at`, e mostra mensagens recentes no fim.
+
+### Envio e recuperacao
+
+- Falha anterior a chamada externa por sessao desconectada pode ser reenfileirada manualmente.
+- Resultado `unknown` nunca autoriza retry cego; exige reconciliacao com o provedor.
+- Rejeicoes do provedor nao sao reenviadas sem classificacao explicita como recuperaveis.
+- Retry automatico ao recuperar a sessao permanece pendente ate possuir lock, lote e janela de idade definidos.
 
 ### Atendimento WhatsApp em Activities
 

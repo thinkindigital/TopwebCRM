@@ -103,9 +103,9 @@ class SendMessage implements ShouldQueue
             return;
         }
 
-        $providerMessageId = $result['data']['messageId'] ?? null;
-        $sentAt = isset($result['data']['timestamp'])
-            ? Carbon::parse($result['data']['timestamp'])
+        $providerMessageId = $result['messageId'] ?? null;
+        $sentAt = isset($result['timestamp'])
+            ? Carbon::createFromTimestamp($result['timestamp'])
             : now();
 
         DB::transaction(function () use (
