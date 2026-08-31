@@ -99,6 +99,8 @@ services:
 
   topwebcrm_queue:
     <<: *topwebcrm-runtime
+    healthcheck:
+      disable: true
     networks:
       - topwebcrm_data
       - topwebcrm_integrations
@@ -127,6 +129,8 @@ services:
 
   topwebcrm_scheduler:
     <<: *topwebcrm-runtime
+    healthcheck:
+      disable: true
     networks:
       - topwebcrm_data
       - topwebcrm_integrations
@@ -148,7 +152,7 @@ services:
           memory: ${TOPWEBCRM_SCHEDULER_MEMORY:-256M}
 
   topwebcrm_db:
-    image: mysql:8.0
+    image: percona/percona-server:latest@sha256:a4ba7d1afd325f40bc6d65b6455fb4f15388638dfa39e3b85f9755755fd9ec2d
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
