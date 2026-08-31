@@ -35,12 +35,21 @@ jobs:
           ini-values: error_reporting=E_ALL
           tools: composer:v2
 
+      - name: Prepare Application Environment
+        run: |
+          cp .env.example .env
+          mkdir -p \
+            storage/framework/cache/data \
+            storage/framework/sessions \
+            storage/framework/views \
+            storage/logs \
+            bootstrap/cache
+
       - name: Running Composer Install
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Set Testing Environment
         run: |
-          cp .env.example .env
           sed -i "s|^\(APP_ENV=\s*\).*$|\1testing|" .env
           sed -i "s|^\(DB_HOST=\s*\).*$|\1127.0.0.1|" .env
           sed -i "s|^\(DB_PORT=\s*\).*$|\1${{ job.services.mysql.ports['3306'] }}|" .env
