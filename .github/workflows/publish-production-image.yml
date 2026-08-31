@@ -1,49 +1,130 @@
 name: Publish production image
 
 on:
+  pull_request:
+    paths:
+      - composer.json
+      - composer.lock
+      - package.json
+      - package-lock.json
+      - packages/**
+      - public/**
+      - docker/php/**
+      - .github/workflows/publish-production-image.yml
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
   workflow_dispatch:
-  push:
-    tags:
-      - "v*"
+
+concurrency:
+  group: topwebcrm-production-image
+  cancel-in-progress: false
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  image:
+  validate-image:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - name: Validate production image build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: docker/php/Dockerfile.production
+          platforms: linux/amd64
+          push: false
+          tags: topwebcrm:pr-check
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_TOPWEBCRM_WEBHOOK_URL }}
+    outputs:
+      image_tag: ${{ steps.release.outputs.image_tag }}
+      image_digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Resolve release commit
+        id: release
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            release_sha="$WORKFLOW_RUN_SHA"
+          else
+            release_sha="$DISPATCH_SHA"
+          fi
+          echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
+          echo "image_tag=sha-$release_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ steps.release.outputs.sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/topwebcrm
-          tags: |
-            type=sha,prefix=sha-
-            type=ref,event=tag
-
-      - name: Build and publish
-        uses: docker/build-push-action@v6
+      - name: Build and publish image
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
           file: docker/php/Dockerfile.production
+          platforms: linux/amd64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/thinkindigital/topwebcrm:${{ steps.release.outputs.image_tag }}
+            ghcr.io/thinkindigital/topwebcrm:main
+          labels: |
+            org.opencontainers.image.source=https://github.com/thinkindigital/TopwebCRM
+            org.opencontainers.image.revision=${{ steps.release.outputs.sha }}
+          provenance: true
+          sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Redeploy Portainer stack
+        if: env.PORTAINER_WEBHOOK_URL != ''
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.release.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          separator='?'
+          case "$PORTAINER_WEBHOOK_URL" in
+            *\?*) separator='&' ;;
+          esac
+          curl --fail --silent --show-error \
+            --request POST \
+            "${PORTAINER_WEBHOOK_URL}${separator}TOPWEBCRM_IMAGE_TAG=${IMAGE_TAG}"

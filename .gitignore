@@ -1,0 +1,16 @@
+/.env
+/.env.*
+!/.env.example
+/node_modules/
+/vendor/
+/.phpunit.cache/
+/public/admin/build/
+/public/build/
+/public/installer/build/
+/public/webform/build/
+/storage/*.key
+/storage/installed
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/

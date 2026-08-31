@@ -2,7 +2,7 @@ x-topwebcrm-environment: &topwebcrm-environment
   APP_NAME: ${TOPWEBCRM_APP_NAME:-TopwebCRM}
   APP_ENV: production
   APP_DEBUG: "false"
-  APP_URL: https://${TOPWEBCRM_DOMAIN:-kcrm.agenciarenascimento.com.br}
+  APP_URL: https://${TOPWEBCRM_DOMAIN:-crm.scgroup.com.br}
   APP_TIMEZONE: America/Sao_Paulo
   APP_LOCALE: pt_BR
   APP_FALLBACK_LOCALE: en
@@ -16,6 +16,7 @@ x-topwebcrm-environment: &topwebcrm-environment
   DB_DATABASE: topwebcrm
   DB_USERNAME: topwebcrm
   DB_PASSWORD_FILE: /run/secrets/topwebcrm_db_password
+  DB_PREFIX: ${TOPWEBCRM_DB_PREFIX:-}
   CACHE_STORE: redis
   CACHE_DRIVER: redis
   QUEUE_CONNECTION: redis
@@ -32,40 +33,51 @@ x-topwebcrm-environment: &topwebcrm-environment
   MAIL_PASSWORD_FILE: /run/secrets/topwebcrm_mail_password
   MAIL_FROM_ADDRESS: ${TOPWEBCRM_MAIL_FROM_ADDRESS:-contato@agenciarenascimento.com.br}
   MAIL_FROM_NAME: ${TOPWEBCRM_APP_NAME:-TopwebCRM}
-  TOPWEB_CHAT_PUBLIC_URL: https://${TOPWEBCRM_DOMAIN:-kcrm.agenciarenascimento.com.br}
+  TOPWEB_CHAT_PUBLIC_URL: https://${TOPWEBCRM_DOMAIN:-crm.scgroup.com.br}
   TOPWEB_CHAT_HISTORY_BATCH_SIZE: ${TOPWEB_CHAT_HISTORY_BATCH_SIZE:-20}
   TOPWEB_CHAT_SEND_MAX_ATTEMPTS: ${TOPWEB_CHAT_SEND_MAX_ATTEMPTS:-5}
   SENSITIVE_DATA_DISK: private
   WAIT_FOR_DATABASE: "true"
   DB_WAIT_TIMEOUT: ${TOPWEBCRM_DB_WAIT_TIMEOUT:-120}
 
-x-topwebcrm-service: &topwebcrm-service
-  image: ${TOPWEBCRM_IMAGE:-topwebcrm:local}
-  networks:
-    - topwebcrm_internal
-    - proxy
+x-topwebcrm-runtime: &topwebcrm-runtime
+  image: ghcr.io/thinkindigital/topwebcrm:${TOPWEBCRM_IMAGE_TAG:-main}
   environment: *topwebcrm-environment
   secrets:
     - topwebcrm_app_key
     - topwebcrm_db_password
     - topwebcrm_mail_password
   volumes:
-    - topwebcrm_storage:/var/www/html/storage/app
+    - topwebcrm_storage:/var/www/html/storage
 
 services:
   topwebcrm_app:
-    <<: *topwebcrm-service
+    <<: *topwebcrm-runtime
+    networks:
+      - topwebcrm_data
+      - topwebcrm_integrations
+      - proxy
     environment:
       <<: *topwebcrm-environment
-      RUN_MIGRATIONS: ${TOPWEBCRM_RUN_MIGRATIONS:-false}
+      RUN_MIGRATIONS: ${TOPWEBCRM_RUN_MIGRATIONS:-true}
+      RUN_INITIAL_INSTALL: ${TOPWEBCRM_INITIAL_INSTALL:-false}
+      ADMIN_NAME: ${TOPWEBCRM_ADMIN_NAME:-TopwebCRM Admin}
+      ADMIN_EMAIL: ${TOPWEBCRM_ADMIN_EMAIL:-admin@scgroup.com.br}
+      ADMIN_PASSWORD_FILE: /run/secrets/topwebcrm_admin_password
+    secrets:
+      - topwebcrm_app_key
+      - topwebcrm_db_password
+      - topwebcrm_mail_password
+      - topwebcrm_admin_password
     deploy:
-      replicas: ${TOPWEBCRM_APP_REPLICAS:-1}
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s
       update_config:
         order: stop-first
         failure_action: rollback
+        monitor: 60s
       rollback_config:
         order: stop-first
       placement:
@@ -77,8 +89,8 @@ services:
           memory: ${TOPWEBCRM_APP_MEMORY:-1024M}
       labels:
         - traefik.enable=true
-        - traefik.docker.network=${TOPWEBCRM_NETWORK:-renacesso}
-        - traefik.http.routers.topwebcrm.rule=Host(`${TOPWEBCRM_DOMAIN:-kcrm.agenciarenascimento.com.br}`)
+        - traefik.docker.network=${TOPWEBCRM_PROXY_NETWORK:-renacesso}
+        - traefik.http.routers.topwebcrm.rule=Host(`${TOPWEBCRM_DOMAIN:-crm.scgroup.com.br}`)
         - traefik.http.routers.topwebcrm.entrypoints=websecure
         - traefik.http.routers.topwebcrm.tls=true
         - traefik.http.routers.topwebcrm.tls.certresolver=letsencryptresolver
@@ -86,7 +98,10 @@ services:
         - traefik.http.services.topwebcrm.loadbalancer.server.port=8080
 
   topwebcrm_queue:
-    <<: *topwebcrm-service
+    <<: *topwebcrm-runtime
+    networks:
+      - topwebcrm_data
+      - topwebcrm_integrations
     stop_grace_period: ${TOPWEBCRM_QUEUE_STOP_GRACE_PERIOD:-150s}
     command:
       - php
@@ -98,7 +113,7 @@ services:
       - --timeout=120
       - --max-time=3600
     deploy:
-      replicas: ${TOPWEBCRM_QUEUE_REPLICAS:-1}
+      replicas: 1
       restart_policy:
         condition: any
         delay: 5s
@@ -107,17 +122,20 @@ services:
           - node.labels.topwebcrm == true
       resources:
         limits:
-          cpus: ${TOPWEBCRM_QUEUE_CPUS:-1.0}
-          memory: ${TOPWEBCRM_QUEUE_MEMORY:-768M}
+          cpus: ${TOPWEBCRM_QUEUE_CPUS:-0.75}
+          memory: ${TOPWEBCRM_QUEUE_MEMORY:-512M}
 
   topwebcrm_scheduler:
-    <<: *topwebcrm-service
+    <<: *topwebcrm-runtime
+    networks:
+      - topwebcrm_data
+      - topwebcrm_integrations
     command:
       - php
       - artisan
       - schedule:work
     deploy:
-      replicas: ${TOPWEBCRM_SCHEDULER_REPLICAS:-1}
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -126,8 +144,8 @@ services:
           - node.labels.topwebcrm == true
       resources:
         limits:
-          cpus: ${TOPWEBCRM_SCHEDULER_CPUS:-0.5}
-          memory: ${TOPWEBCRM_SCHEDULER_MEMORY:-512M}
+          cpus: ${TOPWEBCRM_SCHEDULER_CPUS:-0.25}
+          memory: ${TOPWEBCRM_SCHEDULER_MEMORY:-256M}
 
   topwebcrm_db:
     image: mysql:8.0
@@ -145,7 +163,7 @@ services:
       - topwebcrm_db_password
       - topwebcrm_db_root_password
     networks:
-      - topwebcrm_internal
+      - topwebcrm_data
     volumes:
       - topwebcrm_db:/var/lib/mysql
     healthcheck:
@@ -155,6 +173,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+      start_period: 30s
     deploy:
       replicas: 1
       restart_policy:
@@ -165,8 +184,8 @@ services:
           - node.labels.topwebcrm == true
       resources:
         limits:
-          cpus: ${TOPWEBCRM_DB_CPUS:-1.0}
-          memory: ${TOPWEBCRM_DB_MEMORY:-1024M}
+          cpus: ${TOPWEBCRM_DB_CPUS:-0.75}
+          memory: ${TOPWEBCRM_DB_MEMORY:-768M}
 
   topwebcrm_redis:
     image: redis:7.4-alpine
@@ -174,8 +193,10 @@ services:
       - redis-server
       - --appendonly
       - "yes"
+      - --maxmemory-policy
+      - noeviction
     networks:
-      - topwebcrm_internal
+      - topwebcrm_data
     volumes:
       - topwebcrm_redis:/data
     healthcheck:
@@ -196,8 +217,8 @@ services:
           - node.labels.topwebcrm == true
       resources:
         limits:
-          cpus: ${TOPWEBCRM_REDIS_CPUS:-0.5}
-          memory: ${TOPWEBCRM_REDIS_MEMORY:-512M}
+          cpus: ${TOPWEBCRM_REDIS_CPUS:-0.25}
+          memory: ${TOPWEBCRM_REDIS_MEMORY:-256M}
 
 volumes:
   topwebcrm_storage:
@@ -205,18 +226,21 @@ volumes:
     name: ${TOPWEBCRM_STORAGE_VOLUME:-topwebcrm_storage}
   topwebcrm_db:
     external: true
-    name: ${TOPWEBCRM_DB_VOLUME:-topwebcrm_db}
+    name: ${TOPWEBCRM_DB_VOLUME:-topwebcrm_db_v2}
   topwebcrm_redis:
     external: true
-    name: ${TOPWEBCRM_REDIS_VOLUME:-topwebcrm_redis}
+    name: ${TOPWEBCRM_REDIS_VOLUME:-topwebcrm_redis_v2}
 
 networks:
-  topwebcrm_internal:
+  topwebcrm_data:
     driver: overlay
     internal: true
+  topwebcrm_integrations:
+    external: true
+    name: ${TOPWEBCRM_INTEGRATIONS_NETWORK:-topweb_integrations}
   proxy:
     external: true
-    name: ${TOPWEBCRM_NETWORK:-renacesso}
+    name: ${TOPWEBCRM_PROXY_NETWORK:-renacesso}
 
 secrets:
   topwebcrm_app_key:
@@ -226,4 +250,6 @@ secrets:
   topwebcrm_db_root_password:
     external: true
   topwebcrm_mail_password:
+    external: true
+  topwebcrm_admin_password:
     external: true

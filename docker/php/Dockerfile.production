@@ -1,3 +1,16 @@
+FROM node:22-bookworm-slim AS frontend-build
+
+WORKDIR /app
+
+COPY . .
+
+RUN set -eux; \
+    for package_dir in packages/Webkul/Admin packages/Webkul/Installer packages/Webkul/WebForm; do \
+        cd "/app/${package_dir}"; \
+        npm install --no-audit --no-fund; \
+        npm run build; \
+    done
+
 FROM php:8.3-apache-bookworm AS php-base
 
 ENV APP_ENV=production \
@@ -33,7 +46,7 @@ RUN apt-get update \
     && printf '\nServerName localhost\n' >> /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
 
-FROM php-base AS build
+FROM php-base AS php-build
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
@@ -48,30 +61,18 @@ RUN composer install \
     --prefer-dist \
     --classmap-authoritative
 
-FROM node:22-bookworm-slim AS frontend
-
-WORKDIR /app
-
-COPY packages/Webkul/Admin/package.json packages/Webkul/Admin/package-lock.json packages/Webkul/Admin/
-
-RUN cd packages/Webkul/Admin \
-    && npm ci --no-audit --no-fund
-
-COPY packages/Webkul/Admin packages/Webkul/Admin
-
-RUN cd packages/Webkul/Admin \
-    && npm run build
-
 FROM php-base AS runtime
 
 WORKDIR /var/www/html
 
-COPY --from=build --chown=www-data:www-data /app ./
-COPY --from=frontend --chown=www-data:www-data /app/public/admin/build ./public/admin/build
+COPY --from=php-build --chown=www-data:www-data /app ./
+COPY --from=frontend-build --chown=www-data:www-data /app/public ./public
 COPY docker/php/production-vhost.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php/production-entrypoint.sh /usr/local/bin/topwebcrm-entrypoint
+COPY docker/php/initialize-production.php /usr/local/share/topwebcrm/initialize-production.php
 
 RUN chmod 0755 /usr/local/bin/topwebcrm-entrypoint \
+    && chmod 0644 /usr/local/share/topwebcrm/initialize-production.php \
     && mkdir -p \
         storage/app/private \
         storage/app/public \
@@ -91,12 +92,15 @@ RUN chmod 0755 /usr/local/bin/topwebcrm-entrypoint \
         /var/log/apache2 \
     && ln -sfn /var/www/html/storage/app/public /var/www/html/public/storage \
     && php artisan package:discover --ansi \
-    && php vendor/composer/platform_check.php
+    && php vendor/composer/platform_check.php \
+    && test -f public/admin/build/manifest.json \
+    && test -f public/installer/build/manifest.json \
+    && test -f public/webform/build/manifest.json
 
 EXPOSE 8080
 
 ENTRYPOINT ["topwebcrm-entrypoint"]
 CMD ["apache2-foreground"]
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
     CMD curl --fail --silent http://127.0.0.1:8080/up || exit 1
