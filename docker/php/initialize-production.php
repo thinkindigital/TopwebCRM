@@ -25,10 +25,10 @@ if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 DB::table('users')->where('id', 1)->update([
-    'name'       => $name,
-    'email'      => $email,
-    'password'   => Hash::make($password),
-    'status'     => 1,
+    'name' => $name,
+    'email' => $email,
+    'password' => Hash::make($password),
+    'status' => 1,
     'updated_at' => now(),
 ]);
 
