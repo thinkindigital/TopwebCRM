@@ -24,7 +24,7 @@ services:
       - SETUID
     environment:
       NODE_ENV: production
-      HOME: /tmp
+      HOME: /app/data
       XDG_CONFIG_HOME: /tmp/.config
       XDG_CACHE_HOME: /tmp/.cache
       PORT: "2785"
@@ -51,8 +51,8 @@ services:
       API_MASTER_KEY_FILE: /run/secrets/openwa_api_master_key
       API_KEY_PEPPER_FILE: /run/secrets/openwa_api_key_pepper
       TRUSTED_PROXIES: ${OPENWA_TRUSTED_PROXIES:-10.0.0.0/8}
-      BASE_URL: https://${OPENWA_DOMAIN:-openwa.scgroup.com.br}
-      DASHBOARD_URL: https://${OPENWA_DOMAIN:-openwa.scgroup.com.br}
+      BASE_URL: https://${OPENWA_DOMAIN:-thinkinapi.agenciarenascimento.com.br}
+      DASHBOARD_URL: https://${OPENWA_DOMAIN:-thinkinapi.agenciarenascimento.com.br}
       SERVE_DASHBOARD: "true"
       ENABLE_SWAGGER: "false"
       WEBHOOK_SSRF_PROTECT: "true"
@@ -100,7 +100,7 @@ services:
       labels:
         - traefik.enable=true
         - traefik.docker.network=${TOPWEBCRM_PROXY_NETWORK:-renacesso}
-        - traefik.http.routers.openwa.rule=Host(`${OPENWA_DOMAIN:-openwa.scgroup.com.br}`)
+        - traefik.http.routers.openwa.rule=Host(`${OPENWA_DOMAIN:-thinkinapi.agenciarenascimento.com.br}`)
         - traefik.http.routers.openwa.entrypoints=websecure
         - traefik.http.routers.openwa.tls=true
         - traefik.http.routers.openwa.tls.certresolver=letsencryptresolver

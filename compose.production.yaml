@@ -226,10 +226,10 @@ volumes:
     name: ${TOPWEBCRM_STORAGE_VOLUME:-topwebcrm_storage}
   topwebcrm_db:
     external: true
-    name: ${TOPWEBCRM_DB_VOLUME:-topwebcrm_db_v2}
+    name: ${TOPWEBCRM_DB_VOLUME:-topwebcrm_db}
   topwebcrm_redis:
     external: true
-    name: ${TOPWEBCRM_REDIS_VOLUME:-topwebcrm_redis_v2}
+    name: ${TOPWEBCRM_REDIS_VOLUME:-topwebcrm_redis}
 
 networks:
   topwebcrm_data:

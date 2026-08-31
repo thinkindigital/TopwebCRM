@@ -38,15 +38,15 @@ docker node update --label-add topwebcrm=true self
 docker network create --driver overlay topweb_integrations
 
 docker volume create topwebcrm_storage
-docker volume create topwebcrm_db_v2
-docker volume create topwebcrm_redis_v2
+docker volume create topwebcrm_db
+docker volume create topwebcrm_redis
 docker volume create openwa_data
 docker volume create openwa_db
 docker volume create openwa_redis
 ```
 
-Os volumes antigos `topwebcrm_app`, `topwebcrm_db` e `topwebcrm_redis` nao devem
-ser removidos ate a migracao ser encerrada e um backup validado existir.
+Volumes de tentativas anteriores nao devem ser reutilizados sem antes confirmar
+que pertencem a esta instalacao e que nao possuem dados que precisem de backup.
 
 Crie secrets fortes e distintos por entrada padrao (`printf`, sem quebra de
 linha). Nunca passe o valor na linha de comando nem salve no repositorio:
@@ -74,7 +74,7 @@ Use o repositorio privado `https://github.com/thinkindigital/TopwebCRM`, branch
 Stack `openwa`:
 
 - Compose path: `compose.openwa.production.yaml`;
-- dominio: `OPENWA_DOMAIN=openwa.scgroup.com.br`;
+- dominio: `OPENWA_DOMAIN=thinkinapi.agenciarenascimento.com.br`;
 - habilite webhook ou polling GitOps;
 - imagem fixada por `OPENWA_IMAGE_TAG`.
 
@@ -94,8 +94,8 @@ persistente ja existe, mas manter a variavel desligada reduz risco operacional.
 
 ## DNS e conectividade
 
-Os hosts `crm.scgroup.com.br` e `openwa.scgroup.com.br` devem apontar para o IP do
-Traefik antes da emissao dos certificados. O CRM acessa o OpenWA pela rede overlay
+Os hosts `crm.scgroup.com.br` e `thinkinapi.agenciarenascimento.com.br` devem
+apontar para o IP do Traefik antes da emissao dos certificados. O CRM acessa o OpenWA pela rede overlay
 compartilhada, usando `http://openwa_openwa_api:2785/api`; a URL publica e usada
 para dashboard e operacao administrativa.
 
