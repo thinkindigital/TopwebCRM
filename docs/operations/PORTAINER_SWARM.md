@@ -74,7 +74,7 @@ Use o repositorio privado `https://github.com/thinkindigital/TopwebCRM`, branch
 Stack `openwa`:
 
 - Compose path: `compose.openwa.production.yaml`;
-- dominio: `OPENWA_DOMAIN=openwa.scgroup.com.br`;
+- dominio: `OPENWA_DOMAIN=thinkinapi.agenciarenascimento.com.br`;
 - habilite webhook ou polling GitOps;
 - imagem fixada por `OPENWA_IMAGE_TAG`.
 
@@ -94,8 +94,8 @@ persistente ja existe, mas manter a variavel desligada reduz risco operacional.
 
 ## DNS e conectividade
 
-Os hosts `crm.scgroup.com.br` e `openwa.scgroup.com.br` devem apontar para o IP do
-Traefik antes da emissao dos certificados. O CRM acessa o OpenWA pela rede overlay
+Os hosts `crm.scgroup.com.br` e `thinkinapi.agenciarenascimento.com.br` devem
+apontar para o IP do Traefik antes da emissao dos certificados. O CRM acessa o OpenWA pela rede overlay
 compartilhada, usando `http://openwa_openwa_api:2785/api`; a URL publica e usada
 para dashboard e operacao administrativa.
 
