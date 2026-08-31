@@ -58,7 +58,10 @@ jobs:
       contents: read
       packages: write
     env:
-      PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_TOPWEBCRM_WEBHOOK_URL }}
+      PORTAINER_URL: https://painel.agenciarenascimento.com.br
+      PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+      PORTAINER_ENDPOINT_ID: '1'
+      PORTAINER_STACK_NAME: topwebcrm
     outputs:
       image_tag: ${{ steps.release.outputs.image_tag }}
       image_digest: ${{ steps.build.outputs.digest }}
@@ -115,16 +118,69 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Redeploy Portainer stack
-        if: env.PORTAINER_WEBHOOK_URL != ''
         shell: bash
         env:
           IMAGE_TAG: ${{ steps.release.outputs.image_tag }}
         run: |
           set -euo pipefail
-          separator='?'
-          case "$PORTAINER_WEBHOOK_URL" in
-            *\?*) separator='&' ;;
-          esac
-          curl --fail --silent --show-error \
-            --request POST \
-            "${PORTAINER_WEBHOOK_URL}${separator}TOPWEBCRM_IMAGE_TAG=${IMAGE_TAG}"
+
+          if [ -z "$PORTAINER_API_KEY" ]; then
+            echo "::error::Configure the PORTAINER_API_KEY repository secret."
+            exit 1
+          fi
+
+          auth_header="X-API-Key: $PORTAINER_API_KEY"
+          stack_json="$(
+            curl --fail --silent --show-error \
+              --header "$auth_header" \
+              "$PORTAINER_URL/api/stacks/name/$PORTAINER_STACK_NAME"
+          )"
+          stack_id="$(jq -er '.Id' <<<"$stack_json")"
+
+          stack_file_json="$(
+            curl --fail --silent --show-error \
+              --header "$auth_header" \
+              "$PORTAINER_URL/api/stacks/$stack_id/file"
+          )"
+          stack_file="$(jq -er '.StackFileContent' <<<"$stack_file_json")"
+
+          stack_env="$(
+            jq -c --arg image_tag "$IMAGE_TAG" '
+              .Env
+              | map(
+                  if .name == "TOPWEBCRM_IMAGE_TAG"
+                  then .value = $image_tag
+                  else .
+                  end
+                )
+              | if any(.name == "TOPWEBCRM_IMAGE_TAG")
+                then .
+                else . + [{name: "TOPWEBCRM_IMAGE_TAG", value: $image_tag}]
+                end
+            ' <<<"$stack_json"
+          )"
+
+          payload="$(
+            jq -n \
+              --arg stack_file "$stack_file" \
+              --argjson stack_env "$stack_env" \
+              '{
+                StackFileContent: $stack_file,
+                Env: $stack_env,
+                Prune: false,
+                RepullImageAndRedeploy: true
+              }'
+          )"
+
+          update_json="$(
+            curl --fail --silent --show-error \
+              --request PUT \
+              --header "$auth_header" \
+              --header 'Content-Type: application/json' \
+              --data-binary "$payload" \
+              "$PORTAINER_URL/api/stacks/$stack_id?endpointId=$PORTAINER_ENDPOINT_ID"
+          )"
+
+          jq -e --argjson stack_id "$stack_id" '
+            .Id == $stack_id and .Status == 1
+          ' <<<"$update_json" >/dev/null
