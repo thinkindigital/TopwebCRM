@@ -18,9 +18,17 @@ load_secret() {
     fi
 }
 
-for variable in APP_KEY DB_PASSWORD MAIL_PASSWORD; do
+for variable in APP_KEY DB_PASSWORD MAIL_PASSWORD ADMIN_PASSWORD; do
     load_secret "$variable"
 done
+
+run_as_web_user() {
+    if [ "$(id -u)" = "0" ]; then
+        gosu www-data "$@"
+    else
+        "$@"
+    fi
+}
 
 wait_for_database() {
     timeout="${DB_WAIT_TIMEOUT:-120}"
@@ -70,12 +78,20 @@ if [ "${WAIT_FOR_DATABASE:-false}" = "true" ]; then
 fi
 
 if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
-    if [ "$(id -u)" = "0" ]; then
-        gosu www-data php artisan migrate --force --no-interaction
-    else
-        php artisan migrate --force --no-interaction
-    fi
+    run_as_web_user php artisan migrate --force --no-interaction
 fi
+
+if [ "${RUN_INITIAL_INSTALL:-false}" = "true" ] && [ ! -f storage/installed ]; then
+    run_as_web_user php artisan db:seed \
+        --class='Webkul\Installer\Database\Seeders\DatabaseSeeder' \
+        --force \
+        --no-interaction
+    run_as_web_user php /usr/local/share/topwebcrm/initialize-production.php
+    run_as_web_user php artisan storage:link --force
+    run_as_web_user php artisan optimize:clear
+fi
+
+unset ADMIN_PASSWORD ADMIN_PASSWORD_FILE
 
 if [ "$(id -u)" = "0" ] && [ "${1:-}" = "php" ]; then
     exec gosu www-data "$@"

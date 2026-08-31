@@ -1,0 +1,209 @@
+services:
+  openwa_api:
+    image: ghcr.io/rmyndharis/openwa:${OPENWA_IMAGE_TAG:-0.23.3}
+    entrypoint:
+      - dumb-init
+      - --
+      - /usr/local/bin/openwa-swarm-entrypoint
+    command:
+      - node
+      - dist/main
+    stop_grace_period: 45s
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    environment:
+      NODE_ENV: production
+      HOME: /tmp
+      XDG_CONFIG_HOME: /tmp/.config
+      XDG_CACHE_HOME: /tmp/.cache
+      PORT: "2785"
+      LOG_LEVEL: ${OPENWA_LOG_LEVEL:-info}
+      LOG_FORMAT: json
+      DATABASE_TYPE: postgres
+      DATABASE_NAME: openwa
+      DATABASE_HOST: openwa_db
+      DATABASE_PORT: "5432"
+      DATABASE_USERNAME: openwa
+      DATABASE_PASSWORD_FILE: /run/secrets/openwa_db_password
+      DATABASE_SYNCHRONIZE: "false"
+      REDIS_ENABLED: "true"
+      REDIS_HOST: openwa_redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD_FILE: /run/secrets/openwa_redis_password
+      CACHE_ENABLED: "true"
+      QUEUE_ENABLED: "true"
+      ENGINE_TYPE: ${OPENWA_ENGINE_TYPE:-whatsapp-web.js}
+      SESSION_DATA_PATH: /app/data/sessions
+      PUPPETEER_HEADLESS: "true"
+      AUTO_START_SESSIONS: "true"
+      BAILEYS_MARK_ONLINE_ON_CONNECT: "false"
+      API_MASTER_KEY_FILE: /run/secrets/openwa_api_master_key
+      API_KEY_PEPPER_FILE: /run/secrets/openwa_api_key_pepper
+      TRUSTED_PROXIES: ${OPENWA_TRUSTED_PROXIES:-10.0.0.0/8}
+      BASE_URL: https://${OPENWA_DOMAIN:-openwa.scgroup.com.br}
+      DASHBOARD_URL: https://${OPENWA_DOMAIN:-openwa.scgroup.com.br}
+      SERVE_DASHBOARD: "true"
+      ENABLE_SWAGGER: "false"
+      WEBHOOK_SSRF_PROTECT: "true"
+    configs:
+      - source: openwa_swarm_entrypoint
+        target: /usr/local/bin/openwa-swarm-entrypoint
+        mode: 0555
+    secrets:
+      - openwa_api_master_key
+      - openwa_api_key_pepper
+      - openwa_db_password
+      - openwa_redis_password
+    volumes:
+      - openwa_data:/app/data
+    networks:
+      - openwa_data_network
+      - topwebcrm_integrations
+      - proxy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://localhost:2785/api/health/ready', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 90s
+      placement:
+        constraints:
+          - node.labels.topwebcrm == true
+      resources:
+        limits:
+          cpus: ${OPENWA_CPUS:-1.0}
+          memory: ${OPENWA_MEMORY:-2048M}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${TOPWEBCRM_PROXY_NETWORK:-renacesso}
+        - traefik.http.routers.openwa.rule=Host(`${OPENWA_DOMAIN:-openwa.scgroup.com.br}`)
+        - traefik.http.routers.openwa.entrypoints=websecure
+        - traefik.http.routers.openwa.tls=true
+        - traefik.http.routers.openwa.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.openwa.service=openwa
+        - traefik.http.services.openwa.loadbalancer.server.port=2785
+
+  openwa_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: openwa
+      POSTGRES_DB: openwa
+      POSTGRES_PASSWORD_FILE: /run/secrets/openwa_db_password
+    secrets:
+      - openwa_db_password
+    volumes:
+      - openwa_db:/var/lib/postgresql/data
+    networks:
+      - openwa_data_network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U openwa -d openwa
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      placement:
+        constraints:
+          - node.labels.topwebcrm == true
+      resources:
+        limits:
+          cpus: ${OPENWA_DB_CPUS:-0.5}
+          memory: ${OPENWA_DB_MEMORY:-512M}
+
+  openwa_redis:
+    image: redis:7-alpine
+    command:
+      - /bin/sh
+      - -ec
+      - exec redis-server --appendonly yes --maxmemory-policy noeviction --requirepass "$$(cat /run/secrets/openwa_redis_password)"
+    secrets:
+      - openwa_redis_password
+    volumes:
+      - openwa_redis:/data
+    networks:
+      - openwa_data_network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli -a "$$(cat /run/secrets/openwa_redis_password)" ping | grep -q PONG
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      placement:
+        constraints:
+          - node.labels.topwebcrm == true
+      resources:
+        limits:
+          cpus: ${OPENWA_REDIS_CPUS:-0.25}
+          memory: ${OPENWA_REDIS_MEMORY:-256M}
+
+volumes:
+  openwa_data:
+    external: true
+    name: ${OPENWA_DATA_VOLUME:-openwa_data}
+  openwa_db:
+    external: true
+    name: ${OPENWA_DB_VOLUME:-openwa_db}
+  openwa_redis:
+    external: true
+    name: ${OPENWA_REDIS_VOLUME:-openwa_redis}
+
+networks:
+  openwa_data_network:
+    driver: overlay
+    internal: true
+  topwebcrm_integrations:
+    external: true
+    name: ${TOPWEBCRM_INTEGRATIONS_NETWORK:-topweb_integrations}
+  proxy:
+    external: true
+    name: ${TOPWEBCRM_PROXY_NETWORK:-renacesso}
+
+configs:
+  openwa_swarm_entrypoint:
+    file: ./docker/openwa-swarm-entrypoint.sh
+
+secrets:
+  openwa_api_master_key:
+    external: true
+  openwa_api_key_pepper:
+    external: true
+  openwa_db_password:
+    external: true
+  openwa_redis_password:
+    external: true
