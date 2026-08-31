@@ -12,9 +12,10 @@ em `main`. Ele publica duas tags no GHCR:
 - `sha-<commit>`: tag imutavel usada em releases e rollback;
 - `main`: ponteiro mutavel para recuperacao manual.
 
-Reiniciar um container nao baixa uma imagem nova. A atualizacao automatica usa o
-webhook da stack do Portainer e passa `TOPWEBCRM_IMAGE_TAG=sha-<commit>`. Assim o
-Swarm recebe uma especificacao nova e o release continua rastreavel.
+Reiniciar um container nao baixa uma imagem nova. A atualizacao automatica usa a
+API autenticada do Portainer, altera somente
+`TOPWEBCRM_IMAGE_TAG=sha-<commit>` e solicita repull/redeploy. Assim o Swarm
+recebe uma especificacao nova e o release continua rastreavel.
 
 ## Registry GHCR no Portainer
 
@@ -35,7 +36,7 @@ Crie uma vez, antes das stacks:
 
 ```bash
 docker node update --label-add topwebcrm=true self
-docker network create --driver overlay topweb_integrations
+docker network create --driver overlay --attachable topweb_integrations
 
 docker volume create topwebcrm_storage
 docker volume create topwebcrm_db
@@ -71,27 +72,34 @@ printf '%s' 'valor' | docker secret create openwa_redis_password -
 `topwebcrm_app_key` deve ser uma chave Laravel no formato `base64:...` e deve ser
 preservada em backups. `openwa_api_master_key` deve ter pelo menos 32 caracteres.
 
-## Stacks Git no Portainer
+## Stacks no Portainer
 
-Use o repositorio privado `https://github.com/thinkindigital/TopwebCRM`, branch
-`main`, com credencial Git somente de leitura.
+As stacks podem ser criadas pelo editor/API usando os arquivos versionados no
+repositorio privado `https://github.com/thinkindigital/TopwebCRM`, branch
+`main`. O deploy atual e file-based; o workflow consulta e atualiza a stack
+pela API do Portainer.
 
 Stack `openwa`:
 
-- Compose path: `compose.openwa.production.yaml`;
+- Compose: `compose.openwa.production.yaml`;
 - dominio: `OPENWA_DOMAIN=thinkinapi.agenciarenascimento.com.br`;
-- habilite webhook ou polling GitOps;
-- imagem fixada por `OPENWA_IMAGE_TAG`.
+- imagem fixada por `OPENWA_IMAGE_TAG`;
+- Docker Config externo definido por `OPENWA_ENTRYPOINT_CONFIG`.
 
 Stack `topwebcrm`:
 
-- Compose path: `compose.production.yaml`;
+- Compose: `compose.production.yaml`;
 - `TOPWEBCRM_DOMAIN=crm.scgroup.com.br`;
 - `TOPWEBCRM_INITIAL_INSTALL=true` somente no primeiro deploy de banco vazio;
 - defina `TOPWEBCRM_ADMIN_NAME` e `TOPWEBCRM_ADMIN_EMAIL`;
-- associe o registry GHCR;
-- habilite stack webhook e copie a URL para o secret GitHub
-  `PORTAINER_TOPWEBCRM_WEBHOOK_URL`.
+- associe o registry GHCR ja cadastrado no Portainer.
+
+No GitHub, crie o secret de Actions `PORTAINER_API_KEY` com uma API key valida
+do Portainer. O workflow `Publish production image` localiza a stack
+`topwebcrm` pelo nome, preserva o compose e as variaveis existentes, troca
+somente `TOPWEBCRM_IMAGE_TAG` e executa o repull/redeploy. A chave e
+confidencial, nao deve ser gravada no repositorio e deve ser rotacionada quando
+houver suspeita de exposicao.
 
 Depois que `storage/installed` existir, altere
 `TOPWEBCRM_INITIAL_INSTALL=false`. O inicializador nunca roda quando o marcador
