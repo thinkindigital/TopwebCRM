@@ -286,6 +286,7 @@
                 const newMessages = document.getElementById('topweb-chat-new-messages');
                 const canViewSensitiveMedia = @json($canViewSensitiveMedia);
                 let refreshing = false;
+                let lastMessagesSignature = null;
                 let lastMessageId = Number(
                     timeline?.querySelector('[data-message-id]:last-of-type')?.dataset.messageId || 0
                 );
@@ -359,16 +360,26 @@
                 };
 
                 const renderMessages = (messages, forceScroll = false) => {
+                    const signature = messages.map((message) => [
+                        message.id,
+                        message.status,
+                        message.media_status,
+                        message.media_url,
+                    ].join(':')).join('|');
+
+                    if (!forceScroll && signature === lastMessagesSignature) {
+                        return;
+                    }
+
                     const wasNearBottom = isNearBottom();
+                    const distanceFromBottom = timeline.scrollHeight
+                        - timeline.scrollTop
+                        - timeline.clientHeight;
                     const previousLastMessageId = lastMessageId;
                     const nextLastMessageId = Number(messages.at(-1)?.id || 0);
                     const receivedNewMessage = previousLastMessageId > 0
                         && nextLastMessageId !== previousLastMessageId;
-                    const anchor = [...timeline.querySelectorAll('[data-message-id]')].find(
-                        (element) => element.offsetTop + element.offsetHeight >= timeline.scrollTop
-                    );
-                    const anchorId = anchor?.dataset.messageId;
-                    const anchorOffset = anchor ? anchor.offsetTop - timeline.scrollTop : 0;
+                    lastMessagesSignature = signature;
                     timeline.replaceChildren();
 
                     if (!messages.length) {
@@ -451,15 +462,21 @@
 
                     lastMessageId = nextLastMessageId;
 
-                    if (forceScroll || wasNearBottom) {
-                        timeline.scrollTop = timeline.scrollHeight;
-                        newMessages?.classList.add('hidden');
-                    } else if (anchorId) {
-                        const nextAnchor = timeline.querySelector(`[data-message-id="${anchorId}"]`);
-
-                        if (nextAnchor) {
-                            timeline.scrollTop = nextAnchor.offsetTop - anchorOffset;
+                    const restoreScroll = () => {
+                        if (forceScroll || wasNearBottom) {
+                            timeline.scrollTop = timeline.scrollHeight;
+                        } else {
+                            timeline.scrollTop = Math.max(
+                                0,
+                                timeline.scrollHeight - timeline.clientHeight - distanceFromBottom
+                            );
                         }
+                    };
+
+                    window.requestAnimationFrame(restoreScroll);
+
+                    if (forceScroll || wasNearBottom) {
+                        newMessages?.classList.add('hidden');
                     }
 
                     if (receivedNewMessage && !wasNearBottom && !forceScroll) {
