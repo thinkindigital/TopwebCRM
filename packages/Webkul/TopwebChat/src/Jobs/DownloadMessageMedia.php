@@ -7,6 +7,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use RuntimeException;
 use Throwable;
+use Webkul\TopwebChat\Models\Conversation;
+use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 
@@ -26,18 +28,19 @@ class DownloadMessageMedia implements ShouldQueue
         MessagingProvider $provider,
         SensitiveFileService $sensitiveFiles
     ): void {
-        $message = Message::query()
-            ->with('conversation.instance')
-            ->findOrFail($this->messageId);
+        $message = Message::query()->findOrFail($this->messageId);
 
         if (! $message->hasMedia() || $message->mediaIsStored()) {
             return;
         }
 
+        $conversation = Conversation::query()->findOrFail($message->conversation_id);
+        $instance = Instance::query()->findOrFail($conversation->instance_id);
+
         $metadata = $message->metadata ?? [];
         $chatId = data_get($metadata, 'chat_id')
             ?: data_get($metadata, 'chat_jid')
-            ?: $message->conversation->remote_jid;
+            ?: $conversation->remote_jid;
         $providerMessageId = $message->provider_message_id;
 
         if (! $chatId || ! $providerMessageId) {
@@ -48,7 +51,7 @@ class DownloadMessageMedia implements ShouldQueue
 
         $this->updateStatus($message, 'downloading');
         $contents = $provider->downloadMedia(
-            $message->conversation->instance,
+            $instance,
             $chatId,
             $providerMessageId
         );
