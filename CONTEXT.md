@@ -34,15 +34,15 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 ## TopwebChat
 
-**TopwebChat**: modulo do TopwebCRM que opera conversas WhatsApp, seus vinculos comerciais, autorizacao, historico local e atividades.
+**TopwebChat**: modulo do TopwebCRM que opera conversas WhatsApp, seus vinculos comerciais, autorizacao e historico local.
 
 **OpenWA**: provedor self-hosted responsavel por sessoes WhatsApp, transporte de mensagens e entrega de webhooks.
 
 **Sessao OpenWA**: sessao remota identificada pelo UUID retornado pelo OpenWA. O nome e apenas uma identificacao humana.
 
-**Instancia (Instance)**: configuracao local que vincula o TopwebCRM a uma Sessao OpenWA, incluindo URL, credenciais, estado e definicao de sessao padrao.
+**Instancia (Instance)**: configuracao local que vincula o TopwebCRM a uma Sessao OpenWA, incluindo UUID, URL, credenciais e estado.
 
-**Sessao Padrao**: Instancia escolhida para iniciar novas Conversas quando nenhuma sessao especifica foi selecionada.
+**Sessao Padrao (planejada)**: Instancia escolhida para iniciar novas Conversas quando nenhuma sessao especifica for selecionada.
 
 **Conversa (Conversation)**: historico local entre uma Instancia e uma Identidade Remota, vinculado a Pessoa, Lead quando conhecido e ao Dono do Lead.
 
@@ -50,17 +50,17 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Identidade Remota**: identificador WhatsApp normalizado, armazenado de forma protegida e associado a Pessoa somente quando houver correspondencia inequivoca.
 
-**Quarentena de Identidade**: estado administrativo de uma Conversa cuja Identidade Remota e desconhecida, ambigua ou nao resolvida. Nao cria Pessoa automaticamente.
+**Quarentena de Identidade (planejada)**: estado administrativo de uma Conversa cuja Identidade Remota e desconhecida, ambigua ou nao resolvida. Nao cria Pessoa automaticamente.
 
 **Historico Importado**: mensagens anteriores obtidas do OpenWA. Nao gera Atendimento WhatsApp retroativo.
 
-**Atendimento WhatsApp**: Activity agregadora aberta pela primeira Mensagem enviada por um Usuario do CRM e encerrada apos 24 horas sem Mensagem real.
+**Atendimento WhatsApp (planejado)**: Activity agregadora aberta pela primeira Mensagem enviada por um Usuario do CRM e encerrada apos 24 horas sem Mensagem real.
 
-**Atendimento Continuado**: novo Atendimento WhatsApp aberto por Mensagem enviada por Usuario do CRM depois do encerramento de um atendimento anterior.
+**Atendimento Continuado (planejado)**: novo Atendimento WhatsApp aberto por Mensagem enviada por Usuario do CRM depois do encerramento de um atendimento anterior.
 
 **Mensagem Real**: conteudo enviado ou recebido por uma pessoa. Reacao, ACK, leitura e evento tecnico nao sao Mensagens Reais.
 
-**Relato de Atendimento**: texto unico registrado na Activity para resumir decisoes, duvidas, receios e resultado do atendimento.
+**Relato de Atendimento (planejado)**: texto unico registrado na Activity para resumir decisoes, duvidas, receios e resultado do atendimento.
 
 **Roleta de Distribuicao**: politica futura que atribui Leads e suas Conversas a Usuarios elegiveis de forma concorrente, justa e auditavel.
 
