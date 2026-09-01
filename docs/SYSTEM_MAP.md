@@ -18,7 +18,7 @@ Este documento descreve o fork real, não apenas convenções Laravel. Para cria
 | `routes/` | Rotas globais e agendamentos em `routes/console.php`. Módulos registram rotas próprias. |
 | `public/` | Document root e manifests compilados de root, Admin, Installer e WebForm. |
 | `storage/` | Logs, cache e arquivos. Dados privados ficam em `storage/app/private`. |
-| `tests/` | Diretório esperado para testes do fork; ausente no checkout atual e rastreado pela Epic E03. |
+| `tests/` | Testes Pest do fork, incluindo contrato e fluxos principais do TopwebChat. |
 | `docker/` e `compose*.yaml` | Ambiente local e imagem/stack de produção. |
 | `docs/` | Regras, mapas, operação, decisões, referências e histórico arquivado. |
 
@@ -38,7 +38,7 @@ Este documento descreve o fork real, não apenas convenções Laravel. Para cria
 | `DataGrid` / `DataTransfer` | Listagem, filtro, ordenação, exportação e importação. |
 | `Automation` / `Marketing` | Workflows, campanhas, jobs e tarefas agendadas. |
 | `Tag`, `Warehouse`, `WebForm`, `Installer` | Tags, depósitos, formulários públicos e instalação. |
-| `TopwebChat` | Extensão Topweb para atendimento WhatsApp integrado ao OpenWA; integração ponta a ponta ainda em correção. |
+| `TopwebChat` | Atendimento WhatsApp integrado ao OpenWA: instâncias, conversas, mensagens, webhooks, jobs e interface administrativa. |
 
 ## Anatomia de um pacote
 

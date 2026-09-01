@@ -1,48 +1,39 @@
-# Documentacao do TopwebCRM
+# Documentação do TopwebCRM
 
-Este indice define onde cada tipo de informacao deve viver. Um comportamento so pode ser descrito como implementado quando estiver confirmado no codigo e coberto por verificacao reproduzivel.
+Este índice aponta para a fonte certa sem repetir o mesmo procedimento em vários lugares. Um comportamento só é tratado como implementado quando estiver confirmado no código e puder ser verificado por teste ou procedimento reproduzível.
 
-## Ordem de autoridade
+## Leitura por objetivo
 
-1. Codigo, migrations, configuracao e testes executaveis.
-2. ADRs aceitos e nao superados.
-3. `CONTEXT.md`, `docs/PRODUCT_RULES.md` e `docs/SECURITY_RULES.md`.
-4. Arquitetura, mapas e documentacao do modulo.
-5. Runbooks operacionais.
-6. `ORCHESTRATOR-ROADMAP.md` e GitHub Issues.
-7. Historico e referencias externas fixadas.
-
-## Documentos canonicos
-
-| Assunto | Documento |
+| Preciso entender... | Fonte canônica |
 |---|---|
-| Protocolo dos agentes e skills | `AGENTS.md` |
-| Linguagem do dominio | `CONTEXT.md` |
-| Regras de produto | `docs/PRODUCT_RULES.md` |
-| Regras de seguranca | `docs/SECURITY_RULES.md` |
-| Arquitetura geral | `docs/ARCHITECTURE.md` |
-| Mapa do codigo | `docs/SYSTEM_MAP.md` |
-| TopwebChat | `docs/topweb-chat/README.md` |
-| Contrato OpenWA usado pelo CRM | `docs/topweb-chat/OPENWA.md` |
-| Operacao do TopwebChat | `docs/topweb-chat/OPERATIONS.md` |
-| Desenvolvimento local | `docs/operations/LOCAL_DEVELOPMENT.md` |
-| Deploy e rollback | `docs/operations/DEPLOYMENT.md` |
-| Decisoes arquiteturais | `docs/adr/` |
-| Tracker e triage | `docs/agents/` |
-| Planejamento estrategico | `ORCHESTRATOR-ROADMAP.md` |
+| linguagem, atores e limites do produto | `CONTEXT.md` |
+| arquitetura e fronteiras dos componentes | `docs/ARCHITECTURE.md` |
+| regras funcionais e de segurança | `docs/PRODUCT_RULES.md` e `docs/SECURITY_RULES.md` |
+| localização do código | `docs/SYSTEM_MAP.md` |
+| funcionamento e operação do TopwebChat | `docs/topweb-chat/README.md` |
+| endpoints OpenWA consumidos pelo CRM | `docs/topweb-chat/OPENWA.md` |
+| desenvolvimento local | `docs/operations/LOCAL_DEVELOPMENT.md` |
+| instalação, release e rollback no SetupOrion | `docs/operations/DEPLOYMENT.md` |
+| decisões arquiteturais aceitas | `docs/adr/` |
+| trabalho planejado ou pendente | `ORCHESTRATOR-ROADMAP.md` e GitHub Issues |
+| protocolo para agentes automatizados | `AGENTS.md` |
 
-## Estados documentais
+## Autoridade e estado
 
-- **Implementado**: confirmado no codigo atual e verificavel.
-- **Decidido**: contrato aprovado, ainda que a implementacao esteja pendente.
-- **Planejado**: escopo de roadmap ou Issue, sem garantia de disponibilidade.
-- **Historico**: registro que nao descreve o comportamento atual.
-- **Referencia externa**: material de outro projeto, sem autoridade sobre o TopwebCRM.
+A ordem de autoridade é: código, migrations, configuração e testes; ADRs vigentes; contexto e regras; arquitetura e documentação de módulo; runbooks; roadmap e Issues; histórico e referências externas.
 
-## Regras de manutencao
+Os termos usados na documentação têm significado específico:
 
-- Nao copiar catalogos completos de APIs externas para `docs/`.
-- Nao registrar progresso em varios documentos; o GitHub Issue e a fonte detalhada e o roadmap e o resumo.
-- Nao usar task concluida ou changelog como especificacao atual.
-- Atualizar documentacao e testes no mesmo slice da mudanca funcional.
-- Registrar em ADR apenas decisoes dificeis de reverter, surpreendentes e resultantes de trade-off real.
+- **Implementado:** existe no código atual e possui verificação reproduzível.
+- **Decidido:** contrato aceito, mesmo que a entrega ainda esteja incompleta.
+- **Planejado:** escopo de roadmap ou Issue, sem garantia de disponibilidade.
+- **Histórico:** registro preservado, mas sem autoridade sobre o comportamento atual.
+- **Referência externa:** material de outro projeto, usado apenas como apoio.
+
+## Manutenção
+
+- Atualize a fonte canônica e apenas faça referência a ela nos demais documentos.
+- Não copie catálogos completos de APIs externas.
+- Não use um changelog ou uma tarefa concluída como especificação atual.
+- Atualize testes e documentação no mesmo slice de uma mudança funcional.
+- Use ADR somente para decisões duradouras, surpreendentes ou difíceis de reverter.

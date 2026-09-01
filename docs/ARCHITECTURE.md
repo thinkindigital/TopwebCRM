@@ -89,7 +89,7 @@ Ao analisar qualquer módulo Krayin, localizar:
 
 **Arquitetura:** Provider-agnostic via `MessagingProvider`  
 **Provedor Primário:** OpenWA (self-hosted, HMAC webhooks, API Key)  
-**Detalhes:** `docs/adr/0004-topwebchat-whatsapp-module.md` + `docs/topweb-chat/README.md` + `docs/topweb-chat/OPENWA.md` + `docs/topweb-chat/OPERATIONS.md`
+**Detalhes:** `docs/adr/0004-topwebchat-whatsapp-module.md` + `docs/topweb-chat/README.md` + `docs/topweb-chat/OPENWA.md`
 
 **Requisitos Mínimos:**
 - Provedor desacoplado (adapter)
