@@ -53,6 +53,9 @@ it('keeps the composer outside the scrollable chronological timeline', function 
     $controller = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Http/Controllers/ConversationController.php')
     );
+    $processor = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Services/WebhookProcessor.php')
+    );
 
     expect($view)->toContain(
         'min-h-0 flex-1 flex-col justify-start',
@@ -74,6 +77,9 @@ it('keeps the composer outside the scrollable chronological timeline', function 
             "orderByRaw('COALESCE(sent_at, created_at) DESC')",
             "->orderByDesc('id')",
             '->reverse()'
+        )->and($processor)->toContain(
+            "str_ends_with(\$remoteId, '@newsletter')",
+            "str_ends_with(\$remoteId, '@broadcast')"
         );
 });
 

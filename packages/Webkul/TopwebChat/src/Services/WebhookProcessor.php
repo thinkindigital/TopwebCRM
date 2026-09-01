@@ -52,6 +52,10 @@ class WebhookProcessor
             return;
         }
 
+        if ($this->isUnsupportedConversationIdentity($remoteId)) {
+            return;
+        }
+
         $conversation = $this->conversationService->findOrCreateInbound(
             $event->instance,
             $remoteId,
@@ -225,6 +229,14 @@ class WebhookProcessor
             'played_self',
             'received',
         ], true);
+    }
+
+    private function isUnsupportedConversationIdentity(string $remoteId): bool
+    {
+        $remoteId = strtolower(trim($remoteId));
+
+        return str_ends_with($remoteId, '@newsletter')
+            || str_ends_with($remoteId, '@broadcast');
     }
 
     private function processInstanceState(WebhookEvent $event): void
