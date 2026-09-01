@@ -63,7 +63,7 @@ return [
                 'name' => 'label',
                 'title' => 'admin::app.configuration.index.general.settings.footer.powered-by',
                 'type' => 'editor',
-                'default' => 'Powered by <span style="color: rgb(14, 144, 217);"><a href="http://www.krayincrm.com" target="_blank">Krayin</a></span>, an open-source project by <span style="color: rgb(14, 144, 217);"><a href="https://webkul.com" target="_blank">Webkul</a></span>.',
+                'default' => 'Desenvolvido por <a style="color: rgb(14, 144, 217);" href="https://topwebdigital.com.br" target="_blank" rel="noopener">Topweb Digital</a>.',
                 'tinymce' => true,
             ],
         ],

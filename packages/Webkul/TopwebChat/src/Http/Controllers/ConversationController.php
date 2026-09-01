@@ -2,16 +2,20 @@
 
 namespace Webkul\TopwebChat\Http\Controllers;
 
+use App\Services\SensitiveDataService;
+use App\Services\SensitiveFileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 use Webkul\TopwebChat\Jobs\MarkConversationRead;
 use Webkul\TopwebChat\Jobs\SyncConversationHistory;
 use Webkul\TopwebChat\Models\Conversation;
+use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Repositories\ConversationRepository;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 use Webkul\TopwebChat\Services\MessageService;
@@ -22,7 +26,9 @@ class ConversationController
     public function __construct(
         protected ConversationRepository $conversationRepository,
         protected ConversationAccessService $access,
-        protected MessageService $messages
+        protected MessageService $messages,
+        protected SensitiveDataService $sensitiveData,
+        protected SensitiveFileService $sensitiveFiles
     ) {}
 
     public function index(Request $request): View
@@ -112,6 +118,7 @@ class ConversationController
             'assignableUsers' => $this->access->isAdministrator($user)
                 ? User::query()->where('status', 1)->orderBy('name')->get()
                 : collect(),
+            'canViewSensitiveMedia' => $this->sensitiveData->canView($user),
         ]);
     }
 
@@ -124,6 +131,8 @@ class ConversationController
             $conversation
         );
 
+        $user = auth()->guard('user')->user();
+        $canViewSensitiveMedia = $this->sensitiveData->canView($user);
         $messages = $conversation->messages()
             ->orderByRaw('COALESCE(sent_at, created_at) DESC')
             ->orderByDesc('id')
@@ -144,6 +153,19 @@ class ConversationController
                     'conversation' => $conversation,
                     'message' => $message,
                 ]),
+                'has_media' => $message->hasMedia(),
+                'media_status' => $message->hasMedia()
+                    ? data_get($message->metadata, 'media_status', 'queued')
+                    : null,
+                'media_mime' => $canViewSensitiveMedia && $message->mediaIsStored()
+                    ? data_get($message->metadata, 'media_mime')
+                    : null,
+                'media_url' => $canViewSensitiveMedia && $message->mediaIsStored()
+                    ? route('admin.topweb_chat.messages.media', [
+                        'conversation' => $conversation,
+                        'message' => $message,
+                    ])
+                    : null,
             ]);
 
         return response()->json([
@@ -152,5 +174,27 @@ class ConversationController
                 'status' => $conversation->instance()->value('status') ?: 'unknown',
             ],
         ]);
+    }
+
+    public function media(
+        Conversation $conversation,
+        Message $message
+    ): StreamedResponse {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
+
+        $user = auth()->guard('user')->user();
+        $this->access->authorizeView($user, $conversation);
+        $this->sensitiveData->authorize($user);
+
+        abort_unless($message->conversation_id === $conversation->id, 404);
+        abort_unless($message->mediaIsStored(), 404);
+
+        $metadata = $message->metadata ?? [];
+
+        return $this->sensitiveFiles->inline(
+            (string) data_get($metadata, 'media_path'),
+            (string) data_get($metadata, 'media_mime', 'application/octet-stream'),
+            (string) data_get($metadata, 'media_name', 'whatsapp-media.bin')
+        );
     }
 }
