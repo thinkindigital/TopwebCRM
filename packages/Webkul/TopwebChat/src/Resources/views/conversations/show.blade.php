@@ -468,22 +468,26 @@
                 };
 
                 const refresh = async () => {
-                    if (document.hidden || refreshing) {
+                    if (refreshing) {
                         return;
                     }
 
                     refreshing = true;
 
                     try {
-                        const response = await fetch(timeline.dataset.messagesUrl, {
+                        const url = new URL(timeline.dataset.messagesUrl, window.location.origin);
+                        url.searchParams.set('_poll', Date.now().toString());
+
+                        const response = await fetch(url, {
                             cache: 'no-store',
+                            credentials: 'same-origin',
                             headers: {
                                 Accept: 'application/json',
                                 'X-Requested-With': 'XMLHttpRequest',
                             },
                         });
 
-                        if (!response.ok) {
+                        if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
                             throw new Error('message_refresh_failed');
                         }
 
