@@ -8,6 +8,7 @@ use Webkul\Contact\Models\Person;
 use Webkul\Lead\Models\Lead;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
+use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\User\Models\User;
 
 class ConversationService
@@ -15,7 +16,8 @@ class ConversationService
     public function __construct(
         protected RemoteIdentityService $remoteIdentity,
         protected ContactResolverService $contactResolver,
-        protected ConversationAccessService $access
+        protected ConversationAccessService $access,
+        protected MessagingProvider $provider
     ) {}
 
     public function launchForPerson(
@@ -75,6 +77,20 @@ class ConversationService
             return $conversation;
         }
 
+        $remoteId = $this->resolvePrivacyIdentity($instance, $remoteId);
+        $conversation = $this->find($instance, $remoteId);
+
+        if ($conversation) {
+            if ($conversation->status !== 'open') {
+                $conversation->update([
+                    'status' => 'open',
+                    'closed_at' => null,
+                ]);
+            }
+
+            return $conversation;
+        }
+
         $person = $this->contactResolver->resolve($remoteId, $displayName);
 
         return Conversation::query()->create([
@@ -92,6 +108,15 @@ class ConversationService
             ->where('instance_id', $instance->id)
             ->where('remote_jid_key', $this->remoteIdentity->key($remoteId))
             ->first();
+    }
+
+    private function resolvePrivacyIdentity(Instance $instance, string $remoteId): string
+    {
+        if (! str_ends_with(strtolower(trim($remoteId)), '@lid')) {
+            return $remoteId;
+        }
+
+        return $this->provider->getContactPhone($instance, $remoteId) ?: $remoteId;
     }
 
     private function singleEnabledInstance(): Instance

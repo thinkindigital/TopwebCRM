@@ -204,12 +204,13 @@ class SyncConversationHistory implements ShouldQueue
         array $messages,
         bool $countUnread
     ): void {
-        DB::transaction(function () use ($conversation, $messages, $countUnread) {
+        $mediaMessageIds = DB::transaction(function () use ($conversation, $messages, $countUnread) {
             $lockedConversation = Conversation::query()
                 ->lockForUpdate()
                 ->findOrFail($conversation->id);
             $latestAt = $lockedConversation->last_message_at;
             $newIncoming = 0;
+            $mediaMessageIds = [];
 
             foreach ($messages as $providerMessage) {
                 $providerMessageId = $providerMessage['id'] ?? null;
@@ -242,9 +243,20 @@ class SyncConversationHistory implements ShouldQueue
                     'metadata' => [
                         'chat_jid' => $providerMessage['chatJid'] ?? null,
                         'sender_jid' => $providerMessage['senderJid'] ?? null,
+                        'has_media' => (bool) ($providerMessage['hasMedia'] ?? false),
+                        'media_status' => ($providerMessage['hasMedia'] ?? false)
+                            ? 'queued'
+                            : null,
                     ],
                     'sent_at' => $sentAt,
                 ]);
+
+                if (
+                    ($providerMessage['hasMedia'] ?? false)
+                    && ! $message->mediaIsStored()
+                ) {
+                    $mediaMessageIds[] = $message->id;
+                }
 
                 if (
                     $countUnread
@@ -263,13 +275,20 @@ class SyncConversationHistory implements ShouldQueue
                 'last_message_at' => $latestAt,
                 'unread_count' => $lockedConversation->unread_count + $newIncoming,
             ]);
+
+            return array_values(array_unique($mediaMessageIds));
         }, 3);
+
+        foreach ($mediaMessageIds as $messageId) {
+            DownloadMessageMedia::dispatch($messageId);
+        }
     }
 
     private function parseTimestamp(mixed $timestamp): Carbon
     {
         return is_numeric($timestamp)
-            ? Carbon::createFromTimestamp((int) $timestamp)
+            ? Carbon::createFromTimestampUTC((int) $timestamp)
+                ->setTimezone(config('app.timezone'))
             : Carbon::parse($timestamp);
     }
 }

@@ -8,6 +8,18 @@ use Webkul\User\Models\UserProxy;
 
 class Message extends Model implements MessageContract
 {
+    private const MEDIA_TYPES = [
+        'audio',
+        'document',
+        'file',
+        'gif',
+        'image',
+        'ptt',
+        'sticker',
+        'video',
+        'voice',
+    ];
+
     protected $table = 'topweb_chat_messages';
 
     protected $fillable = [
@@ -47,5 +59,17 @@ class Message extends Model implements MessageContract
     public function user()
     {
         return $this->belongsTo(UserProxy::modelClass());
+    }
+
+    public function hasMedia(): bool
+    {
+        return (bool) data_get($this->metadata, 'has_media')
+            || in_array(strtolower($this->type), self::MEDIA_TYPES, true);
+    }
+
+    public function mediaIsStored(): bool
+    {
+        return data_get($this->metadata, 'media_status') === 'stored'
+            && filled(data_get($this->metadata, 'media_path'));
     }
 }

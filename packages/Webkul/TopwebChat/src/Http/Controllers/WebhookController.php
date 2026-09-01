@@ -61,7 +61,7 @@ class WebhookController
         ]);
 
         if ($event->wasRecentlyCreated) {
-            ProcessWebhookEvent::dispatchAfterResponse($event->id);
+            ProcessWebhookEvent::dispatch($event->id);
         }
 
         return response()->json(['accepted' => true], 202);

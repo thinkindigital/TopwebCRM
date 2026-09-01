@@ -73,6 +73,22 @@ class SensitiveFileService
         return $this->legacyDisk()->download($path, $name);
     }
 
+    public function inline(
+        string $path,
+        string $mime,
+        ?string $name = null
+    ): StreamedResponse {
+        $disk = $this->disk()->exists($path)
+            ? $this->disk()
+            : $this->legacyDisk();
+
+        return $disk->response($path, $name, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'X-Content-Type-Options' => 'nosniff',
+        ], 'inline');
+    }
+
     public function migrationStatus(string $path): string
     {
         $existsOnPrivateDisk = $this->disk()->exists($path);

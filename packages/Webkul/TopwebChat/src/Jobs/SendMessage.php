@@ -105,7 +105,8 @@ class SendMessage implements ShouldQueue
 
         $providerMessageId = $result['messageId'] ?? null;
         $sentAt = isset($result['timestamp'])
-            ? Carbon::createFromTimestamp($result['timestamp'])
+            ? Carbon::createFromTimestampUTC((int) $result['timestamp'])
+                ->setTimezone(config('app.timezone'))
             : now();
 
         DB::transaction(function () use (

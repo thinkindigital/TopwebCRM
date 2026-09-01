@@ -105,8 +105,7 @@
         <!-- Powered By -->
         <div class="text-sm font-normal">
             @lang('admin::app.components.layouts.powered-by.description', [
-                'krayin' => '<a class="text-brandColor hover:underline " href="https://krayincrm.com/">Krayin</a>',
-                'webkul' => '<a class="text-brandColor hover:underline " href="https://webkul.com/">Webkul</a>',
+                'topweb' => '<a class="text-brandColor hover:underline" href="https://topwebdigital.com.br" target="_blank" rel="noopener">Topweb Digital</a>',
             ]) 
         </div>
     </div>

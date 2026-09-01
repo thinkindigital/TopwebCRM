@@ -471,6 +471,19 @@ class OpenWaProvider implements MessagingProvider
                 'senderJid' => $message['from'] ?? null,
                 'content' => $message['body'] ?? null,
                 'type' => $message['type'] ?? 'text',
+                'hasMedia' => (bool) ($message['hasMedia'] ?? false)
+                    || filled($message['media'] ?? null)
+                    || in_array(strtolower($message['type'] ?? 'text'), [
+                        'audio',
+                        'document',
+                        'file',
+                        'gif',
+                        'image',
+                        'ptt',
+                        'sticker',
+                        'video',
+                        'voice',
+                    ], true),
                 'timestamp' => $message['timestamp'] ?? null,
                 'fromMe' => ($message['direction'] ?? null) === 'outgoing',
             ])
