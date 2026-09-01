@@ -130,10 +130,26 @@ jobs:
           fi
 
           auth_header="X-API-Key: $PORTAINER_API_KEY"
-          stack_json="$(
+          stacks_json="$(
             curl --fail --silent --show-error \
               --header "$auth_header" \
-              "$PORTAINER_URL/api/stacks/name/$PORTAINER_STACK_NAME"
+              "$PORTAINER_URL/api/stacks"
+          )"
+          stack_json="$(
+            jq -cer \
+              --arg stack_name "$PORTAINER_STACK_NAME" \
+              --argjson endpoint_id "$PORTAINER_ENDPOINT_ID" \
+              '[
+                .[]
+                | select(
+                    .Name == $stack_name
+                    and .EndpointId == $endpoint_id
+                  )
+              ]
+              | if length == 1
+                then .[0]
+                else error("Expected exactly one matching Portainer stack")
+                end' <<<"$stacks_json"
           )"
           stack_id="$(jq -er '.Id' <<<"$stack_json")"
 
