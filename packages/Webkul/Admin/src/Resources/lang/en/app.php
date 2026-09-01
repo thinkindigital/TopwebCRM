@@ -334,7 +334,7 @@ return [
         ],
         'layouts' => [
             'powered-by' => [
-                'description' => 'Powered by :krayin, an open-source project by :webkul.',
+                'description' => 'Developed by :topweb.',
             ],
             'header' => [
                 'mega-search' => [

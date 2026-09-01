@@ -69,7 +69,7 @@ class MessageService
         });
 
         if ($message->wasRecentlyCreated) {
-            SendMessage::dispatchAfterResponse($message->id);
+            SendMessage::dispatch($message->id);
         }
 
         return $message->fresh();
@@ -112,7 +112,7 @@ class MessageService
             return $lockedMessage;
         });
 
-        SendMessage::dispatchAfterResponse($retryMessage->id);
+        SendMessage::dispatch($retryMessage->id);
 
         return $retryMessage->fresh();
     }

@@ -4,6 +4,7 @@ namespace Webkul\TopwebChat\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Webkul\TopwebChat\Jobs\DownloadMessageMedia;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Models\WebhookEvent;
@@ -58,10 +59,23 @@ class WebhookProcessor
         );
 
         $timestamp = isset($messageData['timestamp'])
-            ? Carbon::createFromTimestamp($messageData['timestamp'])
+            ? Carbon::createFromTimestampUTC((int) $messageData['timestamp'])
+                ->setTimezone(config('app.timezone'))
             : now();
         $type = $messageData['type'] ?? 'text';
         $content = $messageData['body'] ?? null;
+        $hasMedia = (bool) ($messageData['hasMedia'] ?? false)
+            || in_array(strtolower($type), [
+                'audio',
+                'document',
+                'file',
+                'gif',
+                'image',
+                'ptt',
+                'sticker',
+                'video',
+                'voice',
+            ], true);
 
         DB::transaction(function () use (
             $conversation,
@@ -71,7 +85,8 @@ class WebhookProcessor
             $type,
             $content,
             $messageData,
-            $timestamp
+            $timestamp,
+            $hasMedia
         ) {
             $lockedConversation = Conversation::query()
                 ->lockForUpdate()
@@ -85,10 +100,14 @@ class WebhookProcessor
                     $existingMessage->update(['status' => 'sent']);
                 }
 
+                if ($hasMedia && ! $existingMessage->mediaIsStored()) {
+                    DownloadMessageMedia::dispatch($existingMessage->id)->afterCommit();
+                }
+
                 return;
             }
 
-            Message::query()->create([
+            $message = Message::query()->create([
                 'conversation_id' => $lockedConversation->id,
                 'provider_message_id' => $providerMessageId,
                 'provider_message_key' => $providerKey,
@@ -100,11 +119,16 @@ class WebhookProcessor
                 'metadata' => [
                     'chat_id' => $messageData['chatId'] ?? null,
                     'is_group' => $messageData['isGroup'] ?? false,
-                    'has_media' => $messageData['hasMedia'] ?? false,
+                    'has_media' => $hasMedia,
+                    'media_status' => $hasMedia ? 'queued' : null,
                     'kind' => $messageData['kind'] ?? null,
                 ],
                 'sent_at' => $timestamp,
             ]);
+
+            if ($hasMedia) {
+                DownloadMessageMedia::dispatch($message->id)->afterCommit();
+            }
 
             $lastMessageAt = $lockedConversation->last_message_at;
 
@@ -143,7 +167,9 @@ class WebhookProcessor
             $updates = [
                 'status' => $this->newerStatus($message->status, $status),
             ];
-            $statusAt = $timestamp ? Carbon::parse($timestamp) : now();
+            $statusAt = $timestamp
+                ? Carbon::parse($timestamp)->setTimezone(config('app.timezone'))
+                : now();
 
             if ($status === 'delivered') {
                 $updates['delivered_at'] = $statusAt;

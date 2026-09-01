@@ -191,6 +191,45 @@ it('resolves a phone number to an OpenWA chat id before sending', function () {
         && $request->data()['chatId'] === '5511999999999@c.us');
 });
 
+it('resolves an OpenWA privacy id through the official contact endpoint', function () {
+    Http::fake([
+        'http://openwa.test:2785/api/sessions/*/contacts/*/phone' => Http::response([
+            'phone' => '5511999999999',
+        ]),
+    ]);
+
+    $phone = app(OpenWaProvider::class)->getContactPhone(
+        openWaInstance(),
+        '12345678901234@lid'
+    );
+
+    expect($phone)->toBe('5511999999999');
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'GET'
+        && $request->url() === 'http://openwa.test:2785/api/sessions/be23262e-5ffb-405b-95e3-8658f043fb30/contacts/12345678901234@lid/phone');
+});
+
+it('downloads media bytes from the OpenWA private media endpoint', function () {
+    Http::fake([
+        'http://openwa.test:2785/api/sessions/*/messages/*/*/media' => Http::response(
+            'binary-image-contents',
+            200,
+            ['Content-Type' => 'image/jpeg']
+        ),
+    ]);
+
+    $contents = app(OpenWaProvider::class)->downloadMedia(
+        openWaInstance(),
+        '12345678901234@lid',
+        'message-id'
+    );
+
+    expect($contents)->toBe('binary-image-contents');
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'GET'
+        && $request->url() === 'http://openwa.test:2785/api/sessions/be23262e-5ffb-405b-95e3-8658f043fb30/messages/12345678901234@lid/message-id/media');
+});
+
 it('loads only persisted OpenWA history for one conversation', function () {
     Http::fake([
         'http://openwa.test:2785/api/sessions/*/contacts/check/*' => Http::response([

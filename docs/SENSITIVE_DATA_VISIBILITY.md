@@ -62,7 +62,7 @@ A visualização integral de dados sensíveis é **negada por padrão** e conced
 
 ## Anexos — Disco Privado
 
-**Novos anexos** (e-mail, atividade, futuro WhatsApp): gravados em `storage/app/private` (config `SENSITIVE_DATA_DISK`), URLs resolvidas por rotas autenticadas.
+**Novos anexos** (e-mail, atividade e mídia recebida pelo TopwebChat): gravados em `storage/app/private` (config `SENSITIVE_DATA_DISK`), com acesso resolvido por rotas autenticadas. No TopwebChat, a rota também revalida o acesso à conversa e exige `can_view_sensitive_data`; imagens, áudios e vídeos autorizados são exibidos na timeline, enquanto outros tipos são oferecidos para abertura controlada.
 
 **Legados** (antes da feature): migrar com comando idempotente:
 

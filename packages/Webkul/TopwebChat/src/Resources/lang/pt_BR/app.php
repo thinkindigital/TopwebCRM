@@ -51,6 +51,12 @@ return [
     'messages' => [
         'empty' => 'Nenhuma mensagem persistida.',
         'media' => 'Mensagem de mídia',
+        'media_image' => 'Imagem recebida pelo WhatsApp',
+        'media_processing' => 'Mídia sendo preparada para visualização…',
+        'media_restricted' => 'Mídia protegida. Seu usuário não possui acesso a dados sensíveis.',
+        'new_messages' => 'Novas mensagens',
+        'open_media' => 'Abrir arquivo recebido',
+        'unsupported' => 'Mensagem não suportada',
         'placeholder' => 'Digite uma mensagem para o WhatsApp...',
         'send' => 'Enviar mensagem',
         'sent' => 'Mensagem enviada.',
@@ -70,6 +76,9 @@ return [
         'mark_read_failed' => 'Não foi possível marcar a conversa como lida no OpenWA.',
         'contact_check_failed' => 'Não foi possível validar o número no OpenWA.',
         'contact_not_registered' => 'O número informado não está registrado no WhatsApp.',
+        'contact_get_failed' => 'Não foi possível consultar o contato no OpenWA.',
+        'contact_phone_failed' => 'Não foi possível resolver a identidade privada do contato no OpenWA.',
+        'media_download_failed' => 'Não foi possível baixar a mídia do OpenWA.',
     ],
     'webhook' => [
         'public_url_required' => 'Defina TOPWEB_CHAT_PUBLIC_URL com um endereço HTTPS público antes de configurar o webhook.',

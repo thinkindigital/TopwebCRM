@@ -51,6 +51,12 @@ return [
     'messages' => [
         'empty' => 'No persisted messages.',
         'media' => 'Media message',
+        'media_image' => 'Image received through WhatsApp',
+        'media_processing' => 'Media is being prepared for viewing…',
+        'media_restricted' => 'Protected media. Your user cannot access sensitive data.',
+        'new_messages' => 'New messages',
+        'open_media' => 'Open received file',
+        'unsupported' => 'Unsupported message',
         'placeholder' => 'Type a WhatsApp message...',
         'send' => 'Send message',
         'sent' => 'Message sent.',
@@ -70,6 +76,9 @@ return [
         'mark_read_failed' => 'The conversation could not be marked as read in OpenWA.',
         'contact_check_failed' => 'The number could not be validated in OpenWA.',
         'contact_not_registered' => 'The number is not registered on WhatsApp.',
+        'contact_get_failed' => 'The OpenWA contact could not be retrieved.',
+        'contact_phone_failed' => 'The private OpenWA contact identity could not be resolved.',
+        'media_download_failed' => 'The media could not be downloaded from OpenWA.',
     ],
     'webhook' => [
         'public_url_required' => 'Set TOPWEB_CHAT_PUBLIC_URL to a public HTTPS address before configuring the webhook.',

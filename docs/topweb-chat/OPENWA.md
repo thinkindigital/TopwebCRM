@@ -42,8 +42,11 @@ O contrato prevê envio de texto, mídias, localização, contato, reação, edi
 | marcar chat como lido | `POST /api/sessions/{sessionId}/chats/read` |
 | baixar mídia | `GET /api/sessions/{sessionId}/messages/{chatId}/{messageId}/media` |
 | resolver telefone/WhatsApp ID | `GET /api/sessions/{sessionId}/contacts/check/{number}` |
+| resolver identidade privada `@lid` | `GET /api/sessions/{sessionId}/contacts/{contactId}/phone` |
 
-`chatId` é o identificador WhatsApp, por exemplo `5511999999999@c.us`. A resposta de aceite do gateway não confirma entrega ao destinatário.
+`chatId` é o identificador WhatsApp, por exemplo `5511999999999@c.us`. Um identificador `@lid` não contém telefone e nunca deve ser convertido por heurística: o CRM consulta o endpoint `/contacts/{contactId}/phone` e mantém a identidade pendente de revisão se o OpenWA não conhecer o vínculo. A resposta de aceite do gateway não confirma entrega ao destinatário.
+
+No recebimento de imagem, áudio, vídeo ou documento, o CRM usa o `chatId` e o ID da mensagem exatamente como entregues pelo webhook para buscar os bytes. O arquivo é copiado para o disco privado do CRM; token do OpenWA e URL interna não chegam ao navegador.
 
 ## Webhooks
 
