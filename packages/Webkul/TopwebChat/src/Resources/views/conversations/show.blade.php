@@ -285,6 +285,7 @@
                 const connectionWarning = document.getElementById('topweb-chat-connection-warning');
                 const newMessages = document.getElementById('topweb-chat-new-messages');
                 const canViewSensitiveMedia = @json($canViewSensitiveMedia);
+                const browserLocale = (document.documentElement.lang || 'pt-BR').replace('_', '-');
                 let refreshing = false;
                 let lastMessagesSignature = null;
                 let lastMessageId = Number(
@@ -400,7 +401,7 @@
                         if (dateKey && dateKey !== previousDate) {
                             const separator = document.createElement('div');
                             separator.className = 'my-2 flex justify-center';
-                            separator.innerHTML = `<span class="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-300">${new Intl.DateTimeFormat(document.documentElement.lang || 'pt-BR', { dateStyle: 'medium' }).format(messageDate)}</span>`;
+                            separator.innerHTML = `<span class="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-300">${new Intl.DateTimeFormat(browserLocale, { dateStyle: 'medium' }).format(messageDate)}</span>`;
                             timeline.appendChild(separator);
                             previousDate = dateKey;
                         }
@@ -429,7 +430,7 @@
                         );
                         metadata.className = 'mt-2 flex gap-2 text-xs opacity-75';
                         timestamp.textContent = message.sent_at
-                            ? new Intl.DateTimeFormat(document.documentElement.lang || 'pt-BR', {
+                            ? new Intl.DateTimeFormat(browserLocale, {
                                 timeStyle: 'short',
                             }).format(new Date(message.sent_at))
                             : '';
@@ -623,6 +624,8 @@
                 const poll = async () => {
                     try {
                         await refresh();
+                    } catch (error) {
+                        console.error('TopwebChat refresh failed.', error);
                     } finally {
                         window.setTimeout(poll, 3000);
                     }
@@ -630,11 +633,15 @@
 
                 document.addEventListener('visibilitychange', () => {
                     if (!document.hidden) {
-                        refresh().catch(() => {});
+                        refresh().catch((error) => {
+                            console.error('TopwebChat refresh failed after visibility change.', error);
+                        });
                     }
                 });
 
-                refresh().catch(() => {});
+                refresh().catch((error) => {
+                    console.error('TopwebChat initial refresh failed.', error);
+                });
                 window.setTimeout(poll, 3000);
             });
         </script>
