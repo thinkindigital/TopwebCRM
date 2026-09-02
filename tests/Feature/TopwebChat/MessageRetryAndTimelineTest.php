@@ -69,7 +69,7 @@ it('keeps the composer outside the scrollable chronological timeline', function 
         'distanceFromBottom',
         'window.requestAnimationFrame(restoreScroll)',
         "replace('_', '-')",
-        "new Intl.DateTimeFormat(browserLocale",
+        'new Intl.DateTimeFormat(browserLocale',
         "console.error('TopwebChat refresh failed.'",
         "window.setTimeout(() => {",
         "timeline_connected: timeline.isConnected",
