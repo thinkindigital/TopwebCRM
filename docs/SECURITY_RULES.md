@@ -165,6 +165,8 @@ Toda API deve aplicar os mesmos critérios de autorização e visibilidade.
 - registrar falhas de autorização relevantes;
 - registrar eventos críticos de integração.
 
+Issues, Pull Requests e comentários públicos devem seguir a política de sanitização e encerramento definida em `docs/agents/issue-tracker.md`.
+
 ## 13. Auditoria
 Auditoria é recomendada para:
 - visualização de dado altamente sensível;
