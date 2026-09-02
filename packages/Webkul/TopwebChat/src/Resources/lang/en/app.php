@@ -67,6 +67,9 @@ return [
         'retry_not_available' => 'This message cannot be retried safely.',
         'instance_not_connected' => 'Sending is temporarily disabled: reconcile the session and confirm it is ready.',
         'integration_unavailable' => 'OpenWA is partially unavailable. The CRM remains available, but history or read confirmation may be temporarily outdated.',
+        'sync_connecting' => 'Connecting updates…',
+        'sync_ok' => 'Updated',
+        'sync_error' => 'Update failed',
     ],
     'provider' => [
         'send_failed' => 'OpenWA rejected the message.',

@@ -176,6 +176,43 @@ class ConversationController
         ]);
     }
 
+    public function clientEvent(Request $request, Conversation $conversation): JsonResponse
+    {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
+
+        $user = auth()->guard('user')->user();
+        $this->access->authorizeView($user, $conversation);
+
+        $validated = $request->validate([
+            'level' => ['required', 'in:info,warning,error'],
+            'event' => ['required', 'string', 'max:80'],
+            'context' => ['nullable', 'array'],
+        ]);
+
+        $allowedContext = collect($validated['context'] ?? [])->only([
+            'payload_last_id',
+            'dom_last_id',
+            'timeline_connected',
+            'form_connected',
+            'scroll_top',
+            'scroll_height',
+            'client_height',
+            'message',
+        ])->all();
+
+        Log::channel('topweb_chat_client')->log(
+            $validated['level'],
+            $validated['event'],
+            array_merge($allowedContext, [
+                'conversation_id' => $conversation->id,
+                'user_id' => $user->id,
+                'user_agent' => mb_substr((string) $request->userAgent(), 0, 255),
+            ])
+        );
+
+        return response()->json(status: 202);
+    }
+
     public function media(
         Conversation $conversation,
         Message $message

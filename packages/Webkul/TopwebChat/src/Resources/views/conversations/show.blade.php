@@ -37,6 +37,12 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-2 text-xs">
+                    <span
+                        id="topweb-chat-sync-status"
+                        class="rounded-full bg-gray-100 px-3 py-1.5 font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                        @lang('topweb_chat::app.messages.sync_connecting')
+                    </span>
                     <span class="rounded-full bg-gray-100 px-3 py-1.5 font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
                         {{ $conversation->assignedUser?->name ?? trans('topweb_chat::app.conversations.unassigned') }}
                     </span>
@@ -278,12 +284,15 @@
     @pushOnce('scripts')
         <script>
             window.addEventListener('load', () => {
+                window.setTimeout(() => {
                 const timeline = document.getElementById('topweb-chat-timeline');
                 const form = document.getElementById('topweb-chat-send-form');
                 const instanceStatus = document.getElementById('topweb-chat-instance-status');
                 const connectionBadge = document.getElementById('topweb-chat-connection-badge');
                 const connectionWarning = document.getElementById('topweb-chat-connection-warning');
                 const newMessages = document.getElementById('topweb-chat-new-messages');
+                const syncStatus = document.getElementById('topweb-chat-sync-status');
+                const clientLogUrl = @json(route('admin.topweb_chat.client_events.store', $conversation));
                 const canViewSensitiveMedia = @json($canViewSensitiveMedia);
                 const browserLocale = (document.documentElement.lang || 'pt-BR').replace('_', '-');
                 let refreshing = false;
@@ -295,6 +304,44 @@
                 if (!timeline) {
                     return;
                 }
+
+                const reportClientEvent = (level, event, context = {}) => {
+                    const token = form?.querySelector('[name="_token"]')?.value;
+
+                    if (!token) {
+                        return;
+                    }
+
+                    fetch(clientLogUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        keepalive: true,
+                        headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({ level, event, context }),
+                    }).catch(() => {});
+                };
+
+                const updateSyncStatus = (ok) => {
+                    if (!syncStatus) {
+                        return;
+                    }
+
+                    syncStatus.textContent = ok
+                        ? `${@json(trans('topweb_chat::app.messages.sync_ok'))} ${new Date().toLocaleTimeString(browserLocale)}`
+                        : @json(trans('topweb_chat::app.messages.sync_error'));
+                    syncStatus.classList.toggle('text-red-700', !ok);
+                    syncStatus.classList.toggle('bg-red-50', !ok);
+                };
+
+                reportClientEvent('info', 'client.initialized', {
+                    timeline_connected: timeline.isConnected,
+                    form_connected: form?.isConnected || false,
+                });
 
                 const isNearBottom = () => (
                     timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 100
@@ -513,6 +560,24 @@
                         const connected = payload.instance?.status === 'ready';
 
                         renderMessages(payload.messages);
+                        updateSyncStatus(true);
+
+                        const payloadLastId = Number(payload.messages.at(-1)?.id || 0);
+                        const domLastId = Number(
+                            timeline.querySelector('[data-message-id]:last-of-type')?.dataset.messageId || 0
+                        );
+
+                        if (payloadLastId !== domLastId || !timeline.isConnected) {
+                            reportClientEvent('error', 'client.render_mismatch', {
+                                payload_last_id: payloadLastId,
+                                dom_last_id: domLastId,
+                                timeline_connected: timeline.isConnected,
+                                form_connected: form?.isConnected || false,
+                                scroll_top: timeline.scrollTop,
+                                scroll_height: timeline.scrollHeight,
+                                client_height: timeline.clientHeight,
+                            });
+                        }
 
                         if (instanceStatus) {
                             instanceStatus.textContent = payload.instance?.status || 'unknown';
@@ -625,6 +690,12 @@
                     try {
                         await refresh();
                     } catch (error) {
+                        updateSyncStatus(false);
+                        reportClientEvent('error', 'client.refresh_failed', {
+                            timeline_connected: timeline.isConnected,
+                            form_connected: form?.isConnected || false,
+                            message: String(error?.message || error).slice(0, 240),
+                        });
                         console.error('TopwebChat refresh failed.', error);
                     } finally {
                         window.setTimeout(poll, 3000);
@@ -643,6 +714,7 @@
                     console.error('TopwebChat initial refresh failed.', error);
                 });
                 window.setTimeout(poll, 3000);
+                }, 0);
             });
         </script>
     @endPushOnce

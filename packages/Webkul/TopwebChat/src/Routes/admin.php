@@ -15,6 +15,7 @@ Route::prefix('topweb-chat')->group(function () {
     Route::post('start/lead/{lead}', [ConversationLaunchController::class, 'fromLead'])->name('admin.topweb_chat.start.lead');
     Route::get('conversations/{conversation}', [ConversationController::class, 'show'])->name('admin.topweb_chat.show');
     Route::get('conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('admin.topweb_chat.messages.index');
+    Route::post('conversations/{conversation}/client-events', [ConversationController::class, 'clientEvent'])->name('admin.topweb_chat.client_events.store');
     Route::post('conversations/{conversation}/messages', [MessageController::class, 'store'])->name('admin.topweb_chat.messages.store');
     Route::get('conversations/{conversation}/messages/{message}/media', [ConversationController::class, 'media'])->name('admin.topweb_chat.messages.media');
     Route::post('conversations/{conversation}/messages/{message}/retry', [MessageController::class, 'retry'])->name('admin.topweb_chat.messages.retry');

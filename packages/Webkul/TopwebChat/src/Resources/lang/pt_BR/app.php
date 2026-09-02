@@ -67,6 +67,9 @@ return [
         'retry_not_available' => 'Esta mensagem não pode ser reenviada com segurança.',
         'instance_not_connected' => 'Envio temporariamente bloqueado: sincronize a sessão e confirme o estado ready.',
         'integration_unavailable' => 'O OpenWA está parcialmente indisponível. O CRM continua funcionando, mas o histórico ou a confirmação de leitura podem estar temporariamente desatualizados.',
+        'sync_connecting' => 'Conectando atualização…',
+        'sync_ok' => 'Atualizado',
+        'sync_error' => 'Falha na atualização',
     ],
     'provider' => [
         'send_failed' => 'O OpenWA rejeitou o envio da mensagem.',
