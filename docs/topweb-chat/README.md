@@ -131,6 +131,14 @@ Jobs usam a fila Laravel padrão. As opções `--state`, `--full` e `--limit` n�
 
 ## Diagnóstico
 
+A conversa exibe no cabeçalho o horário da última atualização bem-sucedida ou o estado `Falha na atualização`. Eventos do navegador que afetam o chat são gravados, sem conteúdo de mensagens, em:
+
+```text
+storage/logs/topweb-chat-client-YYYY-MM-DD.log
+```
+
+O canal mantém 14 dias e registra inicialização, divergência entre o último ID recebido e o último ID visível, referência DOM desconectada e exceções do polling. Os mesmos eventos são enviados ao `stderr`, portanto também aparecem nos logs do serviço app no Portainer.
+
 Verifique, nesta ordem:
 
 1. `GET /api/health/ready` no OpenWA público retorna `200`;

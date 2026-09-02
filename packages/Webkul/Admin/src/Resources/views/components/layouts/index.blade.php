@@ -52,12 +52,6 @@
         rel="stylesheet"
     />
 
-    <link
-        rel="preload"
-        as="image"
-        href="{{ url('cache/logo/bagisto.png') }}"
-    >
-
     @if ($favicon = core()->getConfigData('general.general.admin_logo.favicon_image'))
         <link
             type="image/x-icon"

@@ -54,6 +54,19 @@ return [
             'days' => 14,
         ],
 
+        'topweb_chat_client' => [
+            'driver' => 'stack',
+            'channels' => ['topweb_chat_client_file', 'stderr'],
+            'ignore_exceptions' => false,
+        ],
+
+        'topweb_chat_client_file' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/topweb-chat-client.log'),
+            'level' => 'info',
+            'days' => 14,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
