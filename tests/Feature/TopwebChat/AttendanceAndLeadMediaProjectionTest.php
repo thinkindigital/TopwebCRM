@@ -628,3 +628,29 @@ it('hides projected file metadata and rejects cross-record access', function () 
         $file
     ))->toBeTrue();
 });
+
+it('serializes email-style activities whose files and participants are arrays', function () {
+    [$user] = attendanceFixture();
+    $this->actingAs($user, 'user');
+
+    $emailActivity = (object) [
+        'id' => 1,
+        'parent_id' => null,
+        'title' => 'Synthetic email activity',
+        'type' => 'email',
+        'comment' => 'Synthetic content',
+        'additional' => [],
+        'schedule_from' => null,
+        'schedule_to' => null,
+        'is_done' => true,
+        'user' => $user,
+        'files' => [],
+        'participants' => [],
+        'location' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ];
+
+    expect((new ActivityResource($emailActivity))->toArray(request())['files'])
+        ->toHaveCount(0);
+});

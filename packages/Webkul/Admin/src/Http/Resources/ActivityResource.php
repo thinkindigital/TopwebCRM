@@ -23,7 +23,7 @@ class ActivityResource extends JsonResource
             : json_decode($this->resource->additional, true);
         $user = auth()->guard('user')->user();
         $files = $sensitiveData->canView($user)
-            ? $this->files->filter(
+            ? collect($this->files ?? [])->filter(
                 fn ($file) => app(MediaProjectionAccessService::class)
                     ->canAccess($user, $file)
             )

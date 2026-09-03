@@ -18,7 +18,7 @@ class MediaProjectionAccessService
         }
     }
 
-    public function canAccess(?User $user, ActivityFile $file): bool
+    public function canAccess(?User $user, object $file): bool
     {
         $projection = MediaProjection::query()
             ->where('activity_file_id', $file->id)
