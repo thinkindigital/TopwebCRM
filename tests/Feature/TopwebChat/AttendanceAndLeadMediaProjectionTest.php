@@ -12,6 +12,7 @@ use Webkul\Activity\Models\Activity;
 use Webkul\Activity\Models\File as ActivityFile;
 use Webkul\Admin\Http\Resources\ActivityResource;
 use Webkul\Contact\Models\Person;
+use Webkul\Installer\Database\Seeders\User\UserSeeder;
 use Webkul\Lead\Models\Lead;
 use Webkul\TopwebChat\Jobs\DownloadMessageMedia;
 use Webkul\TopwebChat\Models\Attendance;
@@ -239,6 +240,13 @@ it('keeps the TopwebChat model proxies registered after the installer publishes 
     $publishedConfig = require base_path('packages/Webkul/Core/src/Config/concord.php');
 
     expect($publishedConfig['modules'])->toContain(TopwebChatModuleServiceProvider::class);
+});
+
+it('grants sensitive data access to the administrator created by the installer seeder', function () {
+    (new UserSeeder)->run();
+
+    expect(DB::table('users')->where('id', 1)->value('can_view_sensitive_data'))
+        ->toBe(1);
 });
 
 function attendanceFixture(): array

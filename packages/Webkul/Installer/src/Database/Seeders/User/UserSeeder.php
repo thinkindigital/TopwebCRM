@@ -29,6 +29,7 @@ class UserSeeder extends Seeder
             'status' => 1,
             'role_id' => 1,
             'view_permission' => 'global',
+            'can_view_sensitive_data' => true,
         ]);
     }
 }
