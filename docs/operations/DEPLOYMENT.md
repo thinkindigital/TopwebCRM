@@ -190,6 +190,12 @@ O secret de GitHub Actions é `PORTAINER_API_KEY`. A chave deve ser exclusiva pa
 
 O workflow atual representa o servidor operacional para o qual foi configurado. Antes de reutilizá-lo em outro SetupOrion, parametrizar e conferir URL do Portainer, endpoint ID e nome da stack é obrigatório; copiar apenas o Compose não transfere DNS, secrets, volumes, registry, labels nem a credencial de CI/CD.
 
+### Eventos e gates do CI
+
+Em branches com Pull Request aberto, CI, lint e Playwright executam uma única vez pelo evento `pull_request`. Em `main`, os mesmos gates executam pelo evento `push`; somente o CI aprovado em `main` libera a publicação da imagem e o redeploy. Cada workflow usa `concurrency` por branch ou Pull Request para cancelar revisões obsoletas sem interromper uma execução de outra entrega.
+
+O gate Playwright constrói os assets administrativos antes de iniciar o Laravel e só começa os testes quando `/admin/login` renderiza o formulário esperado. Assim, falhas de bootstrap (por exemplo, manifest do Vite ausente) são separadas de falhas funcionais e aparecem antes dos shards.
+
 ## Validação de uma release
 
 Considere o deploy aprovado somente quando:
