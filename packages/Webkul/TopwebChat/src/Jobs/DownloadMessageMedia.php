@@ -11,6 +11,7 @@ use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
+use Webkul\TopwebChat\Services\LeadMediaProjector;
 
 class DownloadMessageMedia implements ShouldQueue
 {
@@ -26,11 +27,18 @@ class DownloadMessageMedia implements ShouldQueue
 
     public function handle(
         MessagingProvider $provider,
-        SensitiveFileService $sensitiveFiles
+        SensitiveFileService $sensitiveFiles,
+        ?LeadMediaProjector $projector = null
     ): void {
         $message = Message::query()->findOrFail($this->messageId);
 
-        if (! $message->hasMedia() || $message->mediaIsStored()) {
+        if (! $message->hasMedia()) {
+            return;
+        }
+
+        if ($message->mediaIsStored()) {
+            $projector?->project($message);
+
             return;
         }
 
@@ -43,18 +51,22 @@ class DownloadMessageMedia implements ShouldQueue
             ?: $conversation->remote_jid;
         $providerMessageId = $message->provider_message_id;
 
-        if (! $chatId || ! $providerMessageId) {
+        $isContactCard = in_array(strtolower($message->type), ['contact', 'vcard'], true);
+
+        if ((! $isContactCard && ! $chatId) || ! $providerMessageId) {
             $this->updateStatus($message, 'unavailable');
 
             return;
         }
 
         $this->updateStatus($message, 'downloading');
-        $contents = $provider->downloadMedia(
-            $instance,
-            $chatId,
-            $providerMessageId
-        );
+        $contents = $isContactCard
+            ? (string) $message->content
+            : $provider->downloadMedia(
+                $instance,
+                $chatId,
+                $providerMessageId
+            );
         $size = strlen($contents);
         $maximumSize = config('topweb-chat.openwa.media_max_bytes', 52428800);
 
@@ -62,9 +74,15 @@ class DownloadMessageMedia implements ShouldQueue
             throw new RuntimeException('Provider media is empty or exceeds the configured limit.');
         }
 
-        $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($contents)
-            ?: 'application/octet-stream';
-        $extension = $this->extensionFor($mime);
+        $mime = $isContactCard
+            ? 'text/vcard'
+            : ((new \finfo(FILEINFO_MIME_TYPE))->buffer($contents)
+                ?: 'application/octet-stream');
+        $originalName = (string) data_get(
+            $message->metadata,
+            'media_original_name'
+        );
+        $extension = $this->extensionFor($mime, $originalName);
         $path = sprintf(
             'topweb-chat/%d/%s.%s',
             $message->conversation_id,
@@ -74,6 +92,12 @@ class DownloadMessageMedia implements ShouldQueue
 
         $sensitiveFiles->put($path, $contents);
 
+        $mediaName = preg_replace(
+            '/[\x00-\x1F\x7F]/u',
+            '',
+            basename(str_replace('\\', '/', $originalName))
+        ) ?: 'whatsapp-'.$message->id.'.'.$extension;
+
         $message->update([
             'metadata' => array_merge($message->metadata ?? [], [
                 'has_media' => true,
@@ -81,9 +105,11 @@ class DownloadMessageMedia implements ShouldQueue
                 'media_path' => $path,
                 'media_mime' => $mime,
                 'media_size' => $size,
-                'media_name' => 'whatsapp-'.$message->id.'.'.$extension,
+                'media_name' => $mediaName,
             ]),
         ]);
+
+        $projector?->project($message->fresh());
     }
 
     public function failed(Throwable $exception): void
@@ -105,9 +131,9 @@ class DownloadMessageMedia implements ShouldQueue
         ]);
     }
 
-    private function extensionFor(string $mime): string
+    private function extensionFor(string $mime, string $originalName = ''): string
     {
-        return match ($mime) {
+        $extension = match ($mime) {
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/gif' => 'gif',
@@ -121,7 +147,27 @@ class DownloadMessageMedia implements ShouldQueue
             'video/quicktime' => 'mov',
             'application/pdf' => 'pdf',
             'application/zip' => 'zip',
-            default => 'bin',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'text/csv' => 'csv',
+            'text/plain' => 'txt',
+            'text/vcard', 'text/x-vcard' => 'vcf',
+            default => null,
         };
+
+        if ($extension) {
+            return $extension;
+        }
+
+        $originalExtension = strtolower(pathinfo(
+            basename(str_replace('\\', '/', $originalName)),
+            PATHINFO_EXTENSION
+        ));
+
+        return preg_match('/^[a-z0-9]{1,10}$/', $originalExtension)
+            ? $originalExtension
+            : 'bin';
     }
 }

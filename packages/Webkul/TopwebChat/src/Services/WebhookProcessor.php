@@ -11,7 +11,10 @@ use Webkul\TopwebChat\Models\WebhookEvent;
 
 class WebhookProcessor
 {
-    public function __construct(protected ConversationService $conversationService) {}
+    public function __construct(
+        protected ConversationService $conversationService,
+        protected AttendanceService $attendances
+    ) {}
 
     public function process(WebhookEvent $event): void
     {
@@ -69,8 +72,10 @@ class WebhookProcessor
         $type = $messageData['type'] ?? 'text';
         $content = $messageData['body'] ?? null;
         $hasMedia = (bool) ($messageData['hasMedia'] ?? false)
+            || filled($messageData['media'] ?? null)
             || in_array(strtolower($type), [
                 'audio',
+                'contact',
                 'document',
                 'file',
                 'gif',
@@ -78,10 +83,11 @@ class WebhookProcessor
                 'ptt',
                 'sticker',
                 'video',
+                'vcard',
                 'voice',
             ], true);
 
-        DB::transaction(function () use (
+        $message = DB::transaction(function () use (
             $conversation,
             $providerMessageId,
             $providerKey,
@@ -108,7 +114,7 @@ class WebhookProcessor
                     DownloadMessageMedia::dispatch($existingMessage->id)->afterCommit();
                 }
 
-                return;
+                return $existingMessage;
             }
 
             $message = Message::query()->create([
@@ -125,6 +131,10 @@ class WebhookProcessor
                     'is_group' => $messageData['isGroup'] ?? false,
                     'has_media' => $hasMedia,
                     'media_status' => $hasMedia ? 'queued' : null,
+                    'media_original_name' => data_get($messageData, 'media.filename')
+                        ?: ($messageData['filename'] ?? null),
+                    'media_declared_mime' => data_get($messageData, 'media.mimetype')
+                        ?: ($messageData['mimetype'] ?? null),
                     'kind' => $messageData['kind'] ?? null,
                 ],
                 'sent_at' => $timestamp,
@@ -146,7 +156,13 @@ class WebhookProcessor
                     : $lockedConversation->unread_count,
                 'status' => 'open',
             ]);
+
+            return $message;
         }, 3);
+
+        if ($message) {
+            $this->attendances->recordRealMessage($message);
+        }
     }
 
     private function processStatus(WebhookEvent $event): void

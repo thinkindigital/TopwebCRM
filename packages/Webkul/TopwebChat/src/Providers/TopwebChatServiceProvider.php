@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Webkul\Core\ViewRenderEventManager;
+use Webkul\TopwebChat\Console\Commands\CloseStaleAttendances;
+use Webkul\TopwebChat\Console\Commands\ProjectLeadMedia;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\ConversationAccessService;
@@ -23,7 +25,11 @@ class TopwebChatServiceProvider extends ServiceProvider
         $this->app->bind(MessagingProvider::class, OpenWaProvider::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([ReconcileTopwebChat::class]);
+            $this->commands([
+                CloseStaleAttendances::class,
+                ProjectLeadMedia::class,
+                ReconcileTopwebChat::class,
+            ]);
         }
     }
 
@@ -50,6 +56,16 @@ class TopwebChatServiceProvider extends ServiceProvider
             $schedule->command('topweb-chat:reconcile --history')
                 ->everyFiveMinutes()
                 ->name('topweb-chat-history-reconciliation')
+                ->withoutOverlapping();
+
+            $schedule->command('topweb-chat:close-stale-attendances')
+                ->everyMinute()
+                ->name('topweb-chat-close-stale-attendances')
+                ->withoutOverlapping();
+
+            $schedule->command('topweb-chat:project-lead-media')
+                ->everyFiveMinutes()
+                ->name('topweb-chat-project-lead-media')
                 ->withoutOverlapping();
         });
 

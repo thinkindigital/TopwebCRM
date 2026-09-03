@@ -7,6 +7,10 @@
 
 Cada Issue de implementação deve conter objetivo, escopo, critérios de aceite verificáveis, dependências por URL, riscos de segurança e evidência exigida. `.scratch/` é área temporária de elaboração e não substitui a Issue publicada.
 
+## Política de branches
+
+Branch representa uma entrega coesa e revisável, não cada microcorreção. Issues relacionadas podem compartilhar branch e PR quando pertencem ao mesmo módulo, dependem do mesmo rollout e podem ser validadas juntas. Abra outra branch somente quando houver independência de release, risco ou revisão, conflito de cronograma, ou quando a branch atual já tiver PR/escopo incompatível. O PR deve mapear explicitamente todas as Issues atendidas e distinguir o que foi concluído do que permaneceu pendente.
+
 ## Relatos públicos e dados sensíveis
 
 As Issues, Pull Requests e seus comentários são tratados como superfícies públicas. O relato deve conter evidência técnica suficiente para reprodução e auditoria, mas nunca o dado de negócio usado durante o teste.
@@ -43,6 +47,7 @@ Estas pendências são o ponto de partida atual e devem permanecer rastreáveis 
 - **Confiabilidade do deploy automático:** a publicação no GHCR e o redeploy pelo Portainer concluíram com sucesso nas entregas mais recentes. A Issue #36 deve acompanhar novas execuções antes de encerrar a falha intermitente; se ela reaparecer, o rollout manual no manager continua sendo o procedimento de contingência.
 - **Refinamento da timeline:** a atualização automática sem recarregar a página e a permanência no fim da conversa foram validadas em produção na PR #42. A Issue #22 permanece aberta apenas para refinamento visual, responsividade e cenários de leitura de histórico.
 - **Mídia de saída:** o provider OpenWA já suporta envio de mídia, mas o composer do TopwebChat ainda cobre apenas texto. A interface de anexos, limites, pré-visualização e auditoria devem ser implementados antes de considerar esse fluxo completo.
+- **Activities e mídia recebida:** as Issues #17 e #46 acompanham a projeção das janelas de atendimento e dos arquivos recebidos. Só podem ser encerradas depois de testes, revisão, imagem aplicada e validação privada em produção.
 - **Consolidação histórica:** conversas duplicadas antigas podem existir quando um celular brasileiro foi salvo sem o nono dígito. A normalização nova evita novas duplicatas; a consolidação de registros antigos deve ser feita por migração revisável, sem apagar mensagens.
 
 Uma pendência só deve ser removida depois de evidência reproduzível (teste automatizado, log ou validação no ambiente de produção) e referência ao commit ou Issue correspondente.

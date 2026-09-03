@@ -72,4 +72,9 @@ class Conversation extends Model implements ConversationContract
     {
         return $this->hasMany(InternalNoteProxy::modelClass());
     }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
 }

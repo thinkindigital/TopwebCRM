@@ -165,6 +165,9 @@ Permitir atendimento e histórico conversacional dentro do CRM.
 - após inatividade, a Activity é encerrada e pode receber relato textual;
 - nova mensagem enviada pelo usuário do CRM abre Atendimento Continuado;
 - reações e eventos técnicos não abrem nem renovam atendimento.
+- mídia recebida ao vivo em conversa vinculada vira arquivo nativo do Lead e da Pessoa;
+- a projeção reutiliza o objeto privado do chat e não duplica o conteúdo binário;
+- histórico importado não cria Activity retroativa, inclusive de arquivo.
 
 ### 11.5 Sessões
 - o CRM deve descobrir, importar e criar múltiplas sessões OpenWA;

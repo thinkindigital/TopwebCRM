@@ -13,6 +13,7 @@ use Webkul\Lead\Providers\ModuleServiceProvider as LeadModuleServiceProvider;
 use Webkul\Product\Providers\ModuleServiceProvider as ProductModuleServiceProvider;
 use Webkul\Quote\Providers\ModuleServiceProvider as QuoteModuleServiceProvider;
 use Webkul\Tag\Providers\ModuleServiceProvider as TagModuleServiceProvider;
+use Webkul\TopwebChat\Providers\ModuleServiceProvider as TopwebChatModuleServiceProvider;
 use Webkul\User\Providers\ModuleServiceProvider as UserModuleServiceProvider;
 use Webkul\Warehouse\Providers\ModuleServiceProvider as WarehouseModuleServiceProvider;
 use Webkul\WebForm\Providers\ModuleServiceProvider as WebFormModuleServiceProvider;
@@ -32,6 +33,7 @@ return [
         ProductModuleServiceProvider::class,
         QuoteModuleServiceProvider::class,
         TagModuleServiceProvider::class,
+        TopwebChatModuleServiceProvider::class,
         UserModuleServiceProvider::class,
         WarehouseModuleServiceProvider::class,
         WebFormModuleServiceProvider::class,

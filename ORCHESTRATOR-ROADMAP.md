@@ -24,7 +24,7 @@ Revalidar imagem, stack, secrets, conectividade OpenWA, healthchecks, backup e r
 
 Corrigir reconciliacao, historico, estados monotonicos, retry seguro, idempotencia, concorrencia e observabilidade.
 
-### [**[E06] Reconciliacao Completa e Dominios Pendentes**](https://github.com/thinkindigital/TopwebCRM/issues/1) - `todo`
+### [**[E06] Reconciliacao Completa e Dominios Pendentes**](https://github.com/thinkindigital/TopwebCRM/issues/1) - `in_progress`
 
 Implementar quarentena de identidade, midia privada, falhas de webhook e recursos interativos depois da base OpenWA estar funcional.
 
@@ -32,7 +32,7 @@ Implementar quarentena de identidade, midia privada, falhas de webhook e recurso
 
 Registrar acoes sensiveis, configuracoes, mensagens e atribuicoes em trilha imutavel, consultavel e com retencao definida.
 
-### [**[E08] Melhorias de UX Operacional**](https://github.com/thinkindigital/TopwebCRM/issues/3) - `todo`
+### [**[E08] Melhorias de UX Operacional**](https://github.com/thinkindigital/TopwebCRM/issues/3) - `in_progress`
 
 Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronologica e rolavel, Kanban e metricas confiaveis.
 

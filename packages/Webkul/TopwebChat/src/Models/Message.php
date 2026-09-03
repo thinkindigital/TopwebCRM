@@ -8,8 +8,9 @@ use Webkul\User\Models\UserProxy;
 
 class Message extends Model implements MessageContract
 {
-    private const MEDIA_TYPES = [
+    public const MEDIA_TYPES = [
         'audio',
+        'contact',
         'document',
         'file',
         'gif',
@@ -17,6 +18,7 @@ class Message extends Model implements MessageContract
         'ptt',
         'sticker',
         'video',
+        'vcard',
         'voice',
     ];
 
@@ -59,6 +61,11 @@ class Message extends Model implements MessageContract
     public function user()
     {
         return $this->belongsTo(UserProxy::modelClass());
+    }
+
+    public function mediaProjection()
+    {
+        return $this->hasOne(MediaProjection::class);
     }
 
     public function hasMedia(): bool

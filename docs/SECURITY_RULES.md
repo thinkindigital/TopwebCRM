@@ -204,6 +204,8 @@ Considerar sensíveis:
 - imagens não são classificadas automaticamente nesta fase;
 - autorização deve ser verificada na rota de download, não apenas na interface;
 - histórico importado não pode criar Pessoa nem Activity silenciosamente.
+- arquivos projetados do TopwebChat exigem simultaneamente concessão para dados sensíveis e acesso ao Lead ou Pessoa associados, tanto na serialização quanto no download;
+- a Activity de arquivo referencia o mesmo caminho privado da mensagem; não existe segunda cópia pública ou binária.
 
 ## 15. Critérios mínimos de segurança por implementação
 Toda mudança relevante deve responder:
