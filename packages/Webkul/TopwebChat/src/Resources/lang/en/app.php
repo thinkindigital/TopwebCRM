@@ -1,6 +1,16 @@
 <?php
 
 return [
+    'attendance' => [
+        'initial_title' => 'WhatsApp Service',
+        'continued_title' => 'Continued Service',
+        'closed_automatically' => 'Service closed automatically after the inactivity window.',
+    ],
+
+    'media' => [
+        'received_activity' => 'File received through WhatsApp',
+    ],
+
     'common' => [
         'yes' => 'Yes',
         'no' => 'No',

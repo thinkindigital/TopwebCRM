@@ -54,13 +54,15 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Historico Importado**: mensagens anteriores obtidas do OpenWA. Nao gera Atendimento WhatsApp retroativo.
 
-**Atendimento WhatsApp (planejado)**: Activity agregadora aberta pela primeira Mensagem enviada por um Usuario do CRM e encerrada apos 24 horas sem Mensagem real.
+**Atendimento WhatsApp**: Activity agregadora aberta pela primeira Mensagem enviada por um Usuario do CRM e encerrada apos 24 horas sem Mensagem real.
 
-**Atendimento Continuado (planejado)**: novo Atendimento WhatsApp aberto por Mensagem enviada por Usuario do CRM depois do encerramento de um atendimento anterior.
+**Atendimento Continuado**: novo Atendimento WhatsApp aberto por Mensagem enviada por Usuario do CRM depois do encerramento de um atendimento anterior.
 
 **Mensagem Real**: conteudo enviado ou recebido por uma pessoa. Reacao, ACK, leitura e evento tecnico nao sao Mensagens Reais.
 
-**Relato de Atendimento (planejado)**: texto unico registrado na Activity para resumir decisoes, duvidas, receios e resultado do atendimento.
+**Relato de Atendimento**: texto unico registrado na Activity para resumir decisoes, duvidas, receios e resultado do atendimento.
+
+**Projecao de Midia do Lead**: vinculo idempotente que apresenta uma midia inbound do TopwebChat como arquivo nativo da Pessoa e do Lead, apontando para o mesmo objeto no storage privado.
 
 **Roleta de Distribuicao**: politica futura que atribui Leads e suas Conversas a Usuarios elegiveis de forma concorrente, justa e auditavel.
 

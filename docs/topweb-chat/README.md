@@ -6,12 +6,14 @@ TopwebChat é o módulo nativo do TopwebCRM para operar conversas WhatsApp dentr
 
 O código atual contém:
 
-- domínio persistente de `Instance`, `Conversation`, `Message`, `InternalNote` e `WebhookEvent`;
+- domínio persistente de `Instance`, `Conversation`, `Message`, `InternalNote`, `WebhookEvent`, `Attendance` e `MediaProjection`;
 - inbox e timeline, abertura a partir de Pessoa ou Lead, atribuição e mudança de etapa;
 - envio de texto pela fila, estados da mensagem e retry manual restrito;
 - webhook OpenWA com validação HMAC sobre o corpo bruto e persistência idempotente;
 - resolução de identidades privadas `@lid` pela API oficial do OpenWA antes do vínculo com Pessoa;
 - download assíncrono de mídia recebida para o disco privado e visualização autorizada na timeline;
+- projeção idempotente de mídia inbound ao vivo nos arquivos nativos do Lead/Pessoa, sem duplicar o objeto privado;
+- Activity agregadora por janela de atendimento, renovada por mensagens reais e encerrada após 24 horas de inatividade;
 - reconciliação periódica de instância e sincronização de histórico conhecido;
 - cadastro de instância, saúde do provedor, listagem das sessões remotas e configuração do webhook;
 - autorização no backend baseada no escopo do Lead/Pessoa;
@@ -20,7 +22,7 @@ O código atual contém:
 
 Os testes de feature em `tests/Feature/TopwebChat` cobrem o contrato HTTP principal, Settings, webhook, histórico, retry/timeline e geração da URL pública. Isso não substitui o smoke test com uma sessão WhatsApp real em cada release.
 
-Algumas capacidades existem no contrato do provider, mas ainda não formam um fluxo completo na interface. Entre elas estão os controles de ciclo da sessão, QR/pairing, **envio** de mídia e os recursos ampliados de grupos, chamadas e perfil. O recebimento e a consulta autorizada de mídia estão implementados; o ciclo de “Atendimento WhatsApp” em Activities, quarentena de identidades não resolvidas e automações avançadas continuam sujeitos ao roadmap. Não descreva uma dessas capacidades como entregue apenas porque há um método no adapter.
+Algumas capacidades existem no contrato do provider, mas ainda não formam um fluxo completo na interface. Entre elas estão os controles de ciclo da sessão, QR/pairing, **envio** de mídia e os recursos ampliados de grupos, chamadas e perfil. O recebimento, a consulta autorizada e a projeção de mídia recebida nos arquivos do Lead estão implementados; quarentena de identidades não resolvidas e automações avançadas continuam sujeitos ao roadmap. Não descreva uma dessas capacidades como entregue apenas porque há um método no adapter.
 
 OpenWA é um gateway comunitário não oficial, baseado em clientes de engenharia reversa. Existe risco não nulo de restrição da conta; use número dedicado, consentimento dos destinatários, limites de envio e um canal alternativo para fluxos críticos. O engine padrão desta stack é `whatsapp-web.js`, que prioriza um comportamento mais próximo ao WhatsApp Web ao custo de mais memória por sessão.
 
@@ -104,9 +106,18 @@ Uma resposta HTTP de aceite não prova entrega ao destinatário. Timeout após c
 4. O processador normaliza sessão, conversa, remetente, conteúdo e estado.
 5. Identidades `@lid` são resolvidas pelo endpoint de contato do OpenWA; um LID sem correspondência continua bloqueado para revisão, sem adivinhar telefone.
 6. Mídias são baixadas por job, limitadas por tamanho e gravadas em `storage/app/private`.
-7. A inbox e a timeline passam a ler a cópia local em ordem cronológica e atualizam a conversa aberta a cada três segundos.
+7. Mídia inbound ao vivo de conversa vinculada é projetada como Activity de arquivo do Lead/Pessoa, apontando para o mesmo caminho privado.
+8. A inbox e a timeline passam a ler a cópia local em ordem cronológica e atualizam a conversa aberta a cada três segundos.
 
-A rota de mídia repete autorização da conversa e exige a concessão individual `can_view_sensitive_data`. Ela não fornece URL pública do arquivo nem libera acesso apenas por esconder elementos no navegador.
+A rota de mídia repete autorização da conversa e exige a concessão individual `can_view_sensitive_data`. O download pela Activity também revalida o acesso ao Lead/Pessoa projetados. Nenhuma das rotas fornece URL pública do objeto.
+
+### Janela de atendimento
+
+1. O primeiro outbound humano criado no CRM abre uma Activity `Atendimento WhatsApp` vinculada à Pessoa e ao Lead.
+2. Mensagens reais ao vivo, inbound ou outbound, renovam o último evento da janela; ACK, reação, leitura, revogação e histórico importado não renovam.
+3. Após 24 horas sem mensagem real, o scheduler marca a Activity como concluída e fecha a conversa de modo idempotente.
+4. Um novo outbound humano após o fechamento abre `Atendimento Continuado`.
+5. A timeline detalhada permanece em `Message`; mensagens individuais não são duplicadas em Activities.
 
 Todo evento aceito permanece persistido. O processador atual projeta no domínio apenas `message.received`, `message.sent`, `message.ack`, `message.failed` e `session.status`; os demais eventos configurados são armazenados, mas ainda não produzem atualização funcional equivalente no CRM.
 
@@ -116,6 +127,8 @@ O scheduler registra:
 
 - `topweb-chat:reconcile` a cada minuto, para estado das instâncias;
 - `topweb-chat:reconcile --history` a cada cinco minutos, para conversas conhecidas.
+- `topweb-chat:close-stale-attendances` a cada minuto, para encerrar janelas inativas;
+- `topweb-chat:project-lead-media` a cada cinco minutos, para reconciliar mídia armazenada após associação tardia do Lead.
 
 Jobs usam a fila Laravel padrão. As opções `--state`, `--full` e `--limit` não existem no comando atual.
 

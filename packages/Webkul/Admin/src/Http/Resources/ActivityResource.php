@@ -5,6 +5,7 @@ namespace Webkul\Admin\Http\Resources;
 use App\Services\SensitiveDataService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Webkul\TopwebChat\Services\MediaProjectionAccessService;
 
 class ActivityResource extends JsonResource
 {
@@ -20,6 +21,13 @@ class ActivityResource extends JsonResource
         $additional = is_array($this->resource->additional)
             ? $this->resource->additional
             : json_decode($this->resource->additional, true);
+        $user = auth()->guard('user')->user();
+        $files = $sensitiveData->canView($user)
+            ? collect($this->files ?? [])->filter(
+                fn ($file) => app(MediaProjectionAccessService::class)
+                    ->canAccess($user, $file)
+            )
+            : collect();
 
         return [
             'id' => $this->id,
@@ -32,7 +40,7 @@ class ActivityResource extends JsonResource
             'schedule_to' => $this->schedule_to,
             'is_done' => $this->is_done,
             'user' => new UserResource($this->user),
-            'files' => $sensitiveData->canView() ? ActivityFileResource::collection($this->files) : [],
+            'files' => ActivityFileResource::collection($files),
             'participants' => ActivityParticipantResource::collection($this->participants),
             'location' => $sensitiveData->protect('activities', 'location', $this->location),
             'created_at' => $this->created_at,

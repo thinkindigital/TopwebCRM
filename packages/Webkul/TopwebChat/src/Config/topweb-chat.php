@@ -10,6 +10,17 @@ return [
 
     'send_max_attempts' => (int) env('TOPWEB_CHAT_SEND_MAX_ATTEMPTS', 5),
 
+    'attendance' => [
+        'inactivity_minutes' => (int) env(
+            'TOPWEB_CHAT_ATTENDANCE_INACTIVITY_MINUTES',
+            1440
+        ),
+        'close_batch_size' => (int) env(
+            'TOPWEB_CHAT_ATTENDANCE_CLOSE_BATCH_SIZE',
+            100
+        ),
+    ],
+
     'openwa' => [
         'default_session_name' => env('TOPWEB_CHAT_OPENWA_SESSION', 'topweb'),
         'auto_start_session' => env('TOPWEB_CHAT_OPENWA_AUTO_START', true),

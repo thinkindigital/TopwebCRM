@@ -1,6 +1,16 @@
 <?php
 
 return [
+    'attendance' => [
+        'initial_title' => 'Atendimento WhatsApp',
+        'continued_title' => 'Atendimento Continuado',
+        'closed_automatically' => 'Atendimento encerrado automaticamente após a janela de inatividade.',
+    ],
+
+    'media' => [
+        'received_activity' => 'Arquivo recebido pelo WhatsApp',
+    ],
+
     'common' => [
         'yes' => 'Sim',
         'no' => 'Não',

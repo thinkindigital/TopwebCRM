@@ -18,6 +18,7 @@ use Webkul\Admin\Http\Requests\MassDestroyRequest;
 use Webkul\Admin\Http\Requests\MassUpdateRequest;
 use Webkul\Admin\Http\Resources\ActivityResource;
 use Webkul\Attribute\Repositories\AttributeRepository;
+use Webkul\TopwebChat\Services\MediaProjectionAccessService;
 
 class ActivityController extends Controller
 {
@@ -32,6 +33,7 @@ class ActivityController extends Controller
         protected AttributeRepository $attributeRepository,
         protected SensitiveDataService $sensitiveData,
         protected SensitiveFileService $sensitiveFiles,
+        protected MediaProjectionAccessService $mediaProjectionAccess,
     ) {}
 
     /**
@@ -216,6 +218,10 @@ class ActivityController extends Controller
 
         try {
             $file = $this->fileRepository->findOrFail($id);
+            $this->mediaProjectionAccess->authorize(
+                auth()->guard('user')->user(),
+                $file
+            );
 
             return $this->sensitiveFiles->download($file->path, $file->name);
         } catch (\Exception $exception) {

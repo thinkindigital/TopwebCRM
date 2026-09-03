@@ -1,9 +1,17 @@
 name: Admin | Playwright Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 permissions:
   contents: read
+
+concurrency:
+  group: admin-playwright-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   FORCE_COLOR: 1
@@ -57,6 +65,10 @@ jobs:
         run: npm ci
         working-directory: packages/Webkul/Admin
 
+      - name: Build Admin Assets
+        run: npm run build
+        working-directory: packages/Webkul/Admin
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
         working-directory: packages/Webkul/Admin
@@ -71,6 +83,7 @@ jobs:
           sed -i "s|^\(DB_PASSWORD=\s*\).*$|\1root|" .env
           sed -i "s|^\(APP_DEBUG=\s*\).*$|\1true|" .env
           sed -i "s|^\(APP_URL=\s*\).*$|\1http://127.0.0.1:8000|" .env
+          sed -i "s|^\(MAIL_MAILER=\s*\).*$|\1array|" .env
           cat .env
 
       - name: Install Composer Dependencies
@@ -106,8 +119,12 @@ jobs:
       - name: Start Laravel server
         run: |
           php artisan serve --host=0.0.0.0 --port=8000 > server.log 2>&1 &
-          echo "Waiting for server to start..."
-          timeout 30 bash -c 'until curl -s http://127.0.0.1:8000 > /dev/null; do sleep 1; done'
+          echo "Waiting for the admin login page to become ready..."
+
+          if ! timeout 30 bash -c 'until curl -fsS http://127.0.0.1:8000/admin/login | grep -q '\''name="email"'\''; do sleep 1; done'; then
+            tail -100 server.log
+            exit 1
+          fi
 
       - name: Run All Playwright Tests
         env:

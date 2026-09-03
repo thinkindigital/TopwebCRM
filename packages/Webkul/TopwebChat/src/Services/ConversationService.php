@@ -6,6 +6,7 @@ use DomainException;
 use Illuminate\Support\Facades\DB;
 use Webkul\Contact\Models\Person;
 use Webkul\Lead\Models\Lead;
+use Webkul\TopwebChat\Jobs\ReconcileConversationContext;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
@@ -25,7 +26,7 @@ class ConversationService
         ?Lead $lead,
         User $user
     ): Conversation {
-        return DB::transaction(function () use ($person, $lead, $user) {
+        $conversation = DB::transaction(function () use ($person, $lead, $user) {
             $instance = $this->singleEnabledInstance();
             $recipient = $this->recipientFromPerson($person);
             $remoteKey = $this->remoteIdentity->key($recipient);
@@ -57,6 +58,12 @@ class ConversationService
 
             return $conversation->fresh();
         });
+
+        if ($conversation->lead_id) {
+            ReconcileConversationContext::dispatch($conversation->id);
+        }
+
+        return $conversation;
     }
 
     public function findOrCreateInbound(

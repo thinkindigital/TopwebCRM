@@ -360,6 +360,7 @@ class Installer extends Command
                     'password' => $password,
                     'role_id' => 1,
                     'status' => 1,
+                    'can_view_sensitive_data' => true,
                 ]
             );
 

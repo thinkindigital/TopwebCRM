@@ -10,6 +10,7 @@ use Throwable;
 use Webkul\TopwebChat\Exceptions\ProviderRequestException;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
+use Webkul\TopwebChat\Services\AttendanceService;
 use Webkul\TopwebChat\Services\RemoteIdentityService;
 
 class SendMessage implements ShouldQueue
@@ -22,7 +23,8 @@ class SendMessage implements ShouldQueue
 
     public function handle(
         MessagingProvider $provider,
-        RemoteIdentityService $remoteIdentity
+        RemoteIdentityService $remoteIdentity,
+        AttendanceService $attendances
     ): void {
         $message = Message::query()
             ->with('conversation.instance')
@@ -154,5 +156,7 @@ class SendMessage implements ShouldQueue
 
             $conversation->update($conversationUpdates);
         }, 3);
+
+        $attendances->recordRealMessage($message->fresh());
     }
 }

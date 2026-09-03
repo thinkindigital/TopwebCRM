@@ -226,6 +226,9 @@ class SyncConversationHistory implements ShouldQueue
                     'sha256',
                     $lockedConversation->instance_id.'|'.$providerMessageId
                 );
+                $type = $providerMessage['type'] ?? 'text';
+                $hasMedia = (bool) ($providerMessage['hasMedia'] ?? false)
+                    || in_array(strtolower($type), Message::MEDIA_TYPES, true);
                 $message = Message::query()->firstOrCreate([
                     'provider_message_key' => $providerKey,
                 ], [
@@ -234,7 +237,7 @@ class SyncConversationHistory implements ShouldQueue
                     'direction' => ($providerMessage['fromMe'] ?? false)
                         ? 'outgoing'
                         : 'incoming',
-                    'type' => $providerMessage['type'] ?? 'text',
+                    'type' => $type,
                     'content' => $providerMessage['content'] ?? null,
                     'status' => ($providerMessage['fromMe'] ?? false)
                         ? 'sent'
@@ -243,16 +246,20 @@ class SyncConversationHistory implements ShouldQueue
                     'metadata' => [
                         'chat_jid' => $providerMessage['chatJid'] ?? null,
                         'sender_jid' => $providerMessage['senderJid'] ?? null,
-                        'has_media' => (bool) ($providerMessage['hasMedia'] ?? false),
-                        'media_status' => ($providerMessage['hasMedia'] ?? false)
+                        'has_media' => $hasMedia,
+                        'media_status' => $hasMedia
                             ? 'queued'
                             : null,
+                        'media_original_name' => data_get(
+                            $providerMessage,
+                            'media.filename'
+                        ) ?: ($providerMessage['filename'] ?? null),
                     ],
                     'sent_at' => $sentAt,
                 ]);
 
                 if (
-                    ($providerMessage['hasMedia'] ?? false)
+                    $hasMedia
                     && ! $message->mediaIsStored()
                 ) {
                     $mediaMessageIds[] = $message->id;

@@ -176,7 +176,7 @@ test.describe("lead management", () => {
     /**
     * Sending mail and closing the modal.
     */
-    await adminPage.getByRole('button', { name: 'Send' }).click();
+    await adminPage.getByRole('button', { name: 'Send', exact: true }).click();
 
     await expect(adminPage.getByText('Email sent successfully.')).toBeVisible();
   });

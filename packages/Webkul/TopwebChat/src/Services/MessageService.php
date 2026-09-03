@@ -12,7 +12,10 @@ use Webkul\User\Models\User;
 
 class MessageService
 {
-    public function __construct(protected ConversationAccessService $access) {}
+    public function __construct(
+        protected ConversationAccessService $access,
+        protected AttendanceService $attendances
+    ) {}
 
     public function queueText(
         Conversation $conversation,
@@ -68,7 +71,11 @@ class MessageService
             ]);
         });
 
-        if ($message->wasRecentlyCreated) {
+        $wasRecentlyCreated = $message->wasRecentlyCreated;
+
+        $this->attendances->recordHumanOutbound($message);
+
+        if ($wasRecentlyCreated) {
             SendMessage::dispatch($message->id);
         }
 
