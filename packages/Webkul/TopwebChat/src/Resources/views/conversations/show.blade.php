@@ -134,6 +134,7 @@
                 @empty
                     <p class="py-10 text-center text-gray-600 dark:text-gray-300">@lang('topweb_chat::app.messages.empty')</p>
                 @endforelse
+                <div id="topweb-chat-anchor" style="height: 1px;" aria-hidden="true"></div>
             </div>
 
             <button
@@ -294,7 +295,9 @@
                 const syncStatus = document.getElementById('topweb-chat-sync-status');
                 const clientLogUrl = @json(route('admin.topweb_chat.client_events.store', $conversation));
                 const canViewSensitiveMedia = @json($canViewSensitiveMedia);
-                const browserLocale = (document.documentElement.lang || 'pt-BR').replace('_', '-');
+                const rawBrowserLocale = (document.documentElement.lang || 'pt-BR').trim().replaceAll('_', '-');
+                let browserLocale = 'pt-BR';
+                try { browserLocale = Intl.getCanonicalLocales(rawBrowserLocale)[0] ?? 'pt-BR'; } catch { browserLocale = 'pt-BR'; }
                 let refreshing = false;
                 let lastMessagesSignature = null;
                 let lastMessageId = Number(
@@ -324,6 +327,24 @@
                         },
                         body: JSON.stringify({ level, event, context }),
                     }).catch(() => {});
+                };
+
+                // Âncora de scroll (T1.1): pinned = sentinela visível. Fallback = threshold existente.
+                let isPinned = true;
+                const ensureAnchor = () => {
+                    let anchor = document.getElementById('topweb-chat-anchor');
+                    if (!anchor) {
+                        anchor = document.createElement('div');
+                        anchor.id = 'topweb-chat-anchor';
+                        anchor.style.height = '1px';
+                        anchor.setAttribute('aria-hidden', 'true');
+                    }
+                    if ('IntersectionObserver' in window) {
+                        new IntersectionObserver(([entry]) => {
+                            isPinned = entry.isIntersecting;
+                        }, { root: timeline }).observe(anchor);
+                    }
+                    return anchor;
                 };
 
                 const updateSyncStatus = (ok) => {
@@ -407,6 +428,161 @@
                     return link;
                 };
 
+                const messageRenderSig = (message) => [
+                    message.status,
+                    message.media_status,
+                    message.media_url,
+                    message.content,
+                ].join(':');
+
+                const dateSeparator = (messageDate) => {
+                    const separator = document.createElement('div');
+                    separator.className = 'my-2 flex justify-center topweb-chat-date-separator';
+                    separator.innerHTML = `<span class="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-300">${new Intl.DateTimeFormat(browserLocale, { dateStyle: 'medium' }).format(messageDate)}</span>`;
+
+                    return separator;
+                };
+
+                const buildMessageArticle = (message) => {
+                    const article = document.createElement('article');
+                    const bubble = document.createElement('div');
+                    const content = document.createElement('p');
+                    const metadata = document.createElement('div');
+                    const timestamp = document.createElement('span');
+                    const status = document.createElement('span');
+                    const retry = document.createElement('button');
+                    const outgoing = message.direction === 'outgoing';
+
+                    article.dataset.messageId = message.id;
+                    article.dataset.renderSig = messageRenderSig(message);
+                    article.className = `flex ${outgoing ? 'justify-end' : 'justify-start'}`;
+                    bubble.className = `max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm sm:max-w-[72%] ${
+                        outgoing
+                            ? 'rounded-br-md bg-brandColor text-white'
+                            : 'rounded-bl-md border border-gray-100 bg-white text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-white'
+                    }`;
+                    content.className = 'whitespace-pre-wrap break-words';
+                    content.textContent = message.content || (
+                        message.has_media
+                            ? ''
+                            : @json(trans('topweb_chat::app.messages.unsupported'))
+                    );
+                    metadata.className = 'mt-2 flex gap-2 text-xs opacity-75';
+                    timestamp.textContent = message.sent_at
+                        ? new Intl.DateTimeFormat(browserLocale, {
+                            timeStyle: 'short',
+                        }).format(new Date(message.sent_at))
+                        : '';
+                    status.textContent = message.status;
+
+                    metadata.append(timestamp, status);
+
+                    if (message.can_retry && message.retry_url) {
+                        retry.type = 'button';
+                        retry.className = 'underline';
+                        retry.dataset.retryUrl = message.retry_url;
+                        retry.textContent = @json(trans('topweb_chat::app.messages.retry'));
+                        metadata.appendChild(retry);
+                    }
+
+                    const media = mediaElement(message);
+
+                    if (media) {
+                        bubble.appendChild(media);
+                    }
+
+                    if (content.textContent) {
+                        bubble.appendChild(content);
+                    }
+
+                    bubble.appendChild(metadata);
+                    article.appendChild(bubble);
+
+                    return article;
+                };
+
+                const emptyTimeline = () => {
+                    timeline.replaceChildren();
+                    const empty = document.createElement('p');
+                    empty.className = 'py-10 text-center text-gray-600 dark:text-gray-300';
+                    empty.textContent = @json(trans('topweb_chat::app.messages.empty'));
+                    timeline.appendChild(empty);
+                    timeline.appendChild(ensureAnchor());
+                };
+
+                const renderTimelineFull = (messages) => {
+                    timeline.replaceChildren();
+
+                    if (!messages.length) {
+                        emptyTimeline();
+
+                        return;
+                    }
+
+                    let previousDate = null;
+
+                    messages.forEach((message) => {
+                        const messageDate = message.sent_at ? new Date(message.sent_at) : null;
+                        const dateKey = messageDate?.toLocaleDateString('en-CA');
+
+                        if (dateKey && dateKey !== previousDate) {
+                            timeline.appendChild(dateSeparator(messageDate));
+                            previousDate = dateKey;
+                        }
+
+                        timeline.appendChild(buildMessageArticle(message));
+                    });
+
+                    timeline.appendChild(ensureAnchor());
+                };
+
+                const renderTimelineDiff = (messages) => {
+                    const existing = new Map(
+                        [...timeline.querySelectorAll('[data-message-id]')]
+                            .map((el) => [el.dataset.messageId, el])
+                    );
+
+                    timeline.querySelectorAll('.topweb-chat-date-separator')
+                        .forEach((el) => el.remove());
+
+                    if (!messages.length) {
+                        emptyTimeline();
+
+                        return;
+                    }
+
+                    const seen = new Set();
+                    let previousDate = null;
+
+                    messages.forEach((message) => {
+                        const key = String(message.id);
+                        seen.add(key);
+
+                        const messageDate = message.sent_at ? new Date(message.sent_at) : null;
+                        const dateKey = messageDate?.toLocaleDateString('en-CA');
+
+                        if (dateKey && dateKey !== previousDate) {
+                            timeline.appendChild(dateSeparator(messageDate));
+                            previousDate = dateKey;
+                        }
+
+                        const current = existing.get(key);
+                        const node = (current && current.dataset.renderSig === messageRenderSig(message))
+                            ? current
+                            : buildMessageArticle(message);
+
+                        timeline.appendChild(node);
+                    });
+
+                    for (const [key, el] of existing) {
+                        if (!seen.has(key)) {
+                            el.remove();
+                        }
+                    }
+
+                    timeline.appendChild(ensureAnchor());
+                };
+
                 const renderMessages = (messages, forceScroll = false) => {
                     const signature = messages.map((message) => [
                         message.id,
@@ -428,90 +604,17 @@
                     const receivedNewMessage = previousLastMessageId > 0
                         && nextLastMessageId !== previousLastMessageId;
                     lastMessagesSignature = signature;
-                    timeline.replaceChildren();
 
-                    if (!messages.length) {
-                        const empty = document.createElement('p');
-                        empty.className = 'py-10 text-center text-gray-600 dark:text-gray-300';
-                        empty.textContent = @json(trans('topweb_chat::app.messages.empty'));
-                        timeline.appendChild(empty);
-
-                        return;
+                    try {
+                        renderTimelineDiff(messages);
+                    } catch {
+                        renderTimelineFull(messages);
                     }
-
-                    let previousDate = null;
-
-                    messages.forEach((message) => {
-                        const messageDate = message.sent_at ? new Date(message.sent_at) : null;
-                        const dateKey = messageDate?.toLocaleDateString('en-CA');
-
-                        if (dateKey && dateKey !== previousDate) {
-                            const separator = document.createElement('div');
-                            separator.className = 'my-2 flex justify-center';
-                            separator.innerHTML = `<span class="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-300">${new Intl.DateTimeFormat(browserLocale, { dateStyle: 'medium' }).format(messageDate)}</span>`;
-                            timeline.appendChild(separator);
-                            previousDate = dateKey;
-                        }
-
-                        const article = document.createElement('article');
-                        const bubble = document.createElement('div');
-                        const content = document.createElement('p');
-                        const metadata = document.createElement('div');
-                        const timestamp = document.createElement('span');
-                        const status = document.createElement('span');
-                        const retry = document.createElement('button');
-                        const outgoing = message.direction === 'outgoing';
-
-                        article.dataset.messageId = message.id;
-                        article.className = `flex ${outgoing ? 'justify-end' : 'justify-start'}`;
-                        bubble.className = `max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm sm:max-w-[72%] ${
-                            outgoing
-                                ? 'rounded-br-md bg-brandColor text-white'
-                                : 'rounded-bl-md border border-gray-100 bg-white text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-white'
-                        }`;
-                        content.className = 'whitespace-pre-wrap break-words';
-                        content.textContent = message.content || (
-                            message.has_media
-                                ? ''
-                                : @json(trans('topweb_chat::app.messages.unsupported'))
-                        );
-                        metadata.className = 'mt-2 flex gap-2 text-xs opacity-75';
-                        timestamp.textContent = message.sent_at
-                            ? new Intl.DateTimeFormat(browserLocale, {
-                                timeStyle: 'short',
-                            }).format(new Date(message.sent_at))
-                            : '';
-                        status.textContent = message.status;
-
-                        metadata.append(timestamp, status);
-
-                        if (message.can_retry && message.retry_url) {
-                            retry.type = 'button';
-                            retry.className = 'underline';
-                            retry.dataset.retryUrl = message.retry_url;
-                            retry.textContent = @json(trans('topweb_chat::app.messages.retry'));
-                            metadata.appendChild(retry);
-                        }
-
-                        const media = mediaElement(message);
-
-                        if (media) {
-                            bubble.appendChild(media);
-                        }
-
-                        if (content.textContent) {
-                            bubble.appendChild(content);
-                        }
-
-                        bubble.appendChild(metadata);
-                        article.appendChild(bubble);
-                        timeline.appendChild(article);
-                    });
 
                     lastMessageId = nextLastMessageId;
 
                     const restoreScroll = () => {
-                        if (forceScroll || wasNearBottom) {
+                        if (forceScroll || (wasNearBottom && isPinned)) {
                             timeline.scrollTop = timeline.scrollHeight;
                         } else {
                             timeline.scrollTop = Math.max(
@@ -523,11 +626,11 @@
 
                     window.requestAnimationFrame(restoreScroll);
 
-                    if (forceScroll || wasNearBottom) {
+                    if (forceScroll || (wasNearBottom && isPinned)) {
                         newMessages?.classList.add('hidden');
                     }
 
-                    if (receivedNewMessage && !wasNearBottom && !forceScroll) {
+                    if (receivedNewMessage && !(wasNearBottom && isPinned) && !forceScroll) {
                         newMessages?.classList.remove('hidden');
                     }
                 };
@@ -666,6 +769,7 @@
                 }, { passive: true });
 
                 newMessages?.addEventListener('click', () => {
+                    isPinned = true;
                     timeline.scrollTo({ top: timeline.scrollHeight, behavior: 'smooth' });
                     newMessages.classList.add('hidden');
                 });
@@ -695,6 +799,7 @@
                             timeline_connected: timeline.isConnected,
                             form_connected: form?.isConnected || false,
                             message: String(error?.message || error).slice(0, 240),
+                            browser_locale: browserLocale,
                         });
                         console.error('TopwebChat refresh failed.', error);
                     } finally {
@@ -705,12 +810,24 @@
                 document.addEventListener('visibilitychange', () => {
                     if (!document.hidden) {
                         refresh().catch((error) => {
+                            reportClientEvent('error', 'client.refresh_failed', {
+                                timeline_connected: timeline.isConnected,
+                                form_connected: form?.isConnected || false,
+                                message: String(error?.message || error).slice(0, 240),
+                                browser_locale: browserLocale,
+                            });
                             console.error('TopwebChat refresh failed after visibility change.', error);
                         });
                     }
                 });
 
                 refresh().catch((error) => {
+                    reportClientEvent('error', 'client.refresh_failed', {
+                        timeline_connected: timeline.isConnected,
+                        form_connected: form?.isConnected || false,
+                        message: String(error?.message || error).slice(0, 240),
+                        browser_locale: browserLocale,
+                    });
                     console.error('TopwebChat initial refresh failed.', error);
                 });
                 window.setTimeout(poll, 3000);

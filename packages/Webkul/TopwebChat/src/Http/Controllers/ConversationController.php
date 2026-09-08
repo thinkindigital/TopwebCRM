@@ -198,6 +198,7 @@ class ConversationController
             'scroll_height',
             'client_height',
             'message',
+            'browser_locale',
         ])->all();
 
         Log::channel('topweb_chat_client')->log(
