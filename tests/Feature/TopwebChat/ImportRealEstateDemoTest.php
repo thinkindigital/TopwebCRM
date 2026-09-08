@@ -83,7 +83,7 @@ beforeEach(function () {
         $table->unsignedInteger('lead_source_id');
         $table->unsignedInteger('lead_type_id')->nullable();
         $table->unsignedInteger('lead_pipeline_id')->nullable();
-        $table->unsignedInteger('lead_stage_id');
+        $table->unsignedInteger('lead_stage_id')->nullable();
         $table->unsignedInteger('lead_pipeline_stage_id')->nullable();
         $table->date('expected_close_date')->nullable();
         $table->timestamps();

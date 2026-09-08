@@ -85,7 +85,6 @@ class ImportRealEstateDemo extends Command
     {
         $now = Carbon::now();
         $pipelineId = $this->idForName('lead_pipelines', $row['pipeline'], ['is_default' => 0, 'rotten_days' => 0]);
-        $leadStageId = $this->idForName('lead_stages', $row['stage'], ['code' => $row['stage_code'], 'is_user_defined' => 0]);
         $pipelineStageId = $this->pipelineStageId($pipelineId, $row['stage_code'], $row['stage']);
         $sourceId = $this->idForName('lead_sources', $row['source']);
         $typeId = $this->idForName('lead_types', $row['type']);
@@ -114,7 +113,6 @@ class ImportRealEstateDemo extends Command
                 'lead_source_id' => $sourceId,
                 'lead_type_id' => $typeId,
                 'lead_pipeline_id' => $pipelineId,
-                'lead_stage_id' => $leadStageId,
                 'lead_pipeline_stage_id' => $pipelineStageId,
                 'expected_close_date' => now()->addDays((int) $row['expected_close_days'])->toDateString(),
                 'updated_at' => $now,
