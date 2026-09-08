@@ -55,7 +55,7 @@ class MessageController
             }
         } else {
             $data = $request->validate([
-                'content' => ['required', 'string', 'max:10000'],
+                'content' => ['required_without:media', 'nullable', 'string', 'max:10000'],
                 'operation_key' => ['required', 'uuid'],
             ]);
 
@@ -63,7 +63,7 @@ class MessageController
                 $message = $this->messages->queueText(
                     $conversation,
                     $user,
-                    $data['content'],
+                    (string) ($data['content'] ?? ''),
                     $data['operation_key']
                 );
             } catch (DomainException $exception) {

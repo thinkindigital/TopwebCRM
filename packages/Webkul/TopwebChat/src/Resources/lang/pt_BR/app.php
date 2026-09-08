@@ -70,6 +70,8 @@ return [
         'open_media' => 'Abrir arquivo recebido',
         'unsupported' => 'Mensagem não suportada',
         'placeholder' => 'Digite uma mensagem para o WhatsApp...',
+        'attach' => 'Anexar arquivo',
+        'remove_attachment' => 'Remover anexo',
         'send' => 'Enviar mensagem',
         'sent' => 'Mensagem enviada.',
         'queued' => 'Mensagem adicionada à fila de envio.',

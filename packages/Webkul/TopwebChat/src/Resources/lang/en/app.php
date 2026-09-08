@@ -70,6 +70,8 @@ return [
         'open_media' => 'Open received file',
         'unsupported' => 'Unsupported message',
         'placeholder' => 'Type a WhatsApp message...',
+        'attach' => 'Attach file',
+        'remove_attachment' => 'Remove attachment',
         'send' => 'Send message',
         'sent' => 'Message sent.',
         'queued' => 'Message queued for delivery.',
