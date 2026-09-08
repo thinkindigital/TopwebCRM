@@ -6,6 +6,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Webkul\TopwebChat\Jobs\ReconcileInstance;
 use Webkul\TopwebChat\Models\Instance;
@@ -24,7 +25,7 @@ class SettingsController
     {
         $this->authorizeAdministrator();
 
-        $instances = Instance::query()->orderBy('name')->get();
+        $instances = Instance::query()->withCount('conversations')->orderBy('name')->get();
         $openWaInstance = $instances->first(fn (Instance $instance) => $instance->isOpenWA());
         $openWaHealth = null;
         $openWaSessions = [];
@@ -66,15 +67,24 @@ class SettingsController
     {
         $this->authorizeAdministrator();
 
+        $existing = Instance::query()
+            ->where('session_uuid', $request->input('session_uuid'))
+            ->first();
+
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
+            'name' => [
+                'required', 'string', 'max:120',
+                Rule::unique('topweb_chat_instances', 'name')->ignore($existing?->getKey()),
+            ],
             'session_uuid' => ['required', 'uuid'],
             'base_url' => ['required', 'url:http,https', 'max:2048'],
             'token' => ['required', 'string', 'max:2000'],
             'enabled' => ['nullable', 'boolean'],
+        ], [
+            'name.unique' => trans('topweb_chat::app.settings.instance_name_taken'),
         ]);
 
-        $instance = Instance::query()->firstOrNew(['session_uuid' => $data['session_uuid']]);
+        $instance = $existing ?? new Instance(['session_uuid' => $data['session_uuid']]);
 
         $instance->fill([
             'name' => $data['name'],
@@ -92,6 +102,28 @@ class SettingsController
         ReconcileInstance::dispatchAfterResponse($instance->id);
 
         return back()->with('success', trans('topweb_chat::app.settings.instance_saved'));
+    }
+
+    public function destroyInstance(Request $request, Instance $instance): RedirectResponse
+    {
+        $this->authorizeAdministrator();
+
+        $data = $request->validate([
+            'confirmation_name' => ['required', 'string'],
+        ]);
+
+        if ($data['confirmation_name'] !== $instance->name) {
+            return back()->with('error', trans('topweb_chat::app.settings.instance_delete_mismatch'));
+        }
+
+        $conversations = $instance->conversations()->count();
+        $name = $instance->name;
+        $instance->delete();
+
+        return back()->with(
+            'success',
+            trans('topweb_chat::app.settings.instance_deleted', ['name' => $name, 'count' => $conversations])
+        );
     }
 
     public function configureWebhook(Instance $instance): RedirectResponse

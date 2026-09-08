@@ -13,6 +13,7 @@ use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\WebhookUrlService;
 
 beforeEach(function () {
+    Schema::dropIfExists('topweb_chat_conversations');
     Schema::dropIfExists('topweb_chat_instances');
 
     Schema::create('topweb_chat_instances', function (Blueprint $table) {
@@ -30,6 +31,13 @@ beforeEach(function () {
         $table->timestamp('last_connected_at')->nullable();
         $table->timestamp('last_synced_at')->nullable();
         $table->timestamps();
+    });
+
+    Schema::create('topweb_chat_conversations', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('instance_id')
+            ->constrained('topweb_chat_instances')
+            ->cascadeOnDelete();
     });
 
     if (! Schema::hasTable('users')) {

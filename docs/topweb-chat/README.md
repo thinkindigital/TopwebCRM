@@ -15,7 +15,7 @@ O código atual contém:
 - projeção idempotente de mídia inbound ao vivo nos arquivos nativos do Lead/Pessoa, sem duplicar o objeto privado;
 - Activity agregadora por janela de atendimento, renovada por mensagens reais e encerrada após 24 horas de inatividade;
 - reconciliação periódica de instância e sincronização de histórico conhecido;
-- cadastro de instância, saúde do provedor, listagem das sessões remotas e configuração do webhook;
+- cadastro e exclusão confirmada de instância, saúde do provedor, listagem das sessões remotas e configuração do webhook;
 - autorização no backend baseada no escopo do Lead/Pessoa;
 - mascaramento de dados sensíveis e concessão administrativa individual;
 - adapter `OpenWaProvider` por trás do contrato `MessagingProvider`.
@@ -83,6 +83,8 @@ Em **TopwebChat → Configurações**:
 4. configure o webhook;
 5. solicite a reconciliação;
 6. valide uma mensagem enviada, uma recebida e ao menos uma mudança de status.
+
+Nomes de instância são únicos. Tentar cadastrar um UUID novo com um nome já usado retorna um erro de validação na própria tela, sem erro 500. Para substituir uma sessão remota mantendo o mesmo nome, exclua primeiro a instância local antiga. A exclusão exige digitar o nome exato e remove em cascata as conversas e mensagens locais vinculadas; a confirmação informa a quantidade de conversas afetadas.
 
 Ao salvar, a API key, o segredo do webhook e demais atributos sensíveis usam criptografia vinculada à `APP_KEY`. Banco sem a chave correspondente não é uma restauração funcional.
 
