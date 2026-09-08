@@ -33,7 +33,7 @@ it('documents unassigned queue and atomic claim behavior in executable code', fu
         '$isAdmin || $conversation->assigned_user_id === null',
         'value=""'
     )->and($repository)->toContain(
-        "'unassigned' => $query->whereNull('assigned_user_id')"
+        '\'unassigned\' => $query->whereNull(\'assigned_user_id\')'
     );
 });
 
