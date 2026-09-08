@@ -9,7 +9,6 @@ use Illuminate\Support\Str;
 use Webkul\TopwebChat\Jobs\SendMessage;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
-use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\AttendanceService;
 use Webkul\TopwebChat\Services\MessageService;
