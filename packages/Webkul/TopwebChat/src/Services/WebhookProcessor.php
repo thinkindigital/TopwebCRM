@@ -71,21 +71,7 @@ class WebhookProcessor
             : now();
         $type = $messageData['type'] ?? 'text';
         $content = $messageData['body'] ?? null;
-        $hasMedia = (bool) ($messageData['hasMedia'] ?? false)
-            || filled($messageData['media'] ?? null)
-            || in_array(strtolower($type), [
-                'audio',
-                'contact',
-                'document',
-                'file',
-                'gif',
-                'image',
-                'ptt',
-                'sticker',
-                'video',
-                'vcard',
-                'voice',
-            ], true);
+        $hasMedia = Message::detectHasMedia(is_array($messageData) ? $messageData : []);
 
         $message = DB::transaction(function () use (
             $conversation,
