@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Webkul\Core\ViewRenderEventManager;
 use Webkul\TopwebChat\Console\Commands\CloseStaleAttendances;
+use Webkul\TopwebChat\Console\Commands\ImportRealEstateDemo;
 use Webkul\TopwebChat\Console\Commands\ProjectLeadMedia;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Console\Commands\RetryFailedMessages;
@@ -29,6 +30,7 @@ class TopwebChatServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CloseStaleAttendances::class,
+                ImportRealEstateDemo::class,
                 ProjectLeadMedia::class,
                 ReconcileTopwebChat::class,
                 RetryFailedMessages::class,
