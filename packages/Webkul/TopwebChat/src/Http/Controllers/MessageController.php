@@ -27,26 +27,54 @@ class MessageController
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
 
-        $data = $request->validate([
-            'content' => ['required', 'string', 'max:10000'],
-            'operation_key' => ['required', 'uuid'],
-        ]);
+        $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 52428800) / 1024));
 
-        try {
-            $message = $this->messages->queueText(
-                $conversation,
-                $user,
-                $data['content'],
-                $data['operation_key']
-            );
-        } catch (DomainException $exception) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => $exception->getMessage(),
-                ], 409);
+        if ($request->hasFile('media')) {
+            $media = $request->validate([
+                'media' => ['required', 'file', "max:{$maxKilobytes}"],
+                'caption' => ['nullable', 'string', 'max:1000'],
+                'operation_key' => ['required', 'uuid'],
+            ]);
+
+            try {
+                $message = $this->messages->queueMedia(
+                    $conversation,
+                    $user,
+                    $media['media'],
+                    $media['caption'] ?? null,
+                    $media['operation_key']
+                );
+            } catch (DomainException $exception) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $exception->getMessage(),
+                    ], 409);
+                }
+
+                return back()->with('error', $exception->getMessage());
             }
+        } else {
+            $data = $request->validate([
+                'content' => ['required', 'string', 'max:10000'],
+                'operation_key' => ['required', 'uuid'],
+            ]);
 
-            return back()->with('error', $exception->getMessage());
+            try {
+                $message = $this->messages->queueText(
+                    $conversation,
+                    $user,
+                    $data['content'],
+                    $data['operation_key']
+                );
+            } catch (DomainException $exception) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $exception->getMessage(),
+                    ], 409);
+                }
+
+                return back()->with('error', $exception->getMessage());
+            }
         }
 
         if ($request->expectsJson()) {
