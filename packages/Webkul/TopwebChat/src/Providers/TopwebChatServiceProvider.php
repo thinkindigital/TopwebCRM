@@ -10,6 +10,7 @@ use Webkul\Core\ViewRenderEventManager;
 use Webkul\TopwebChat\Console\Commands\CloseStaleAttendances;
 use Webkul\TopwebChat\Console\Commands\ProjectLeadMedia;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
+use Webkul\TopwebChat\Console\Commands\RetryFailedMessages;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 
@@ -29,6 +30,7 @@ class TopwebChatServiceProvider extends ServiceProvider
                 CloseStaleAttendances::class,
                 ProjectLeadMedia::class,
                 ReconcileTopwebChat::class,
+                RetryFailedMessages::class,
             ]);
         }
     }
@@ -66,6 +68,11 @@ class TopwebChatServiceProvider extends ServiceProvider
             $schedule->command('topweb-chat:project-lead-media')
                 ->everyFiveMinutes()
                 ->name('topweb-chat-project-lead-media')
+                ->withoutOverlapping();
+
+            $schedule->command('topweb-chat:retry-failed')
+                ->everyFiveMinutes()
+                ->name('topweb-chat-retry-failed')
                 ->withoutOverlapping();
         });
 
