@@ -152,7 +152,7 @@ return [
         'instance_delete_title' => 'Delete OpenWA session',
         'instance_delete_prompt' => 'This action will delete the instance and its :count local conversation(s). If you are sure, enter ":name" and click confirm.',
         'instance_delete_mismatch' => 'The entered name does not match the session name. The instance was not deleted.',
-        'instance_deleted' => 'Instance ":name" and its :count local conversation(s) were deleted.',
+        'instance_deleted' => 'The instance and its :count local conversation(s) were deleted.',
         'instance_name_taken' => 'An instance with this name already exists. Delete the old one or choose another name.',
         'sensitive_title' => 'Individual sensitive-data access',
         'sensitive_description' => 'Full access is denied by default, including for administrative roles.',

@@ -6,11 +6,12 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Webkul\TopwebChat\Models\Instance;
+use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\User\Models\Role;
 use Webkul\User\Models\User;
 
 beforeEach(function () {
-    foreach (['topweb_chat_instances', 'users', 'roles', 'core_config'] as $table) {
+    foreach (['topweb_chat_instances', 'users', 'roles', 'attributes', 'core_config'] as $table) {
         Schema::dropIfExists($table);
     }
 
@@ -33,6 +34,12 @@ beforeEach(function () {
         $table->string('view_permission')->default('individual');
         $table->boolean('can_view_sensitive_data')->default(false);
         $table->timestamps();
+    });
+
+    Schema::create('attributes', function (Blueprint $table) {
+        $table->id();
+        $table->string('entity_type');
+        $table->boolean('quick_add')->default(false);
     });
 
     Schema::create('topweb_chat_instances', function (Blueprint $table) {
@@ -93,8 +100,18 @@ function instancePayload(array $overrides = []): array
     ], $overrides);
 }
 
+function instanceSettingsProvider(): void
+{
+    $provider = Mockery::mock(MessagingProvider::class);
+    $provider->shouldReceive('health')->andReturn(['status' => 'ok']);
+    $provider->shouldReceive('listSessions')->andReturn([]);
+
+    app()->instance(MessagingProvider::class, $provider);
+}
+
 it('rejects duplicate instance names with validation instead of 500', function () {
     $csrfToken = instanceAdminContext();
+    instanceSettingsProvider();
 
     Instance::query()->create([
         'name' => 'Suporte 1', 'provider' => 'openwa',
@@ -110,6 +127,40 @@ it('rejects duplicate instance names with validation instead of 500', function (
         ]);
 
     expect(Instance::query()->count())->toBe(1);
+
+    $this->get(route('admin.topweb_chat.settings.index'))
+        ->assertOk()
+        ->assertSee('data-testid="instance-name-error"', false)
+        ->assertSee(trans('topweb_chat::app.settings.instance_name_taken'));
+});
+
+it('escapes the instance name in the deletion confirmation', function () {
+    instanceAdminContext();
+    instanceSettingsProvider();
+
+    Instance::query()->create([
+        'name' => '<img src=x onerror=alert(1)>',
+        'provider' => 'openwa',
+        'session_uuid' => (string) Str::uuid(),
+    ]);
+
+    $this->get(route('admin.topweb_chat.settings.index'))
+        ->assertOk()
+        ->assertDontSee('<img src=x onerror=alert(1)>', false)
+        ->assertSee('&lt;img src=x onerror=alert(1)&gt;', false);
+});
+
+it('rejects a non scalar session uuid without persisting', function () {
+    $csrfToken = instanceAdminContext();
+
+    $this->post(route('admin.topweb_chat.settings.instances.store'), instancePayload([
+        '_token' => $csrfToken,
+        'session_uuid' => ['invalid'],
+    ]))
+        ->assertStatus(302)
+        ->assertSessionHasErrors('session_uuid');
+
+    expect(Instance::query()->count())->toBe(0);
 });
 
 it('deletes an instance only with exact name confirmation', function () {
@@ -138,7 +189,6 @@ it('deletes an instance only with exact name confirmation', function () {
     )
         ->assertStatus(302)
         ->assertSessionHas('success', trans('topweb_chat::app.settings.instance_deleted', [
-            'name' => 'Antiga',
             'count' => 1,
         ]));
 

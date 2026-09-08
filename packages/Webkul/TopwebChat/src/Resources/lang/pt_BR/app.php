@@ -152,7 +152,7 @@ return [
         'instance_delete_title' => 'Excluir sessão OpenWA',
         'instance_delete_prompt' => 'Esta ação excluirá a instância e suas :count conversa(s) locais. Se tiver certeza, preencha com ":name" e clique em confirmar.',
         'instance_delete_mismatch' => 'O nome informado não corresponde ao nome da sessão. A instância não foi excluída.',
-        'instance_deleted' => 'Instância ":name" e suas :count conversa(s) locais foram excluídas.',
+        'instance_deleted' => 'A instância e suas :count conversa(s) locais foram excluídas.',
         'instance_name_taken' => 'Já existe uma instância com este nome. Exclua a antiga ou escolha outro nome.',
         'sensitive_title' => 'Acesso individual a dados sensíveis',
         'sensitive_description' => 'O acesso integral é negado por padrão, inclusive para roles administrativas.',

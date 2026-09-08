@@ -25,15 +25,21 @@
                     <label class="mb-1 block text-sm font-medium text-gray-800 dark:text-white">@lang('topweb_chat::app.settings.instance_name')</label>
                     <input
                         name="name"
+                        value="{{ old('name') }}"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
                         required
                     >
+
+                    @error('name')
+                        <p data-testid="instance-name-error" class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-800 dark:text-white">@lang('topweb_chat::app.settings.session_uuid')</label>
                     <input
                         name="session_uuid"
+                        value="{{ old('session_uuid') }}"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
                         required
                     >
@@ -135,10 +141,10 @@
                                                     @method('DELETE')
 
                                                     <p class="text-sm text-gray-600 dark:text-gray-300">
-                                                        @lang('topweb_chat::app.settings.instance_delete_prompt', [
+                                                        {{ trans('topweb_chat::app.settings.instance_delete_prompt', [
                                                             'name' => $instance->name,
                                                             'count' => $instance->conversations_count,
-                                                        ])
+                                                        ]) }}
                                                     </p>
 
                                                     <input

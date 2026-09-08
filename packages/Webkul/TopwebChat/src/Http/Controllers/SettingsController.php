@@ -117,12 +117,11 @@ class SettingsController
         }
 
         $conversations = $instance->conversations()->count();
-        $name = $instance->name;
         $instance->delete();
 
         return back()->with(
             'success',
-            trans('topweb_chat::app.settings.instance_deleted', ['name' => $name, 'count' => $conversations])
+            trans('topweb_chat::app.settings.instance_deleted', ['count' => $conversations])
         );
     }
 
