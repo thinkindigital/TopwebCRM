@@ -20,6 +20,11 @@ Este índice aponta para a fonte certa sem repetir o mesmo procedimento em vári
 
 ## Autoridade e estado
 
+Documentos de decisões (ADRs), regras de segurança, dados sensíveis, referências
+internas e histórico vivem apenas no checkout local e não são versionados.
+Em outro servidor, o agente trabalha com este índice, regras de produto,
+arquitetura, mapa do sistema, operação e roadmap.
+
 A ordem de autoridade é: código, migrations, configuração e testes; ADRs vigentes; contexto e regras; arquitetura e documentação de módulo; runbooks; roadmap e Issues; histórico e referências externas.
 
 Os termos usados na documentação têm significado específico:

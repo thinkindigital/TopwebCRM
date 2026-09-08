@@ -71,7 +71,23 @@ class Message extends Model implements MessageContract
     public function hasMedia(): bool
     {
         return (bool) data_get($this->metadata, 'has_media')
-            || in_array(strtolower($this->type), self::MEDIA_TYPES, true);
+            || self::isMediaType($this->type);
+    }
+
+    public static function isMediaType(?string $type): bool
+    {
+        if (! is_string($type) || $type === '') {
+            return false;
+        }
+
+        return in_array(strtolower($type), self::MEDIA_TYPES, true);
+    }
+
+    public static function detectHasMedia(array $messageData): bool
+    {
+        return (bool) ($messageData['hasMedia'] ?? false)
+            || filled($messageData['media'] ?? null)
+            || self::isMediaType($messageData['type'] ?? null);
     }
 
     public function mediaIsStored(): bool

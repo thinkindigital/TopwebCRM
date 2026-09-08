@@ -14,3 +14,13 @@
 /storage/framework/cache/
 /storage/framework/sessions/
 /storage/framework/views/
+
+# Documentação privada local (decisões, segurança, dados sensíveis, histórico).
+# Mantida no disco, fora do repositório público. Ver ORCHESTRATOR-ROADMAP.
+docs/SECURITY_RULES.md
+docs/SENSITIVE_DATA_VISIBILITY.md
+docs/adr/
+docs/agents/
+docs/archive/
+docs/krayincrm/
+docs/reference/

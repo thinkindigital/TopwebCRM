@@ -10,6 +10,9 @@ return [
 
     'send_max_attempts' => (int) env('TOPWEB_CHAT_SEND_MAX_ATTEMPTS', 5),
 
+    'retry_failed_batch_size' => (int) env('TOPWEB_CHAT_RETRY_FAILED_BATCH_SIZE', 100),
+    'retry_failed_window_hours' => (int) env('TOPWEB_CHAT_RETRY_FAILED_WINDOW_HOURS', 72),
+
     'attendance' => [
         'inactivity_minutes' => (int) env(
             'TOPWEB_CHAT_ATTENDANCE_INACTIVITY_MINUTES',

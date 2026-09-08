@@ -156,13 +156,30 @@
                     @csrf
                     <input type="hidden" name="operation_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
 
+                    <button
+                        id="topweb-chat-attach"
+                        type="button"
+                        class="grid max-h-11 min-h-11 min-w-11 place-items-center rounded-full border border-gray-300 bg-gray-50 text-lg text-gray-600 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                        title="@lang('topweb_chat::app.messages.attach')"
+                        aria-label="@lang('topweb_chat::app.messages.attach')"
+                        @disabled($conversation->instance?->status !== 'ready')
+                    >📎</button>
+                    <input
+                        id="topweb-chat-media-input"
+                        type="file"
+                        name="media"
+                        class="hidden"
+                        accept="image/*,audio/*,video/*,.pdf,.doc,.docx"
+                    >
+                    <div id="topweb-chat-media-preview" class="hidden max-h-11 items-center gap-2 overflow-hidden text-xs text-gray-600 dark:text-gray-300"></div>
+
                     <textarea
+                        id="topweb-chat-content"
                         name="content"
                         rows="1"
                         class="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800 focus:border-brandColor dark:border-gray-800 dark:bg-gray-950 dark:text-white"
                         placeholder="@lang('topweb_chat::app.messages.placeholder')"
                         @disabled($conversation->instance?->status !== 'ready')
-                        required
                     >{{ old('content') }}</textarea>
 
                     <div class="flex justify-end">
@@ -698,6 +715,59 @@
                     }
                 };
 
+                const attachButton = document.getElementById('topweb-chat-attach');
+                const mediaInput = document.getElementById('topweb-chat-media-input');
+                const mediaPreview = document.getElementById('topweb-chat-media-preview');
+                const contentField = document.getElementById('topweb-chat-content');
+
+                const clearMediaPreview = () => {
+                    if (mediaPreview) {
+                        mediaPreview.replaceChildren();
+                        mediaPreview.classList.add('hidden');
+                        mediaPreview.classList.remove('flex');
+                    }
+                    contentField?.setAttribute('placeholder', @json(trans('topweb_chat::app.messages.placeholder')));
+                };
+
+                attachButton?.addEventListener('click', () => mediaInput?.click());
+
+                mediaInput?.addEventListener('change', () => {
+                    const file = mediaInput.files?.[0];
+                    if (!file || !mediaPreview) {
+                        clearMediaPreview();
+
+                        return;
+                    }
+
+                    mediaPreview.replaceChildren();
+                    mediaPreview.classList.remove('hidden');
+                    mediaPreview.classList.add('flex');
+
+                    if (file.type.startsWith('image/')) {
+                        const thumb = document.createElement('img');
+                        thumb.src = URL.createObjectURL(file);
+                        thumb.alt = file.name;
+                        thumb.className = 'max-h-11 w-auto rounded-lg object-contain';
+                        mediaPreview.appendChild(thumb);
+                    }
+
+                    const name = document.createElement('span');
+                    name.className = 'max-w-40 truncate';
+                    name.textContent = file.name;
+                    mediaPreview.appendChild(name);
+
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'font-bold text-red-600 hover:text-red-800';
+                    remove.textContent = '×';
+                    remove.setAttribute('aria-label', @json(trans('topweb_chat::app.messages.remove_attachment')));
+                    remove.addEventListener('click', () => {
+                        mediaInput.value = '';
+                        clearMediaPreview();
+                    });
+                    mediaPreview.appendChild(remove);
+                });
+
                 form?.addEventListener('submit', async (event) => {
                     event.preventDefault();
 
@@ -705,9 +775,19 @@
                     submit?.setAttribute('disabled', 'disabled');
 
                     try {
+                        const mediaInput = document.getElementById('topweb-chat-media-input');
+                        const contentField = document.getElementById('topweb-chat-content');
+                        const payload = new FormData(form);
+
+                        if (!mediaInput?.files?.length && !contentField?.value.trim()) {
+                            contentField?.focus();
+
+                            return;
+                        }
+
                         const response = await fetch(form.action, {
                             method: 'POST',
-                            body: new FormData(form),
+                            body: payload,
                             headers: {
                                 Accept: 'application/json',
                                 'X-Requested-With': 'XMLHttpRequest',
@@ -719,10 +799,20 @@
                         }
 
                         form.querySelector('textarea').value = '';
+                        if (mediaInput) {
+                            mediaInput.value = '';
+                        }
+                        clearMediaPreview();
                         form.querySelector('[name="operation_key"]').value = crypto.randomUUID();
                         await refresh();
                         timeline.scrollTop = timeline.scrollHeight;
                     } catch (error) {
+                        reportClientEvent('error', 'client.send_failed', {
+                            timeline_connected: timeline.isConnected,
+                            form_connected: form?.isConnected || false,
+                            message: String(error?.message || error).slice(0, 240),
+                            browser_locale: browserLocale,
+                        });
                         window.alert(@json(trans('topweb_chat::app.messages.send_failed')));
                     } finally {
                         submit?.toggleAttribute(

@@ -11,8 +11,8 @@
                 <img
                     src="{{ 
                         request()->cookie('dark_mode') 
-                        ? vite()->asset('images/dark-logo.svg') 
-                        : vite()->asset('images/logo.svg') 
+                        ? vite()->safeAsset('images/dark-logo.svg') 
+                        : vite()->safeAsset('images/logo.svg') 
                     }}"
                     class="w-40 ltr:pr-16 rtl:pl-16"
                 >
@@ -57,7 +57,7 @@
             </div>
 
             <div class="w-full">
-                <img src="{{ vite()->asset('images/error.svg') }}" />
+                <img src="{{ vite()->safeAsset('images/error.svg') }}" />
             </div>
         </div>
 	</div>
