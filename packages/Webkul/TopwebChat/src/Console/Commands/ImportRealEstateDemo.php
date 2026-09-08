@@ -86,7 +86,7 @@ class ImportRealEstateDemo extends Command
         $now = Carbon::now();
         $pipelineId = $this->idForName('lead_pipelines', $row['pipeline'], ['is_default' => 0, 'rotten_days' => 0]);
         $leadStageId = $this->idForName('lead_stages', $row['stage'], ['code' => $row['stage_code'], 'is_user_defined' => 0]);
-        $pipelineStageId = $this->pipelineStageId($pipelineId, $leadStageId, $row['stage_code'], $row['stage']);
+        $pipelineStageId = $this->pipelineStageId($pipelineId, $row['stage_code'], $row['stage']);
         $sourceId = $this->idForName('lead_sources', $row['source']);
         $typeId = $this->idForName('lead_types', $row['type']);
         $personId = $this->personId($row, $ownerId, $now);
@@ -138,7 +138,7 @@ class ImportRealEstateDemo extends Command
         ]));
     }
 
-    private function pipelineStageId(int $pipelineId, int $leadStageId, string $code, string $name): int
+    private function pipelineStageId(int $pipelineId, string $code, string $name): int
     {
         $record = DB::table('lead_pipeline_stages')
             ->where('lead_pipeline_id', $pipelineId)
@@ -154,7 +154,6 @@ class ImportRealEstateDemo extends Command
             'name' => $name,
             'probability' => 10,
             'sort_order' => 1,
-            'lead_stage_id' => $leadStageId,
             'lead_pipeline_id' => $pipelineId,
         ]);
     }

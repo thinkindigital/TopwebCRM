@@ -39,7 +39,6 @@ beforeEach(function () {
         $table->string('name')->nullable();
         $table->integer('probability')->default(0);
         $table->integer('sort_order')->default(0);
-        $table->unsignedInteger('lead_stage_id');
         $table->unsignedInteger('lead_pipeline_id');
     });
 
