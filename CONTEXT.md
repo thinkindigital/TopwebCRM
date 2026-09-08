@@ -48,6 +48,8 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Conversa (Conversation)**: historico local entre uma Conta WhatsApp e uma Identidade Remota, vinculado a Pessoa, Lead quando conhecido e ao Dono do Lead. Atualmente o codigo ainda a vincula diretamente a uma Instancia.
 
+**Fila Sem Atendente**: conjunto operacional de Conversas abertas com `assigned_user_id` vazio. Fica visivel para agentes autorizados e a primeira Mensagem enviada por um agente assume a Conversa de forma atomica.
+
 **Mensagem (Message)**: registro local de comunicacao recebida ou enviada, com tipo, conteudo, estado e identificador externo.
 
 **Identidade Remota**: identificador WhatsApp normalizado, armazenado de forma protegida e associado a Pessoa somente quando houver correspondencia inequivoca.

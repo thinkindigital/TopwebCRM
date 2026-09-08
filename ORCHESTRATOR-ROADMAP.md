@@ -22,7 +22,7 @@ Revalidar imagem, stack, secrets, conectividade OpenWA, healthchecks, backup e r
 
 ### [**[E05] Confiabilidade Operacional do Chat**](https://github.com/thinkindigital/TopwebCRM/issues/9) - `in_progress`
 
-Corrigir reconciliacao, historico, estados monotonicos, retry seguro, idempotencia, concorrencia e observabilidade, preservando a timeline entre sessoes da mesma Conta WhatsApp e permitindo importacao manual seletiva por Lead. Slices: #70, #71 e #72.
+Corrigir reconciliacao, historico, estados monotonicos, retry seguro, idempotencia, concorrencia, fila sem atendente e observabilidade, preservando a timeline entre sessoes da mesma Conta WhatsApp e permitindo importacao manual seletiva por Lead. Slices: #70, #71 e #72.
 
 ### [**[E06] Reconciliacao Completa e Dominios Pendentes**](https://github.com/thinkindigital/TopwebCRM/issues/1) - `in_progress`
 
@@ -34,7 +34,7 @@ Registrar acoes sensiveis, configuracoes, mensagens e atribuicoes em trilha imut
 
 ### [**[E08] Melhorias de UX Operacional**](https://github.com/thinkindigital/TopwebCRM/issues/3) - `in_progress`
 
-Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronologica e rolavel, Kanban e metricas confiaveis.
+Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronologica e rolavel, filas operacionais claras, Kanban e metricas confiaveis.
 
 ### [**[E09] Multi-provider e Evolution API**](https://github.com/thinkindigital/TopwebCRM/issues/4) - `todo`
 
@@ -57,7 +57,7 @@ Catalogo de ferramentas com resolvedor de dependencias estilo SetupOrion: traefi
 | Marco | Epics | Saida verificavel |
 |---|---|---|
 | M1 Governanca reproduzivel | E01, E02, E04 | Docs, seguranca e deploy alinhados a evidencias atuais |
-| M2 WhatsApp funcional | E03, E05 | Sessao, QR, envio, recebimento e historico OpenWA testados |
+| M2 WhatsApp funcional | E03, E05 | Sessao, QR, envio de texto/midia, recebimento, fila sem atendente e historico OpenWA testados |
 | M3 Seguranca operacional | E06, E07, E10 | Quarentena, midia, auditoria e isolamento por Lead |
 | M4 Experiencia integrada | E08 | Atendimento em Activities, busca e metricas |
 | M5 Provedores alternativos | E09 | Contrato compartilhado e Evolution validada |
@@ -69,8 +69,8 @@ Catalogo de ferramentas com resolvedor de dependencias estilo SetupOrion: traefi
 3. Implementar a fronteira de autorizacao de E10 antes de expor historico amplo.
 4. Executar fundamentos de auditoria de E07.
 5. Avancar E06: reconciliacao, quarentena e midia.
-6. Integrar Atendimento WhatsApp e UX em E08.
-7. Especificar e implementar a roleta de E10.
+6. Integrar Atendimento WhatsApp, filas operacionais e UX em E08.
+7. Especificar e implementar a roleta de E10 sobre a fila sem atendente.
 8. Considerar E09 somente depois da estabilizacao do OpenWA.
 
 ## Criterio de done

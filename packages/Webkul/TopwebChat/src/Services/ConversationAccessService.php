@@ -39,6 +39,12 @@ class ConversationAccessService
             && $targetUserId === $user->id;
     }
 
+    public function canUnassign(User $user, Conversation $conversation): bool
+    {
+        return $this->isAdministrator($user)
+            || $conversation->assigned_user_id === $user->id;
+    }
+
     public function canAccessPerson(User $user, Person $person): bool
     {
         if ($this->isAdministrator($user)) {

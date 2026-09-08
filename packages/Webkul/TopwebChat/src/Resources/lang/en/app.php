@@ -123,6 +123,8 @@ return [
         'title' => 'Assignee',
         'save' => 'Save assignee',
         'claim' => 'Claim conversation',
+        'release' => 'Leave unassigned',
+        'release_confirm' => 'This conversation will be visible to all agents in the unassigned queue. Continue?',
         'updated' => 'Assignee updated.',
     ],
     'settings' => [

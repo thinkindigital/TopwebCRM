@@ -6,6 +6,8 @@
     @php
         $user = auth()->guard('user')->user();
         $isAdmin = $user->role?->permission_type === 'all';
+        $canReleaseConversation = $conversation->assigned_user_id
+            && ($isAdmin || $conversation->assigned_user_id === $user->id);
         $sensitiveData = app(\App\Services\SensitiveDataService::class);
         $remoteId = $sensitiveData->canView()
             ? $conversation->remote_jid
@@ -240,30 +242,50 @@
                 <section class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
                     <h2 class="font-semibold text-gray-800 dark:text-white">@lang('topweb_chat::app.assignment.title')</h2>
 
-                    <form
-                        method="POST"
-                        action="{{ route('admin.topweb_chat.assignment.update', $conversation) }}"
-                        class="mt-3 grid gap-3"
-                    >
-                        @csrf
-                        @method('PUT')
+                    @if ($isAdmin || $conversation->assigned_user_id === null)
+                        <form
+                            method="POST"
+                            action="{{ route('admin.topweb_chat.assignment.update', $conversation) }}"
+                            class="mt-3 grid gap-3"
+                        >
+                            @csrf
+                            @method('PUT')
 
-                        @if ($isAdmin)
-                            <select name="assigned_user_id" class="custom-select" required>
-                                @foreach ($assignableUsers as $assignableUser)
-                                    <option value="{{ $assignableUser->id }}" @selected($conversation->assigned_user_id === $assignableUser->id)>
-                                        {{ $assignableUser->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        @else
-                            <input type="hidden" name="assigned_user_id" value="{{ $user->id }}">
-                        @endif
+                            @if ($isAdmin)
+                                <select name="assigned_user_id" class="custom-select" required>
+                                    @foreach ($assignableUsers as $assignableUser)
+                                        <option value="{{ $assignableUser->id }}" @selected($conversation->assigned_user_id === $assignableUser->id)>
+                                            {{ $assignableUser->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <input type="hidden" name="assigned_user_id" value="{{ $user->id }}">
+                            @endif
 
-                        <button class="primary-button">
-                            {{ $isAdmin ? trans('topweb_chat::app.assignment.save') : trans('topweb_chat::app.assignment.claim') }}
-                        </button>
-                    </form>
+                            <button class="primary-button">
+                                {{ $isAdmin ? trans('topweb_chat::app.assignment.save') : trans('topweb_chat::app.assignment.claim') }}
+                            </button>
+                        </form>
+                    @endif
+
+                    @if ($canReleaseConversation)
+                        <form
+                            method="POST"
+                            action="{{ route('admin.topweb_chat.assignment.update', $conversation) }}"
+                            class="mt-3"
+                            onsubmit="return confirm(@json(trans('topweb_chat::app.assignment.release_confirm')));"
+                        >
+                            @csrf
+                            @method('PUT')
+
+                            <input type="hidden" name="assigned_user_id" value="">
+
+                            <button class="secondary-button w-full justify-center">
+                                @lang('topweb_chat::app.assignment.release')
+                            </button>
+                        </form>
+                    @endif
                 </section>
             @endif
 
@@ -454,6 +476,7 @@
                     message.status,
                     message.media_status,
                     message.media_url,
+                    message.last_error,
                     message.content,
                 ].join(':');
 

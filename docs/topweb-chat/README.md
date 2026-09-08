@@ -18,6 +18,7 @@ O código atual contém:
 - cadastro e exclusão confirmada de instância, saúde do provedor, listagem das sessões remotas e configuração do webhook;
 - autorização no backend baseada no escopo do Lead/Pessoa;
 - mascaramento de dados sensíveis e concessão administrativa individual;
+- fila "Sem atendente" para conversas abertas sem responsável, com captura atômica pelo primeiro agente que responder;
 - adapter `OpenWaProvider` por trás do contrato `MessagingProvider`.
 
 Os testes de feature em `tests/Feature/TopwebChat` cobrem o contrato HTTP principal, Settings, webhook, histórico, retry/timeline e geração da URL pública. Isso não substitui o smoke test com uma sessão WhatsApp real em cada release.
@@ -86,6 +87,10 @@ Em **TopwebChat → Configurações**:
 
 Nomes de instância são únicos. Tentar cadastrar um UUID novo com um nome já usado retorna um erro de validação na própria tela, sem erro 500. Para substituir uma sessão remota mantendo o mesmo nome, exclua primeiro a instância local antiga. A exclusão exige digitar o nome exato e remove em cascata as conversas e mensagens locais vinculadas; a confirmação informa a quantidade de conversas afetadas.
 
+Esse é o comportamento **implementado atualmente**, mas foi substituído como decisão de produto pelo ADR 0010 e não deve orientar nova evolução. O fluxo planejado separa a Conta WhatsApp duradoura da Sessão OpenWA descartável: “excluir sessão” fará logout remoto e arquivamento local, nunca exclusão do histórico. Se o logout falhar, a sessão será desabilitada imediatamente e o logout será retentado de forma idempotente pela fila.
+
+O campo `phone`, disponível somente após autenticação, será a identidade canônica prática da Conta WhatsApp. Uma nova sessão com o mesmo `phone` substituirá a anterior e continuará acrescentando eventos às mesmas conversas locais, sem reenviar o histórico ao OpenWA. Um `phone` diferente sempre criará outra Conta WhatsApp, sem mescla automática. Apenas uma sessão poderá permanecer ativa por Conta WhatsApp.
+
 Ao salvar, a API key, o segredo do webhook e demais atributos sensíveis usam criptografia vinculada à `APP_KEY`. Banco sem a chave correspondente não é uma restauração funcional.
 
 ## Fluxos de execução
@@ -93,12 +98,20 @@ Ao salvar, a API key, o segredo do webhook e demais atributos sensíveis usam cr
 ### Saída
 
 1. O usuário autorizado envia texto pela conversa.
-2. O CRM persiste a mensagem outbound e despacha `SendMessage`.
-3. O worker chama o OpenWA usando `X-API-Key`.
-4. O ID remoto e o estado retornado são gravados.
-5. Webhooks posteriores reconciliam ACK, entrega, falha, edição ou revogação.
+2. Se a conversa estiver sem atendente, o CRM a atribui ao usuário dentro da mesma transação bloqueada por `lockForUpdate`.
+3. O CRM persiste a mensagem outbound e despacha `SendMessage`.
+4. O worker chama o OpenWA usando `X-API-Key`.
+5. O ID remoto e o estado retornado são gravados.
+6. Webhooks posteriores reconciliam ACK, entrega, falha, edição ou revogação.
 
 Uma resposta HTTP de aceite não prova entrega ao destinatário. Timeout após chamada externa pode deixar o resultado como desconhecido; nesse caso nunca faça retry cego.
+
+### Fila sem atendente
+
+1. Administradores podem desatribuir qualquer conversa pelo painel lateral da conversa.
+2. O agente responsável pode devolver sua própria conversa para a fila sem atendente.
+3. Conversas abertas sem `assigned_user_id` aparecem na aba **Sem atendente** para todos os agentes autorizados no TopwebChat.
+4. O primeiro agente que responder assume a conversa dentro da mesma transação que cria a mensagem. Respostas concorrentes posteriores são recusadas se a conversa já tiver sido assumida por outro agente.
 
 ### Entrada
 
@@ -133,6 +146,12 @@ O scheduler registra:
 - `topweb-chat:project-lead-media` a cada cinco minutos, para reconciliar mídia armazenada após associação tardia do Lead.
 
 Jobs usam a fila Laravel padrão. As opções `--state`, `--full` e `--limit` não existem no comando atual.
+
+### Importação manual de histórico planejada
+
+O contrato decidido, ainda não implementado, permite que somente um administrador importe contexto histórico para um Lead. A operação exige escolher explicitamente a Conta WhatsApp, um dos telefones do Lead e a quantidade entre 1 e 100 mensagens, com padrão 50.
+
+Mensagens importadas são deduplicadas e entram apenas como histórico: não aumentam o contador de não lidas, não abrem ou renovam Atendimento e não geram Activities retroativas. Mídias são copiadas em background para o storage privado; falha no download não desfaz a mensagem persistida. A reconciliação automática de conversas conhecidas continua separada desse fluxo e terá uma chave por Conta WhatsApp, habilitada por padrão.
 
 ## Regras operacionais
 
@@ -191,3 +210,4 @@ A integração só deve ser liberada quando houver evidência recente de:
 - Contrato externo consumido pelo adapter: `docs/topweb-chat/OPENWA.md`.
 - Deploy completo: `docs/operations/DEPLOYMENT.md`.
 - Decisão arquitetural: `docs/adr/0004-topwebchat-whatsapp-module.md`.
+- Ciclo de Conta WhatsApp e Sessão OpenWA: `docs/adr/0010-whatsapp-account-session-lifecycle.md`.
