@@ -178,18 +178,18 @@ return [
             ],
 
             'installation-processing' => [
-                'krayin' => 'Instalação do Krayin',
+                'krayin' => 'Instalação do TopwebCRM',
                 'krayin-info' => 'Criando as tabelas do banco de dados, isso pode levar alguns momentos',
                 'title' => 'Instalação',
             ],
 
             'installation-completed' => [
                 'admin-panel' => 'Painel de Administração',
-                'krayin-forums' => 'Fórum Krayin',
+                'krayin-forums' => 'Suporte Topweb',
                 'customer-panel' => 'Painel do Cliente',
-                'explore-krayin-extensions' => 'Explorar Extensões Krayin',
+                'explore-krayin-extensions' => 'Recursos Topweb',
                 'title' => 'Instalação Concluída',
-                'title-info' => 'Krayin foi instalado com sucesso no seu sistema.',
+                'title-info' => 'TopwebCRM foi instalado com sucesso no seu sistema.',
             ],
 
             'ready-for-installation' => [
@@ -203,8 +203,8 @@ return [
                 'locale' => 'Idioma',
                 'main' => 'Início',
                 'select-locale' => 'Selecionar Idioma',
-                'title' => 'Instalação do Krayin',
-                'welcome-title' => 'Bem-vindo ao Krayin',
+                'title' => 'Instalação do TopwebCRM',
+                'welcome-title' => 'Bem-vindo ao TopwebCRM',
             ],
 
             'server-requirements' => [
@@ -213,16 +213,16 @@ return [
             ],
 
             'back' => 'Voltar',
-            'krayin' => 'Krayin',
-            'krayin-info' => 'um projeto comunitário de',
-            'krayin-logo' => 'Logotipo Krayin',
+            'krayin' => 'TopwebCRM',
+            'krayin-info' => 'um projeto da Thinkin Digital',
+            'krayin-logo' => 'Logotipo TopwebCRM',
             'continue' => 'Continuar',
-            'installation-description' => 'A instalação do Krayin geralmente envolve várias etapas. Aqui está uma visão geral do processo de instalação do Krayin',
+            'installation-description' => 'A instalação do TopwebCRM geralmente envolve várias etapas. Aqui está uma visão geral do processo de instalação do TopwebCRM',
             'installation-info' => 'Estamos felizes em ver você aqui!',
             'installation-title' => 'Bem-vindo à Instalação',
             'installation-wizard' => 'Assistente de Instalação - Idioma',
-            'title' => 'Instalador do Krayin',
-            'webkul' => 'Webkul',
+            'title' => 'Instalador do TopwebCRM',
+            'webkul' => 'Thinkin Digital',
         ],
     ],
 ];

@@ -507,6 +507,8 @@ return [
                 'none-delete-warning' => 'Không thể xóa bất kỳ người nào được chọn vì họ có liên kết với khách hàng tiềm năng.',
                 'no-selection' => 'Chưa chọn người nào để xóa.',
                 'delete-failed' => 'Xóa người được chọn không thành công.',
+                'has_leads' => 'Có khách hàng tiềm năng được liên kết.',
+                'has_conversations' => 'Có :count cuộc trò chuyện WhatsApp được liên kết.',
                 'datagrid' => [
                     'contact-numbers' => 'Số Liên hệ',
                     'delete' => 'Xóa',

@@ -121,6 +121,7 @@ class MessageController
             'type' => $message->type,
             'content' => $message->content,
             'status' => $message->status,
+            'last_error' => $message->last_error,
             'sent_at' => ($message->sent_at ?? $message->created_at)?->toIso8601String(),
             'can_retry' => $this->messages->canRetry($message),
             'retry_url' => route('admin.topweb_chat.messages.retry', [

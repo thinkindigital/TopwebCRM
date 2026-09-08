@@ -18,13 +18,24 @@ class AssignmentController
 
         $user = auth()->guard('user')->user();
         $data = $request->validate([
-            'assigned_user_id' => ['required', 'integer', 'exists:users,id'],
+            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         DB::transaction(function () use ($conversation, $data, $user) {
             $lockedConversation = Conversation::query()
                 ->lockForUpdate()
                 ->findOrFail($conversation->id);
+
+            if (($data['assigned_user_id'] ?? null) === null) {
+                abort_unless(
+                    $this->access->canUnassign($user, $lockedConversation),
+                    403
+                );
+
+                $lockedConversation->update(['assigned_user_id' => null]);
+
+                return;
+            }
 
             abort_unless(
                 $this->access->canAssign(

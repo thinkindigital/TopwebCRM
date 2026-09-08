@@ -23,6 +23,10 @@ Route::prefix('topweb-chat')->group(function () {
     Route::put('conversations/{conversation}/assignment', [AssignmentController::class, 'update'])->name('admin.topweb_chat.assignment.update');
     Route::put('conversations/{conversation}/lead-stage', [LeadStageController::class, 'update'])->name('admin.topweb_chat.lead_stage.update');
 
+    Route::delete('conversations/by-person/{person}', [ConversationController::class, 'destroyByPerson'])
+        ->name('admin.topweb_chat.conversations.destroy_by_person')
+        ->middleware('can:topweb_chat.settings.index');
+
     Route::prefix('settings')->group(function () {
         Route::get('', [SettingsController::class, 'index'])->name('admin.topweb_chat.settings.index');
         Route::post('instances', [SettingsController::class, 'storeInstance'])->name('admin.topweb_chat.settings.instances.store');

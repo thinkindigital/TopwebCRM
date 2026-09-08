@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
+use Webkul\Contact\Models\Person;
 use Webkul\TopwebChat\Jobs\MarkConversationRead;
 use Webkul\TopwebChat\Jobs\SyncConversationHistory;
 use Webkul\TopwebChat\Models\Conversation;
@@ -166,6 +167,7 @@ class ConversationController
                         'message' => $message,
                     ])
                     : null,
+                'last_error' => $message->last_error,
             ]);
 
         return response()->json([
@@ -234,5 +236,19 @@ class ConversationController
             (string) data_get($metadata, 'media_mime', 'application/octet-stream'),
             (string) data_get($metadata, 'media_name', 'whatsapp-media.bin')
         );
+    }
+
+    public function destroyByPerson(
+        Person $person
+    ): JsonResponse {
+        abort_unless(bouncer()->hasPermission('topweb_chat.settings.index'), 403);
+
+        $deletedCount = Conversation::query()
+            ->where('person_id', $person->id)
+            ->delete();
+
+        return response()->json([
+            'message' => trans('topweb_chat::app.conversations.deleted_by_person', ['count' => $deletedCount]),
+        ]);
     }
 }

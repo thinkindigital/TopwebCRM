@@ -507,6 +507,8 @@ return [
                 'none-delete-warning' => 'Seçilen kişilerin hiçbiri potansiyel müşterilerle bağlantılı olduğu için silinemedi.',
                 'no-selection' => 'Silinecek kişi seçilmedi.',
                 'delete-failed' => 'Seçilen kişiler silinemedi.',
+                'has_leads' => 'Bağlantılı potansiyel müşterileri var.',
+                'has_conversations' => ':count bağlantılı WhatsApp görüşmesi var.',
                 'datagrid' => [
                     'contact-numbers' => 'İletişim Numaraları',
                     'delete' => 'Sil',

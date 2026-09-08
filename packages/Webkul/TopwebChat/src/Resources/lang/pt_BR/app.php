@@ -47,6 +47,7 @@ return [
         'unassigned' => 'Sem atendente',
         'status' => 'Status',
         'connection' => 'Conexão OpenWA',
+        'deleted_by_person' => ':count conversa(s) de WhatsApp excluída(s) com sucesso.',
     ],
     'contacts' => [
         'unknown' => 'Contato não identificado',
@@ -122,6 +123,8 @@ return [
         'title' => 'Responsável',
         'save' => 'Salvar responsável',
         'claim' => 'Assumir atendimento',
+        'release' => 'Deixar sem atendente',
+        'release_confirm' => 'Esta conversa ficará visível para todos os agentes na fila sem atendente. Continuar?',
         'updated' => 'Responsável atualizado.',
     ],
     'settings' => [

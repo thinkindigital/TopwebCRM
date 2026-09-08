@@ -65,6 +65,10 @@ jobs:
           sed -i "s|^\(DB_DATABASE=\s*\).*$|\1krayin|" .env
           sed -i "s|^\(DB_USERNAME=\s*\).*$|\1root|" .env
           sed -i "s|^\(DB_PASSWORD=\s*\).*$|\1root|" .env
+          sed -i "s|^\(CACHE_DRIVER=\s*\).*$|\1file|" .env
+          sed -i "s|^\(CACHE_STORE=\s*\).*$|\1file|" .env
+          sed -i "s|^\(QUEUE_CONNECTION=\s*\).*$|\1sync|" .env
+          sed -i "s|^\(SESSION_DRIVER=\s*\).*$|\1file|" .env
 
       - name: Running Krayin Installer
         run: php artisan krayin-crm:install --skip-env-check --skip-admin-creation
