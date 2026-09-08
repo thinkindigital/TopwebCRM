@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
+use Webkul\Contact\Models\Person;
 use Webkul\TopwebChat\Jobs\MarkConversationRead;
 use Webkul\TopwebChat\Jobs\SyncConversationHistory;
 use Webkul\TopwebChat\Models\Conversation;
@@ -238,11 +239,11 @@ class ConversationController
     }
 
     public function destroyByPerson(
-        \Webkul\Contact\Models\Person $person
-    ): \Illuminate\Http\JsonResponse {
+        Person $person
+    ): JsonResponse {
         abort_unless(bouncer()->hasPermission('topweb_chat.settings.index'), 403);
 
-        $deletedCount = \Webkul\TopwebChat\Models\Conversation::query()
+        $deletedCount = Conversation::query()
             ->where('person_id', $person->id)
             ->delete();
 
