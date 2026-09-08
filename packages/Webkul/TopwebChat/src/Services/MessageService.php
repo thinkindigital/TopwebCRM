@@ -242,7 +242,10 @@ class MessageService
     {
         return $message->direction === 'outgoing'
             && $message->status === 'failed'
-            && $message->last_error === 'provider_instance_not_connected'
+            && in_array($message->last_error, [
+                'provider_instance_not_connected',
+                'media_file_missing',
+            ], true)
             && $message->provider_message_id === null;
     }
 }

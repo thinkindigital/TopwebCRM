@@ -38,13 +38,15 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **OpenWA**: provedor self-hosted responsavel por sessoes WhatsApp, transporte de mensagens e entrega de webhooks.
 
-**Sessao OpenWA**: sessao remota identificada pelo UUID retornado pelo OpenWA. O nome e apenas uma identificacao humana.
+**Conta WhatsApp (planejada)**: identidade duradoura do numero proprio autenticado, confirmada pelo campo `phone` do OpenWA. E dona do historico local e nao se confunde com uma conexao substituivel.
 
-**Instancia (Instance)**: configuracao local que vincula o TopwebCRM a uma Sessao OpenWA, incluindo UUID, URL, credenciais e estado.
+**Sessao OpenWA**: conexao remota descartavel identificada pelo UUID retornado pelo OpenWA. O nome e apenas uma identificacao humana; uma nova Sessao OpenWA pode substituir outra da mesma Conta WhatsApp.
+
+**Instancia (Instance)**: modelo atual que concentra configuracao local, vinculo com Sessao OpenWA, UUID, URL, credenciais e estado. Deve ser separado da Conta WhatsApp duradoura.
 
 **Sessao Padrao (planejada)**: Instancia escolhida para iniciar novas Conversas quando nenhuma sessao especifica for selecionada.
 
-**Conversa (Conversation)**: historico local entre uma Instancia e uma Identidade Remota, vinculado a Pessoa, Lead quando conhecido e ao Dono do Lead.
+**Conversa (Conversation)**: historico local entre uma Conta WhatsApp e uma Identidade Remota, vinculado a Pessoa, Lead quando conhecido e ao Dono do Lead. Atualmente o codigo ainda a vincula diretamente a uma Instancia.
 
 **Mensagem (Message)**: registro local de comunicacao recebida ou enviada, com tipo, conteudo, estado e identificador externo.
 
@@ -53,6 +55,8 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 **Quarentena de Identidade (planejada)**: estado administrativo de uma Conversa cuja Identidade Remota e desconhecida, ambigua ou nao resolvida. Nao cria Pessoa automaticamente.
 
 **Historico Importado**: mensagens anteriores obtidas do OpenWA. Nao gera Atendimento WhatsApp retroativo.
+
+**Arquivamento de Sessao (planejado)**: retirada de uma Sessao OpenWA da operacao, com logout remoto retentavel, sem apagar Conta WhatsApp, Conversas, Mensagens, notas, midias ou Activities.
 
 **Atendimento WhatsApp**: Activity agregadora aberta pela primeira Mensagem enviada por um Usuario do CRM e encerrada apos 24 horas sem Mensagem real.
 

@@ -47,6 +47,7 @@ return [
         'unassigned' => 'Unassigned',
         'status' => 'Status',
         'connection' => 'OpenWA connection',
+        'deleted_by_person' => ':count WhatsApp conversation(s) deleted successfully.',
     ],
     'contacts' => [
         'unknown' => 'Unidentified contact',

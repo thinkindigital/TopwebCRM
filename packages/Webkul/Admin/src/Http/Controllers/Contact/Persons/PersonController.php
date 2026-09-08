@@ -213,12 +213,29 @@ class PersonController extends Controller
 
             $blockedCount = 0;
 
+            $blockedReasons = [];
+
             foreach ($persons as $person) {
+                $reasons = [];
+
                 if (
                     $person->leads
                     && $person->leads->count() > 0
                 ) {
+                    $reasons[] = trans('admin::app.contacts.persons.index.has_leads');
+                }
+
+                $conversationCount = \Webkul\TopwebChat\Models\Conversation::query()
+                    ->where('person_id', $person->id)
+                    ->count();
+
+                if ($conversationCount > 0) {
+                    $reasons[] = trans('admin::app.contacts.persons.index.has_conversations', ['count' => $conversationCount]);
+                }
+
+                if (! empty($reasons)) {
                     $blockedCount++;
+                    $blockedReasons[$person->id] = $reasons;
 
                     continue;
                 }
@@ -260,7 +277,10 @@ class PersonController extends Controller
                     break;
             }
 
-            return response()->json(['message' => $message], $statusCode);
+            return response()->json([
+                'message' => $message,
+                'blocked' => $blockedReasons,
+            ], $statusCode);
         } catch (Exception $exception) {
             return response()->json([
                 'message' => trans('admin::app.contacts.persons.index.delete-failed'),

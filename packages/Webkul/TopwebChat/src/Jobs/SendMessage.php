@@ -59,6 +59,7 @@ class SendMessage implements ShouldQueue
                 $mediaPayload = $this->mediaPayload($message);
 
                 if ($mediaPayload === null) {
+                    // mediaPayload already updated the message with the error
                     return;
                 }
 

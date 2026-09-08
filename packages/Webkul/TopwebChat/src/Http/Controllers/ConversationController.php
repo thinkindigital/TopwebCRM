@@ -166,6 +166,7 @@ class ConversationController
                         'message' => $message,
                     ])
                     : null,
+                'last_error' => $message->last_error,
             ]);
 
         return response()->json([
@@ -234,5 +235,19 @@ class ConversationController
             (string) data_get($metadata, 'media_mime', 'application/octet-stream'),
             (string) data_get($metadata, 'media_name', 'whatsapp-media.bin')
         );
+    }
+
+    public function destroyByPerson(
+        \Webkul\Contact\Models\Person $person
+    ): \Illuminate\Http\JsonResponse {
+        abort_unless(bouncer()->hasPermission('topweb_chat.settings.index'), 403);
+
+        $deletedCount = \Webkul\TopwebChat\Models\Conversation::query()
+            ->where('person_id', $person->id)
+            ->delete();
+
+        return response()->json([
+            'message' => trans('topweb_chat::app.conversations.deleted_by_person', ['count' => $deletedCount]),
+        ]);
     }
 }

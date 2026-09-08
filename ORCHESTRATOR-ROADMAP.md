@@ -14,7 +14,7 @@ Revalidar a protecao em UI, backend, APIs, busca, exportacao, arquivos e midias.
 
 ### [**[E03] TopwebChat Core OpenWA**](https://github.com/thinkindigital/TopwebCRM/issues/7) - `in_progress`
 
-Substituir os contratos RyzeAPI residuais e tornar sessoes, QR, webhook, envio e recebimento OpenWA funcionais de ponta a ponta.
+Substituir os contratos RyzeAPI residuais, tornar sessoes, QR, webhook, envio e recebimento OpenWA funcionais de ponta a ponta e separar a Conta WhatsApp duradoura da Sessao OpenWA descartavel. Slices de ciclo duravel: #68 e #69.
 
 ### [**[E04] Infraestrutura de Producao**](https://github.com/thinkindigital/TopwebCRM/issues/8) - `in_progress`
 
@@ -22,7 +22,7 @@ Revalidar imagem, stack, secrets, conectividade OpenWA, healthchecks, backup e r
 
 ### [**[E05] Confiabilidade Operacional do Chat**](https://github.com/thinkindigital/TopwebCRM/issues/9) - `in_progress`
 
-Corrigir reconciliacao, historico, estados monotonicos, retry seguro, idempotencia, concorrencia e observabilidade.
+Corrigir reconciliacao, historico, estados monotonicos, retry seguro, idempotencia, concorrencia e observabilidade, preservando a timeline entre sessoes da mesma Conta WhatsApp e permitindo importacao manual seletiva por Lead. Slices: #70, #71 e #72.
 
 ### [**[E06] Reconciliacao Completa e Dominios Pendentes**](https://github.com/thinkindigital/TopwebCRM/issues/1) - `in_progress`
 

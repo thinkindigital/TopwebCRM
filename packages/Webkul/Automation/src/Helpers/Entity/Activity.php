@@ -289,7 +289,7 @@ class Activity extends AbstractEntity
         $content = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//Krayincrm//Krayincrm//EN',
+            'PRODID:-//TopwebCRM//TopwebCRM//EN',
             'BEGIN:VEVENT',
             'UID:'.time().'-'.$activity->id,
             'DTSTAMP:'.Carbon::now()->format('YmdTHis'),

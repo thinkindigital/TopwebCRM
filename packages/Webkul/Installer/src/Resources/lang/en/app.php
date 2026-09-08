@@ -228,24 +228,24 @@ return [
             ],
 
             'installation-processing' => [
-                'krayin' => 'Installation Krayin',
+                'krayin' => 'TopwebCRM Installation',
                 'krayin-info' => 'Creating the database tables, this can take a few moments',
                 'title' => 'Installation',
             ],
 
             'installation-completed' => [
                 'admin-panel' => 'Admin Panel',
-                'krayin-forums' => 'Krayin Forum',
+                'krayin-forums' => 'Topweb Support',
                 'customer-panel' => 'Customer Panel',
-                'explore-krayin-extensions' => 'Explore Krayin Extension',
+                'explore-krayin-extensions' => 'Topweb Resources',
                 'title' => 'Installation Completed',
-                'title-info' => 'Krayin is Successfully installed on your system.',
+                'title-info' => 'TopwebCRM is Successfully installed on your system.',
             ],
 
             'ready-for-installation' => [
                 'create-databsae-table' => 'Create the database table',
                 'install' => 'Installation',
-                'install-info' => 'Krayin For Installation',
+                'install-info' => 'TopwebCRM For Installation',
                 'install-info-button' => 'Click the button below to',
                 'populate-database-table' => 'Populate the database tables',
                 'start-installation' => 'Start Installation',
@@ -256,8 +256,8 @@ return [
                 'locale' => 'Locale',
                 'main' => 'Start',
                 'select-locale' => 'Select Locale',
-                'title' => 'Your Krayin install',
-                'welcome-title' => 'Welcome to Krayin',
+                'title' => 'Your TopwebCRM install',
+                'welcome-title' => 'Welcome to TopwebCRM',
             ],
 
             'server-requirements' => [
@@ -284,16 +284,16 @@ return [
             ],
 
             'back' => 'Back',
-            'krayin' => 'Krayin',
-            'krayin-info' => 'a Community Project by',
-            'krayin-logo' => 'Krayin Logo',
+            'krayin' => 'TopwebCRM',
+            'krayin-info' => 'a Project by Thinkin Digital',
+            'krayin-logo' => 'TopwebCRM Logo',
             'continue' => 'Continue',
-            'installation-description' => 'Krayin installation typically involves several steps. Here\'s a general outline of the installation process for Krayin',
+            'installation-description' => 'TopwebCRM installation typically involves several steps. Here\'s a general outline of the installation process for TopwebCRM',
             'installation-info' => 'We are happy to see you here!',
             'installation-title' => 'Welcome to Installation',
             'installation-wizard' => 'Installation Wizard language',
-            'title' => 'Krayin Installer',
-            'webkul' => 'Webkul',
+            'title' => 'TopwebCRM Installer',
+            'webkul' => 'Thinkin Digital',
         ],
     ],
 ];

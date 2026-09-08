@@ -119,6 +119,11 @@
                             <div class="mt-2 flex items-center gap-2 text-xs opacity-75">
                                 <span>{{ $message->sent_at?->format('d/m/Y H:i') ?? $message->created_at?->format('d/m/Y H:i') }}</span>
                                 <span>{{ $message->status }}</span>
+                                @if ($message->status === 'failed' && $message->last_error)
+                                    <span class="text-red-600 dark:text-red-400" title="{{ $message->last_error }}">
+                                        {{ $message->last_error }}
+                                    </span>
+                                @endif
                                 @if (app(\Webkul\TopwebChat\Services\MessageService::class)->canRetry($message))
                                     <button
                                         type="button"
@@ -493,6 +498,14 @@
                     status.textContent = message.status;
 
                     metadata.append(timestamp, status);
+
+                    if (message.status === 'failed' && message.last_error) {
+                        const errorSpan = document.createElement('span');
+                        errorSpan.className = 'text-red-600 dark:text-red-400';
+                        errorSpan.textContent = message.last_error;
+                        errorSpan.title = message.last_error;
+                        metadata.appendChild(errorSpan);
+                    }
 
                     if (message.can_retry && message.retry_url) {
                         retry.type = 'button';
