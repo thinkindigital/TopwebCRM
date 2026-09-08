@@ -25,15 +25,21 @@
                     <label class="mb-1 block text-sm font-medium text-gray-800 dark:text-white">@lang('topweb_chat::app.settings.instance_name')</label>
                     <input
                         name="name"
+                        value="{{ old('name') }}"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
                         required
                     >
+
+                    @error('name')
+                        <p data-testid="instance-name-error" class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-800 dark:text-white">@lang('topweb_chat::app.settings.session_uuid')</label>
                     <input
                         name="session_uuid"
+                        value="{{ old('session_uuid') }}"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
                         required
                     >
@@ -110,6 +116,56 @@
                                             @csrf
                                             <button class="secondary-button">@lang('topweb_chat::app.settings.configure_webhook')</button>
                                         </form>
+
+                                        <x-admin::modal>
+                                            <x-slot:toggle>
+                                                <button type="button" class="secondary-button text-red-700">
+                                                    @lang('topweb_chat::app.settings.delete')
+                                                </button>
+                                            </x-slot>
+
+                                            <x-slot:header>
+                                                <p class="text-lg font-bold text-gray-800 dark:text-white">
+                                                    @lang('topweb_chat::app.settings.instance_delete_title')
+                                                </p>
+                                            </x-slot>
+
+                                            <x-slot:content>
+                                                <form
+                                                    id="delete-instance-{{ $instance->id }}"
+                                                    method="POST"
+                                                    action="{{ route('admin.topweb_chat.settings.instances.destroy', $instance) }}"
+                                                    class="grid gap-3"
+                                                >
+                                                    @csrf
+                                                    @method('DELETE')
+
+                                                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                                                        {{ trans('topweb_chat::app.settings.instance_delete_prompt', [
+                                                            'name' => $instance->name,
+                                                            'count' => $instance->conversations_count,
+                                                        ]) }}
+                                                    </p>
+
+                                                    <input
+                                                        name="confirmation_name"
+                                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
+                                                        autocomplete="off"
+                                                        required
+                                                    >
+                                                </form>
+                                            </x-slot>
+
+                                            <x-slot:footer>
+                                                <button
+                                                    type="submit"
+                                                    form="delete-instance-{{ $instance->id }}"
+                                                    class="primary-button bg-red-600 hover:bg-red-700"
+                                                >
+                                                    @lang('topweb_chat::app.settings.confirm_delete')
+                                                </button>
+                                            </x-slot>
+                                        </x-admin::modal>
                                     </div>
                                 </td>
                             </tr>

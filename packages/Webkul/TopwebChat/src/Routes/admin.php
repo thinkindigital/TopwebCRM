@@ -26,6 +26,7 @@ Route::prefix('topweb-chat')->group(function () {
     Route::prefix('settings')->group(function () {
         Route::get('', [SettingsController::class, 'index'])->name('admin.topweb_chat.settings.index');
         Route::post('instances', [SettingsController::class, 'storeInstance'])->name('admin.topweb_chat.settings.instances.store');
+        Route::delete('instances/{instance}', [SettingsController::class, 'destroyInstance'])->name('admin.topweb_chat.settings.instances.destroy');
         Route::post('instances/{instance}/webhook', [SettingsController::class, 'configureWebhook'])->name('admin.topweb_chat.settings.instances.webhook');
         Route::post('instances/{instance}/reconcile', [SettingsController::class, 'reconcileInstance'])->name('admin.topweb_chat.settings.instances.reconcile');
         Route::put('sensitive-access', [SettingsController::class, 'updateSensitiveAccess'])->name('admin.topweb_chat.settings.sensitive_access.update');
