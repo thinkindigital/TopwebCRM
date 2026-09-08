@@ -2,6 +2,7 @@
 
 namespace Webkul\Admin\Exceptions;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -76,6 +77,10 @@ class Handler extends ExceptionHandler
      */
     private function renderCustomResponse(Throwable $exception)
     {
+        if ($exception instanceof AuthorizationException) {
+            return $this->response(403);
+        }
+
         if ($exception instanceof HttpException) {
             $statusCode = in_array($exception->getStatusCode(), [401, 403, 404, 503])
                 ? $exception->getStatusCode()
@@ -114,6 +119,6 @@ class Handler extends ExceptionHandler
             ], $errorCode);
         }
 
-        return response()->view('admin::errors.index', compact('errorCode'));
+        return response()->view('admin::errors.index', compact('errorCode'), $errorCode);
     }
 }
