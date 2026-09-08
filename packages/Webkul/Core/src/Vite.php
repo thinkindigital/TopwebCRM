@@ -3,6 +3,7 @@
 namespace Webkul\Core;
 
 use Illuminate\Support\Facades\Vite as BaseVite;
+use Throwable;
 use Webkul\Core\Exceptions\ViterNotFound;
 
 class Vite
@@ -30,10 +31,19 @@ class Vite
     }
 
     /**
-     * Set krayin vite.
+     * Return the asset URL, degrading gracefully when the build manifest
+     * is missing. Error pages must never fail because assets are broken.
      *
-     * @return mixed
+     * @return string
      */
+    public function safeAsset(string $filename, string $namespace = 'admin'): string
+    {
+        try {
+            return (string) $this->asset($filename, $namespace);
+        } catch (Throwable) {
+            return '';
+        }
+    }
     public function set(mixed $entryPoints, string $namespace = 'admin')
     {
         $viters = config('krayin-vite.viters');
