@@ -177,6 +177,30 @@ No dashboard do OpenWA, crie ou inicie a sessão WhatsApp e obtenha uma API key 
 
 A API key e o segredo HMAC do webhook ficam criptografados no banco pelo Laravel; por isso o backup do banco depende da mesma `APP_KEY`.
 
+## Banco e Redis externos (compartilhados)
+
+Por padrão a stack sobe Percona e Redis embutidos. Para usar os serviços
+compartilhados do instalador (um MySQL, um Redis — mesmo modelo do SetupOrion),
+defina na stack `topwebcrm`:
+
+```dotenv
+TOPWEBCRM_DB_HOST=mysql_mysql
+TOPWEBCRM_DB_PORT=3306
+TOPWEBCRM_DB_NAME=topwebcrm
+TOPWEBCRM_DB_USER=topwebcrm
+TOPWEBCRM_DB_REPLICAS=0
+TOPWEBCRM_REDIS_HOST=redis_redis
+TOPWEBCRM_REDIS_PORT=6379
+TOPWEBCRM_REDIS_REPLICAS=0
+```
+
+Com réplicas `0`, os serviços internos são criados parados e o CRM (app, queue,
+scheduler) fala com o compartilhado — inclusive o `WAIT_FOR_DATABASE` do entrypoint.
+O banco/usuário no MySQL compartilhado deve existir antes (criado pelo instalador
+via `ensure_mysql_db`); a senha continua em `topwebcrm_db_password`.
+Validação: `docker compose -f compose.production.yaml config` com as variáveis
+acima deve mostrar os hosts externos e `replicas: 0` só em `topwebcrm_db`/`topwebcrm_redis`.
+
 ## Release automático
 
 O workflow `.github/workflows/publish-production-image.yml` é executado após o CI bem-sucedido em `main`. Ele constrói a imagem, publica as tags e chama a API autenticada do Portainer para:

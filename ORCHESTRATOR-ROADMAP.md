@@ -44,6 +44,14 @@ Adicionar Evolution API somente apos contratos compartilhados e OpenWA estabiliz
 
 Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API.
 
+### [**[E11] Instalador Automatico TopwebCRM**](https://github.com/thinkindigital/TopwebCRM/issues/49) - `todo`
+
+Instalador guiado estilo SetupOrion para qualquer servidor com Portainer + Traefik: escopo completo parametrizado, imagem publica, SHA do main via API anonima, secrets sem vazamento, deploy via API do Portainer, update e rollback. Slices: #50, #51, #52, #53, #54.
+
+### [**[E12] Instalador Multi-Ferramentas Compartilhadas**](https://github.com/thinkindigital/TopwebCRM/issues/55) - `todo`
+
+Catalogo de ferramentas com resolvedor de dependencias estilo SetupOrion: traefik, portainer (+update), mysql e redis compartilhados (um root, um banco por ferramenta), phpmyadmin; CRM com suporte a DB/Redis externo; apps PHP convencionais fora do Swarm; multi-CRM por sufixo; comandos operacionais + atualizador. Slices: #56, #57, #58, #59, #60, #61, #62, #63, #64.
+
 ## Marcos
 
 | Marco | Epics | Saida verificavel |
