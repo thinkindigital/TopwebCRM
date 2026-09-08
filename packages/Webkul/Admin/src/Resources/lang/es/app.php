@@ -507,6 +507,8 @@ return [
                 'none-delete-warning' => 'Ninguna de las personas seleccionadas pudo ser eliminada porque están vinculadas a clientes potenciales.',
                 'no-selection' => 'No se seleccionaron personas para eliminar.',
                 'delete-failed' => 'No se pudieron eliminar las personas seleccionadas.',
+                'has_leads' => 'Tiene clientes potenciales vinculados.',
+                'has_conversations' => 'Tiene :count conversación(es) de WhatsApp vinculada(s).',
                 'datagrid' => [
                     'contact-numbers' => 'Números de Contacto',
                     'delete' => 'Eliminar',
