@@ -16,6 +16,7 @@ use Webkul\Admin\Http\Requests\AttributeForm;
 use Webkul\Admin\Http\Requests\MassDestroyRequest;
 use Webkul\Admin\Http\Resources\PersonResource;
 use Webkul\Contact\Repositories\PersonRepository;
+use Webkul\TopwebChat\Models\Conversation;
 
 class PersonController extends Controller
 {
@@ -225,7 +226,7 @@ class PersonController extends Controller
                     $reasons[] = trans('admin::app.contacts.persons.index.has_leads');
                 }
 
-                $conversationCount = \Webkul\TopwebChat\Models\Conversation::query()
+                $conversationCount = Conversation::query()
                     ->where('person_id', $person->id)
                     ->count();
 
