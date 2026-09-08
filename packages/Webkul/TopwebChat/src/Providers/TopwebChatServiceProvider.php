@@ -11,7 +11,9 @@ use Webkul\TopwebChat\Console\Commands\CloseStaleAttendances;
 use Webkul\TopwebChat\Console\Commands\ProjectLeadMedia;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Console\Commands\RetryFailedMessages;
+use Webkul\TopwebChat\Console\Commands\SeedRealEstateDemo;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
+use Webkul\TopwebChat\Providers\OpenWaProvider;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 
 class TopwebChatServiceProvider extends ServiceProvider
@@ -31,6 +33,7 @@ class TopwebChatServiceProvider extends ServiceProvider
                 ProjectLeadMedia::class,
                 ReconcileTopwebChat::class,
                 RetryFailedMessages::class,
+                SeedRealEstateDemo::class,
             ]);
         }
     }
