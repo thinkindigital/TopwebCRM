@@ -306,7 +306,8 @@ it('creates, renews, closes and continues one native activity per attendance win
     $attendanceService = app(AttendanceService::class);
     $messageService = new MessageService(
         app(ConversationAccessService::class),
-        $attendanceService
+        $attendanceService,
+        app(SensitiveFileService::class)
     );
 
     $operationKey = (string) Str::uuid();
@@ -393,7 +394,8 @@ it('does not open or renew attendance from imported history', function () {
 
     $messageService = new MessageService(
         app(ConversationAccessService::class),
-        $attendanceService
+        $attendanceService,
+        app(SensitiveFileService::class)
     );
     $messageService->queueText(
         $conversation,

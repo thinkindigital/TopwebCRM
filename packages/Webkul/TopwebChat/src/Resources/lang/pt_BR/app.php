@@ -63,6 +63,8 @@ return [
         'media' => 'Mensagem de mídia',
         'media_image' => 'Imagem recebida pelo WhatsApp',
         'media_processing' => 'Mídia sendo preparada para visualização…',
+        'media_too_large' => 'Arquivo excede o tamanho máximo permitido.',
+        'media_type_not_supported' => 'Tipo de arquivo não suportado para envio.',
         'media_restricted' => 'Mídia protegida. Seu usuário não possui acesso a dados sensíveis.',
         'new_messages' => 'Novas mensagens',
         'open_media' => 'Abrir arquivo recebido',
