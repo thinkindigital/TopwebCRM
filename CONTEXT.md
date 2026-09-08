@@ -64,6 +64,10 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Atendimento Continuado**: novo Atendimento WhatsApp aberto por Mensagem enviada por Usuario do CRM depois do encerramento de um atendimento anterior.
 
+**Importador CSV Aditivo**: comando `topwebchat:import-real-estate-demo` que cria ou atualiza dados de pipelines, etapas, fontes, tipos, produtos, pessoas e leads a partir de CSV, sem apagar usuários, roles ou acessos existentes.
+
+**Dados Demo (Demo Data)**: conjunto de pipelines, etapas, fontes, tipos, produtos, pessoas e leads predefinidos para apresentação comercial, importados via CSV aditivo.
+
 **Mensagem Real**: conteudo enviado ou recebido por uma pessoa. Reacao, ACK, leitura e evento tecnico nao sao Mensagens Reais.
 
 **Relato de Atendimento**: texto unico registrado na Activity para resumir decisoes, duvidas, receios e resultado do atendimento.
