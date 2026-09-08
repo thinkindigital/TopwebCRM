@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 use Webkul\TopwebChat\Exceptions\ProviderRequestException;
 use Webkul\TopwebChat\Models\Message;
@@ -54,11 +55,25 @@ class SendMessage implements ShouldQueue
         ]);
 
         try {
-            $result = $provider->sendText(
-                $message->conversation->instance,
-                $message->conversation->remote_jid,
-                (string) $message->content
-            );
+            if ($message->hasMedia()) {
+                $mediaPayload = $this->mediaPayload($message);
+
+                if ($mediaPayload === null) {
+                    return;
+                }
+
+                $result = $provider->sendMedia(
+                    $message->conversation->instance,
+                    $message->conversation->remote_jid,
+                    $mediaPayload
+                );
+            } else {
+                $result = $provider->sendText(
+                    $message->conversation->instance,
+                    $message->conversation->remote_jid,
+                    (string) $message->content
+                );
+            }
         } catch (ProviderRequestException $exception) {
             if ($exception->statusCode === 429) {
                 if (
@@ -135,11 +150,11 @@ class SendMessage implements ShouldQueue
                 'status' => $result['status'] ?? 'sent',
                 'sent_at' => $sentAt,
                 'failed_at' => null,
-                'metadata' => [
+                'metadata' => array_merge($message->metadata ?? [], [
                     'chat_type' => data_get($result, 'data.chat.isGroup')
                         ? 'group'
                         : 'private',
-                ],
+                ]),
             ]);
 
             $conversationUpdates = [
@@ -158,5 +173,31 @@ class SendMessage implements ShouldQueue
         }, 3);
 
         $attendances->recordRealMessage($message->fresh());
+    }
+
+    /**
+     * @return array{base64: string, mimetype: string, filename: string, caption: ?string}|null
+     */
+    private function mediaPayload(Message $message): ?array
+    {
+        $path = data_get($message->metadata, 'media_path');
+        $disk = Storage::disk(config('sensitive-data.storage.disk', 'private'));
+
+        if (! $path || ! $disk->exists($path)) {
+            $message->update([
+                'status' => 'failed',
+                'failed_at' => now(),
+                'last_error' => 'media_file_missing',
+            ]);
+
+            return null;
+        }
+
+        return [
+            'base64' => base64_encode($disk->get($path)),
+            'mimetype' => data_get($message->metadata, 'media_mime', 'application/octet-stream'),
+            'filename' => data_get($message->metadata, 'media_original_name', "arquivo-{$message->id}"),
+            'caption' => $message->content,
+        ];
     }
 }
