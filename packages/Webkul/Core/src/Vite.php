@@ -33,8 +33,6 @@ class Vite
     /**
      * Return the asset URL, degrading gracefully when the build manifest
      * is missing. Error pages must never fail because assets are broken.
-     *
-     * @return string
      */
     public function safeAsset(string $filename, string $namespace = 'admin'): string
     {
@@ -44,6 +42,7 @@ class Vite
             return '';
         }
     }
+
     public function set(mixed $entryPoints, string $namespace = 'admin')
     {
         $viters = config('krayin-vite.viters');
