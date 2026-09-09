@@ -102,6 +102,7 @@ Os eventos assinados configurados pelo módulo estão em `packages/Webkul/Topweb
 
 ## Invariantes
 
+- Rotas de mídia são singulares (`send-image`, nunca `send-send-image`): o template de URL já carrega o prefixo `send-`, então o roteamento por mimetype retorna só o tipo (`image`, `video`, `audio`, `document`, `sticker`).
 - API key e segredo HMAC permanecem criptografados no CRM.
 - A mesma string de segredo usada no cadastro valida a assinatura.
 - Timeout após uma operação não idempotente exige reconciliação antes de retry.
