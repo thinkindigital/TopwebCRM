@@ -502,6 +502,8 @@ return [
                 'title' => 'Persons',
                 'create-btn' => 'Create Person',
                 'create-success' => 'Person created successfully.',
+                'pending-review' => 'Contact sent for review.',
+                'already-linked-warning' => 'Contact already linked to :name. Creation blocked to avoid duplication.',
                 'update-success' => 'Person updated successfully.',
                 'all-delete-success' => 'All selected persons were deleted successfully.',
                 'partial-delete-warning' => 'Some persons were deleted successfully. Others could not be deleted because they are linked to leads or conversations.',
