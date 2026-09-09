@@ -316,3 +316,24 @@ it('lists and tests OpenWA webhooks using raw responses', function () {
             'statusCode' => 200,
         ]);
 });
+
+it('routes media sends to the singular media endpoints without duplicating the send prefix', function () {
+    Http::fake([
+        'http://openwa.test:2785/api/sessions/*/messages/*' => Http::response([
+            'messageId' => 'media-message-id',
+            'timestamp' => 1788974000,
+        ]),
+    ]);
+
+    $provider = app(OpenWaProvider::class);
+
+    $provider->sendMedia(openWaInstance(), '5511993193118@c.us', [
+        'base64' => 'dGVzdA==',
+        'mimetype' => 'image/jpeg',
+        'filename' => 'test.jpg',
+        'caption' => 'hello',
+    ]);
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'POST'
+        && $request->url() === 'http://openwa.test:2785/api/sessions/be23262e-5ffb-405b-95e3-8658f043fb30/messages/send-image');
+});

@@ -242,15 +242,15 @@ class OpenWaProvider implements MessagingProvider
             $payload['quotedMessageId'] = $mediaData['quotedMessageId'];
         }
 
-        // Determine endpoint based on mimetype
+        // Determine endpoint based on mimetype (URL template already
+        // carries the "send-" prefix, so arms return the bare media kind).
         $mimetype = $mediaData['mimetype'] ?? '';
         $endpoint = match (true) {
-            str_starts_with($mimetype, 'image/') => 'send-image',
-            str_starts_with($mimetype, 'video/') => 'send-video',
-            str_starts_with($mimetype, 'audio/') => 'send-audio',
-            str_starts_with($mimetype, 'application/') => 'send-document',
-            $mimetype === 'image/webp' => 'send-sticker',
-            default => 'send-document',
+            $mimetype === 'image/webp' => 'sticker',
+            str_starts_with($mimetype, 'image/') => 'image',
+            str_starts_with($mimetype, 'video/') => 'video',
+            str_starts_with($mimetype, 'audio/') => 'audio',
+            default => 'document',
         };
 
         $response = $this->client($instance)->post(
