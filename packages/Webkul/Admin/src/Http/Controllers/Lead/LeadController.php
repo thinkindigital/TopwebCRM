@@ -550,9 +550,22 @@ class LeadController extends Controller
         /**
          * Fetching on the basis of column options.
          */
-        return app($column['filterable_options']['repository'])
+        $query = app($column['filterable_options']['repository'])
             ->select([$column['filterable_options']['column']['label'].' as label', $column['filterable_options']['column']['value'].' as value'])
-            ->where($column['filterable_options']['column']['label'], 'LIKE', '%'.$params['search'].'%')
+            ->where($column['filterable_options']['column']['label'], 'LIKE', '%'.$params['search'].'%');
+
+        /**
+         * Person lookup must not leak portfolios: scope by the same
+         * authorized user ids used by listings (null = global vision).
+         */
+        if (
+            $column['index'] === 'person.id'
+            && ($authorizedIds = bouncer()->getAuthorizedUserIds())
+        ) {
+            $query->whereIn('persons.user_id', $authorizedIds);
+        }
+
+        return $query
             ->get()
             ->map
             ->only('label', 'value');
