@@ -1,6 +1,6 @@
 services:
   openwa_api:
-    image: ghcr.io/rmyndharis/openwa:${OPENWA_IMAGE_TAG:-0.23.3}
+    image: ghcr.io/rmyndharis/openwa:${OPENWA_IMAGE_TAG:-0.23.4}
     entrypoint:
       - dumb-init
       - --
@@ -44,6 +44,7 @@ services:
       ENGINE_TYPE: ${OPENWA_ENGINE_TYPE:-whatsapp-web.js}
       SESSION_DATA_PATH: /app/data/sessions
       PUPPETEER_HEADLESS: "true"
+      PUPPETEER_PROTOCOL_TIMEOUT_MS: ${OPENWA_PUPPETEER_PROTOCOL_TIMEOUT_MS:-30000}
       AUTO_START_SESSIONS: "true"
       BAILEYS_MARK_ONLINE_ON_CONNECT: "false"
       API_MASTER_KEY_FILE: /run/secrets/openwa_api_master_key

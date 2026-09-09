@@ -13,7 +13,9 @@ use Webkul\TopwebChat\Console\Commands\ProjectLeadMedia;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Console\Commands\RetryFailedMessages;
 use Webkul\TopwebChat\Console\Commands\SeedRealEstateDemo;
+use Webkul\TopwebChat\Providers\BaileysProvider;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
+use Webkul\TopwebChat\Providers\OpenWaProvider;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 
 class TopwebChatServiceProvider extends ServiceProvider
@@ -25,7 +27,14 @@ class TopwebChatServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(dirname(__DIR__).'/Config/acl.php', 'acl');
 
         $this->app->singleton(ConversationAccessService::class);
-        $this->app->bind(MessagingProvider::class, OpenWaProvider::class);
+        $this->app->bind(MessagingProvider::class, function ($app) {
+            $engine = config('topweb-chat.engine', 'whatsapp-web.js');
+
+            return match ($engine) {
+                'baileys' => $app->make(BaileysProvider::class),
+                default => $app->make(OpenWaProvider::class),
+            };
+        });
 
         if ($this->app->runningInConsole()) {
             $this->commands([

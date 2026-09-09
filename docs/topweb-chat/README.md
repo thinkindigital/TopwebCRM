@@ -19,7 +19,6 @@ O código atual contém:
 - autorização no backend baseada no escopo do Lead/Pessoa;
 - mascaramento de dados sensíveis e concessão administrativa individual;
 - fila "Sem atendente" para conversas abertas sem responsável, com captura atômica pelo primeiro agente que responder;
-- importador CSV aditivo de dados imobiliários demo, preservando usuários e roles existentes;
 - adapter `OpenWaProvider` por trás do contrato `MessagingProvider`.
 
 Os testes de feature em `tests/Feature/TopwebChat` cobrem o contrato HTTP principal, Settings, webhook, histórico, retry/timeline e geração da URL pública. Isso não substitui o smoke test com uma sessão WhatsApp real em cada release.
@@ -66,10 +65,6 @@ https://crm.<dominio-do-cliente>/api/topweb-chat/webhooks/openwa/<instance>
 ```
 
 `TOPWEB_CHAT_PUBLIC_URL` é a fonte preferencial dessa URL e deve representar o domínio público do CRM. Em produção o serviço rejeita bases locais como `localhost`.
-
-## Dados Demo
-
-Para apresentações comerciais, use `php artisan topwebchat:import-real-estate-demo` em vez do seeder destrutivo `topwebchat:seed-real-estate-demo`. O importador CSV cria ou atualiza dados de pipelines, etapas, fontes, tipos, produtos, pessoas e leads sem apagar usuários, roles ou acessos existentes. Procedimento completo: `docs/topweb-chat/DEMO-DATA.md`.
 
 ## Configuração de uma instância
 

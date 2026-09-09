@@ -3,7 +3,6 @@
 namespace Webkul\TopwebChat\Console\Commands;
 
 use Illuminate\Console\Command;
-use Webkul\TopwebChat\Database\Seeders\RealEstateDemoSeeder;
 
 class SeedRealEstateDemo extends Command
 {
@@ -29,7 +28,7 @@ class SeedRealEstateDemo extends Command
         $this->info('Seeding Real Estate Demo data...');
 
         $this->call('db:seed', [
-            '--class' => RealEstateDemoSeeder::class,
+            '--class' => \Webkul\TopwebChat\Database\Seeders\RealEstateDemoSeeder::class,
             '--force' => true,
         ]);
 

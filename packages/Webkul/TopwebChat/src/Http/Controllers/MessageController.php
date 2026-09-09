@@ -53,6 +53,30 @@ class MessageController
 
                 return back()->with('error', $exception->getMessage());
             }
+        } elseif ($request->hasFile('document')) {
+            $document = $request->validate([
+                'document' => ['required', 'file', "max:{$maxKilobytes}"],
+                'caption' => ['nullable', 'string', 'max:1000'],
+                'operation_key' => ['required', 'uuid'],
+            ]);
+
+            try {
+                $message = $this->messages->queueMedia(
+                    $conversation,
+                    $user,
+                    $document['document'],
+                    $document['caption'] ?? null,
+                    $document['operation_key']
+                );
+            } catch (DomainException $exception) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $exception->getMessage(),
+                    ], 409);
+                }
+
+                return back()->with('error', $exception->getMessage());
+            }
         } else {
             $data = $request->validate([
                 'content' => ['required_without:media', 'nullable', 'string', 'max:10000'],
