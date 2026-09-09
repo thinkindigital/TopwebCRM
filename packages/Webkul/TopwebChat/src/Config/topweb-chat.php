@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'engine' => env('TOPWEB_CHAT_ENGINE', 'whatsapp-web.js'),
     'provider' => env('TOPWEB_CHAT_PROVIDER', 'openwa'),
     'base_url' => env('TOPWEB_CHAT_BASE_URL', 'http://openwa:2785'),
     'public_url' => env('TOPWEB_CHAT_PUBLIC_URL'),

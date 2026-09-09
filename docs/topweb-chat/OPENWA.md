@@ -31,6 +31,8 @@ O adapter acrescenta `/api` a cada rota. Alterar a versão da imagem requer exec
 
 O UUID da sessão identifica todas as rotas. Para envio, o CRM considera `ready` e `engineLoaded=true` como estado utilizável.
 
+Em `0.23.3`, as respostas de listagem e obtenção de sessão expõem `phone` e `pushName`. O engine `whatsapp-web.js` preenche `phone` a partir de `client.info.wid.user` quando fica pronto. O OpenWA não expõe o WID serializado completo, e `pushName` é editável; portanto, `phone` é o único correlator público disponível para reconhecer a mesma Conta WhatsApp entre UUIDs de sessão diferentes. Antes da autenticação ele pode ser `null`.
+
 ## Mensagens e histórico
 
 O contrato prevê envio de texto, mídias, localização, contato, reação, edição, remoção, encaminhamento, sticker, enquete e lote. O caminho funcional coberto pelo fluxo principal atual é o envio de texto enfileirado; as demais operações exigem auditoria do contrato e teste próprio antes de serem expostas como disponíveis.
@@ -45,6 +47,10 @@ O contrato prevê envio de texto, mídias, localização, contato, reação, edi
 | resolver identidade privada `@lid` | `GET /api/sessions/{sessionId}/contacts/{contactId}/phone` |
 
 `chatId` é o identificador WhatsApp, por exemplo `5511999999999@c.us`. Um identificador `@lid` não contém telefone e nunca deve ser convertido por heurística: o CRM consulta o endpoint `/contacts/{contactId}/phone` e mantém a identidade pendente de revisão se o OpenWA não conhecer o vínculo. A resposta de aceite do gateway não confirma entrega ao destinatário.
+
+O OpenWA não filtra histórico pelo conceito de Lead do CRM. Importação seletiva por Lead, escolha da Conta WhatsApp, telefone e limite deve ser coordenada pelo TopwebCRM antes de chamar o endpoint de mensagens.
+
+A versão `0.23.3` com engine `whatsapp-web.js` também não expõe configuração por sessão para desabilitar a sincronização interna de histórico do engine. Uma chave de sincronização no CRM controla apenas as consultas e reconciliações iniciadas pelo CRM.
 
 No recebimento de imagem, áudio, vídeo ou documento, o CRM usa o `chatId` e o ID da mensagem exatamente como entregues pelo webhook para buscar os bytes. O arquivo é copiado para o disco privado do CRM; token do OpenWA e URL interna não chegam ao navegador.
 
@@ -68,4 +74,5 @@ Os eventos assinados configurados pelo módulo estão em `packages/Webkul/Topweb
 - A mesma string de segredo usada no cadastro valida a assinatura.
 - Timeout após uma operação não idempotente exige reconciliação antes de retry.
 - Backfill é limitado e não deve disparar busca profunda não controlada.
+- `phone` só pode vincular uma sessão a uma Conta WhatsApp depois de confirmado pelo OpenWA; mudança de número não autoriza mescla automática.
 - Toda mudança de versão do OpenWA deve ser protegida por testes HTTP do adapter.

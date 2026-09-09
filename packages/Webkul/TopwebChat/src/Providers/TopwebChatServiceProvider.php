@@ -25,7 +25,14 @@ class TopwebChatServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(dirname(__DIR__).'/Config/acl.php', 'acl');
 
         $this->app->singleton(ConversationAccessService::class);
-        $this->app->bind(MessagingProvider::class, OpenWaProvider::class);
+        $this->app->bind(MessagingProvider::class, function ($app) {
+            $engine = config('topweb-chat.engine', 'whatsapp-web.js');
+
+            return match ($engine) {
+                'baileys' => $app->make(BaileysProvider::class),
+                default => $app->make(OpenWaProvider::class),
+            };
+        });
 
         if ($this->app->runningInConsole()) {
             $this->commands([
