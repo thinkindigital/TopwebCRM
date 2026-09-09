@@ -20,10 +20,55 @@ O código atual contém:
 - mascaramento de dados sensíveis e concessão administrativa individual;
 - fila "Sem atendente" para conversas abertas sem responsável, com captura atômica pelo primeiro agente que responder;
 - adapter `OpenWaProvider` por trás do contrato `MessagingProvider`.
+- **feature flag `TOPWEB_CHAT_ENGINE`** para escolher engine: `whatsapp-web.js` (padrão) ou `baileys` com `BaileysProvider`;
+- **OpenWA 0.23.4** com proxy por sessão, contacts API 503 fix, group description fix, Baileys chat state persistence, API key scoping, `PUPPETEER_PROTOCOL_TIMEOUT_MS`;
+- **clip menu UX**: Imagem/Vídeo (sendMedia) + Documento (sendDocument) sempre visíveis; Localização/Contato apenas para `can_view_sensitive_data`;
+- **visual bug fix**: formulário de envio movido para fora do container de scroll (não mais empurrado por preview de imagem);
+- **media UX**: Imagem/Vídeo via `sendMedia` (preview inline); Documento via `sendDocument` (anexo);
+- **BaileysProvider** skeleton implementando `MessagingProvider` para engine `baileys` (envio de mídia nativo funcionando).
 
 Os testes de feature em `tests/Feature/TopwebChat` cobrem o contrato HTTP principal, Settings, webhook, histórico, retry/timeline e geração da URL pública. Isso não substitui o smoke test com uma sessão WhatsApp real em cada release.
 
 Algumas capacidades existem no contrato do provider, mas ainda não formam um fluxo completo na interface. Entre elas estão os controles de ciclo da sessão, QR/pairing, **envio** de mídia e os recursos ampliados de grupos, chamadas e perfil. O recebimento, a consulta autorizada e a projeção de mídia recebida nos arquivos do Lead estão implementados; quarentena de identidades não resolvidas e automações avançadas continuam sujeitos ao roadmap. Não descreva uma dessas capacidades como entregue apenas porque há um método no adapter.
+
+OpenWA é um gateway comunitário não oficial, baseado em clientes de engenharia reversa. Existe risco não nulo de restrição da conta; use número dedicado, consentimento dos destinatários, limites de envio e um canal alternativo para fluxos críticos. O engine padrão desta stack é `whatsapp-web.js`, que prioriza um comportamento mais próximo ao WhatsApp Web ao custo de mais memória por sessão.
+
+## Engine Baileys (Feature Flag)
+
+A partir da versão com OpenWA 0.23.4, o módulo suporta duas engines via feature flag `TOPWEB_CHAT_ENGINE`:
+
+| Engine | Provider | Status | Observações |
+|--------|----------|--------|-------------|
+| `whatsapp-web.js` | `OpenWaProvider` | Padrão | Baseado em Puppeteer/Chrome; maior memória; bug "No LID for user" em send-image/video/audio |
+| `baileys` | `BaileysProvider` | Disponível | Pure Node.js/WebSocket; multi-device nativo; menor memória; envio de mídia nativo |
+
+**Configuração:**
+
+```dotenv
+# .env do CRM
+TOPWEB_CHAT_ENGINE=whatsapp-web.js  # ou baileys
+```
+
+```dotenv
+# .env do OpenWA (compose.openwa.production.yaml)
+OPENWA_ENGINE_TYPE=whatsapp-web.js  # ou baileys
+```
+
+**Diferenças de mídia:**
+
+| Tipo | whatsapp-web.js | baileys |
+|------|-----------------|---------|
+| send-image | ❌ bug "No LID for user" | ✅ nativo |
+| send-video | ❌ bug "No LID for user" | ✅ nativo |
+| send-audio | ❌ bug "No LID for user" | ✅ nativo |
+| send-document | ✅ funciona (workaround) | ✅ nativo |
+| send-sticker | ✅ | ✅ |
+
+**Workaround whatsapp-web.js:** O CRM usa `send-document` para todos os tipos de mídia quando a engine é `whatsapp-web.js`. O WhatsApp Web aceita documentos com mimetype de imagem/vídeo/áudio, mas eles aparecem como anexo (ícone de documento), não como preview inline.
+
+**Mudança de engine:** Requer reiniciar a stack OpenWA (stop/start) e reconciliação no CRM. A feature flag é lida em runtime pelo ServiceProvider.
+
+---
 
 OpenWA é um gateway comunitário não oficial, baseado em clientes de engenharia reversa. Existe risco não nulo de restrição da conta; use número dedicado, consentimento dos destinatários, limites de envio e um canal alternativo para fluxos críticos. O engine padrão desta stack é `whatsapp-web.js`, que prioriza um comportamento mais próximo ao WhatsApp Web ao custo de mais memória por sessão.
 
@@ -208,6 +253,7 @@ A integração só deve ser liberada quando houver evidência recente de:
 - persistência após restart dos serviços.
 
 - Contrato externo consumido pelo adapter: `docs/topweb-chat/OPENWA.md`.
+- Engine Baileys: `docs/topweb-chat/BAILEYS.md`.
 - Deploy completo: `docs/operations/DEPLOYMENT.md`.
 - Decisão arquitetural: `docs/adr/0004-topwebchat-whatsapp-module.md`.
 - Ciclo de Conta WhatsApp e Sessão OpenWA: `docs/adr/0010-whatsapp-account-session-lifecycle.md`.
