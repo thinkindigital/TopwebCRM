@@ -50,6 +50,10 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Fila Sem Atendente**: conjunto operacional de Conversas abertas com `assigned_user_id` vazio. Fica visivel para agentes autorizados e a primeira Mensagem enviada por um agente assume a Conversa de forma atomica.
 
+**Estado da Conversa (decidido)**: estagio operacional explicito da Conversa (`nova`, `sem_atendente`, `atribuida`, `ativa`, `aguardando_cliente`, `escalada`, `encerrada`), persistido em coluna propria com backfill a partir do estado atual. Substitui a inferencia via `assigned_user_id`/`status`/`closed_at`.
+
+**SLA de Atendimento (decidido)**: prazo configuravel por pipeline para primeira resposta e retomadas, persistido em `sla_due_at`, com alerta aos 80% e escalonamento aos 100%.
+
 **Mensagem (Message)**: registro local de comunicacao recebida ou enviada, com tipo, conteudo, estado e identificador externo.
 
 **Identidade Remota**: identificador WhatsApp normalizado, armazenado de forma protegida e associado a Pessoa somente quando houver correspondencia inequivoca.
