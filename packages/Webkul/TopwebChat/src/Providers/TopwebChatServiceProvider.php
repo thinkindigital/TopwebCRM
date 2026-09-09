@@ -13,6 +13,7 @@ use Webkul\TopwebChat\Console\Commands\ProjectLeadMedia;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Console\Commands\RetryFailedMessages;
 use Webkul\TopwebChat\Console\Commands\SeedRealEstateDemo;
+use Webkul\TopwebChat\Console\Commands\SmokeChat;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 
@@ -42,6 +43,7 @@ class TopwebChatServiceProvider extends ServiceProvider
                 ReconcileTopwebChat::class,
                 RetryFailedMessages::class,
                 SeedRealEstateDemo::class,
+                SmokeChat::class,
             ]);
         }
     }
