@@ -182,6 +182,8 @@ docker service update --force openwa_openwa_api
 # Ou no dashboard OpenWA: Sessions → Stop → Start
 ```
 
+**Política de restart e réplicas:** o serviço usa `restart_policy: condition: any` (recria a task mesmo após saída limpa, ex.: `docker stop`) e `replicas: 1`. O `1` é intencional e **não deve ser escalado**: o OpenWA é single-process por volume de sessão (doc self-hosting) — duas réplicas escrevendo no mesmo diretório de auth corrompem a sessão e forçam logout. Com `on-failure` (default anterior), uma parada limpa (exit 0) não era reagendada; com `any`, o Swarm sempre mantém 1 task rodando.
+
 ### 2. TopwebCRM
 
 Crie a stack `topwebcrm` usando `compose.production.yaml`. Além das variáveis de domínio e redes, informe explicitamente os dados próprios do cliente:
