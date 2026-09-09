@@ -137,13 +137,50 @@ Crie a stack `openwa` no Portainer usando `compose.openwa.production.yaml` e con
 
 ```dotenv
 OPENWA_DOMAIN=openwa.<dominio-do-cliente>
-OPENWA_IMAGE_TAG=0.23.3
+OPENWA_IMAGE_TAG=0.23.4
 OPENWA_ENTRYPOINT_CONFIG=openwa_swarm_entrypoint_v1
 TOPWEBCRM_PROXY_NETWORK=renacesso
 TOPWEBCRM_INTEGRATIONS_NETWORK=topweb_integrations
 ```
 
-Associe os quatro secrets OpenWA e faça o deploy. O engine padrão é `whatsapp-web.js`; altere `OPENWA_ENGINE_TYPE` somente após validar compatibilidade de sessão e contrato.
+Associe os quatro secrets OpenWA e faça o deploy. Engine, Redis e banco são controlados pelo dashboard (Infrastructure) — o compose **não fixa** `ENGINE_TYPE`, `DATABASE_*` (exceto segredos `*_FILE`), `REDIS_*` (exceto segredo), `QUEUE_ENABLED` nem `CACHE_ENABLED`. Os valores de produção vivem em `/app/data/.env.generated` (postgres `openwa_db`, redis `openwa_redis`, filas ativas); env de processo tem precedência, então **não reintroduza essas chaves no compose** ou o aviso "Fixado pela variável de ambiente" volta e o painel perde o controle. O CRM usa a feature flag `TOPWEB_CHAT_ENGINE` (`whatsapp-web.js` | `baileys`) para selecionar o provider (`OpenWaProvider` | `BaileysProvider`); o contrato REST é o mesmo, então trocar o engine no dashboard não exige redeploy do CRM.
+
+Trocar de engine NÃO migra sessão autenticada (cada engine tem suas próprias credenciais): após trocar, a sessão pede novo QR — escaneie com a conta do CRM e valide envio/recebimento. Para teste de envio, use um lead com contato **5511993193118**.
+
+### Painel BullMQ (filas)
+
+As estatísticas de fila aparecem no dashboard (webhook-queue, ingress-queue). O botão "Ver painel BullMQ" abre a rota sem o header `X-API-Key`, então o board responde 404 em branco — é bug do dashboard upstream, não do Traefik. Workaround operacional (com a master key):
+
+```bash
+OPENWA_KEY='<api-master-key>'
+# contadores por fila
+curl -H "X-API-Key: $OPENWA_KEY" https://openwa.<dominio>/api/admin/queues/api/queues
+# entregas de webhook que falharam (últimas 5)
+curl -H "X-API-Key: $OPENWA_KEY" "https://openwa.<dominio>/api/webhooks/delivery-failures?limit=5"
+```
+
+O board interativo completo vive em `https://openwa.<dominio>/api/admin/queues/` e exige o header `X-API-Key` (use ModHeader ou curl). Falhas recorrentes com `HTTP 404` contra `/api/topweb-chat/webhooks/openwa/<id>` indicam webhook apontando para instância inexistente no CRM — liste com `GET /api/sessions/{sessionId}/webhooks` e remova o obsoleto com `DELETE /api/sessions/{sessionId}/webhooks/{webhookId}`.
+
+### Postgres com TLS/SSL?
+
+Não recomendado nesta topologia. O Postgres do OpenWA roda na rede overlay **interna** (`openwa_data_network`, `internal: true`), sem exposição externa e com senha via secret. TLS adicionaria distribuição de certificados (servidor + `DATABASE_SSL=true` + CA no cliente) para ganho marginal — o tráfego nunca sai da rede isolada do Swarm. Reavalie apenas se o banco for movido para fora do overlay (ex.: gerenciado externo) — aí habilite no dashboard (Infrastructure) com CA válida.
+
+### Reinicialização do OpenWA
+
+Para aplicar mudanças de configuração (engine, proxy, timeout, variáveis de ambiente):
+
+```bash
+# Reinicializar apenas o serviço API
+docker service update --force openwa_openwa_api
+
+# Ou via Portainer: Services → openwa_openwa_api → Update → Force update
+```
+
+O OpenWA reconecta automaticamente a sessão se as credenciais forem válidas. Para forçar nova sessão:
+```bash
+docker service update --force openwa_openwa_api
+# Ou no dashboard OpenWA: Sessions → Stop → Start
+```
 
 ### 2. TopwebCRM
 
@@ -230,7 +267,8 @@ Considere o deploy aprovado somente quando:
 4. `php artisan migrate:status` não mostra migrations pendentes;
 5. queue e scheduler permanecem estáveis;
 6. `https://openwa.<dominio-do-cliente>/api/health/ready` responde `200`;
-7. a sessão OpenWA está pronta e o CRM exibe seu estado;
+7. a sessão OpenWA está pronta (`ready`, `engineLoaded=true`) e o CRM exibe seu estado;
+7b. engine OpenWA correto: `GET /api/sessions/{id}` mostra `engine` correspondente (`whatsapp-web.js` ou `baileys`);
 8. webhook assinado, envio, recebimento e atualização de status funcionam;
 9. anexos privados e dados sensíveis respeitam as regras de autorização;
 10. não há loop de restart nem erro recorrente nos logs do Portainer.
