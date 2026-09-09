@@ -501,6 +501,8 @@ return [
                 'title' => 'Kişiler',
                 'create-btn' => 'Kişi Oluştur',
                 'create-success' => 'Kişi başarıyla oluşturuldu.',
+                'pending-review' => 'Kişi incelemeye gönderildi.',
+                'already-linked-warning' => 'Kişi zaten :name ile bağlantılı. Yinelemeyi önlemek için oluşturma engellendi.',
                 'update-success' => 'Kişi başarıyla güncellendi.',
                 'all-delete-success' => 'Seçilen tüm kişiler başarıyla silindi.',
                 'partial-delete-warning' => 'Bazı kişiler başarıyla silindi. Diğerleri potansiyel müşterilerle bağlantılı olduğu için silinemedi.',
