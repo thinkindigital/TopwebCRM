@@ -435,8 +435,7 @@ class BaileysProvider implements MessagingProvider
         int $count = 100,
         ?CarbonInterface $from = null,
         ?CarbonInterface $to = null
-    ): array
-    {
+    ): array {
         $chatId = $this->resolveChatId($instance, $recipient);
         $query = [
             'chatId' => $chatId,
@@ -528,8 +527,7 @@ class BaileysProvider implements MessagingProvider
         array $headers = [],
         array $filters = [],
         int $retryCount = 3
-    ): void
-    {
+    ): void {
         $payload = [
             'url' => $url,
             'secret' => $secret,
@@ -934,8 +932,7 @@ class BaileysProvider implements MessagingProvider
         Response $response,
         string $fallbackMessage,
         bool $nonIdempotent = false
-    ): void
-    {
+    ): void {
         if ($response->successful() && $response->json('success') !== false) {
             return;
         }
