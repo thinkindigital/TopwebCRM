@@ -501,6 +501,8 @@ return [
                 'title' => 'Người',
                 'create-btn' => 'Tạo Người',
                 'create-success' => 'Người đã được tạo thành công.',
+                'pending-review' => 'Liên hệ đã được gửi để xem xét.',
+                'already-linked-warning' => 'Liên hệ đã được liên kết với :name. Việc tạo bị chặn để tránh trùng lặp.',
                 'update-success' => 'Người đã được cập nhật thành công.',
                 'all-delete-success' => 'Tất cả người được chọn đã được xóa thành công.',
                 'partial-delete-warning' => 'Một số người đã được xóa thành công. Những người khác không thể xóa vì có liên kết với khách hàng tiềm năng.',

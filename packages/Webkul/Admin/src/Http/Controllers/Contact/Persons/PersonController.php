@@ -15,6 +15,7 @@ use Webkul\Admin\Http\Controllers\Controller;
 use Webkul\Admin\Http\Requests\AttributeForm;
 use Webkul\Admin\Http\Requests\MassDestroyRequest;
 use Webkul\Admin\Http\Resources\PersonResource;
+use Webkul\Contact\Models\Person;
 use Webkul\Contact\Repositories\PersonRepository;
 use Webkul\TopwebChat\Models\Conversation;
 
@@ -59,9 +60,38 @@ class PersonController extends Controller
     {
         Event::dispatch('contacts.person.create.before');
 
-        $person = $this->personRepository->create($request->all());
+        $canViewSensitive = $this->sensitiveData->canView();
+        $duplicate = $this->findDuplicateByPhone($request->input('contact_numbers', []));
+
+        if ($duplicate) {
+            if ($canViewSensitive) {
+                $message = trans('admin::app.contacts.persons.index.already-linked-warning', ['name' => $duplicate->name]);
+
+                if (request()->ajax()) {
+                    return response()->json(['message' => $message], 409);
+                }
+
+                session()->flash('warning', $message);
+
+                return redirect()->route('admin.contacts.persons.index');
+            }
+
+            return $this->pendingReviewResponse();
+        }
+
+        $data = $request->all();
+
+        if (! $canViewSensitive) {
+            $data['user_id'] = null;
+        }
+
+        $person = $this->personRepository->create($data);
 
         Event::dispatch('contacts.person.create.after', $person);
+
+        if (! $canViewSensitive) {
+            return $this->pendingReviewResponse($person);
+        }
 
         if (request()->ajax()) {
             return response()->json([
@@ -73,6 +103,65 @@ class PersonController extends Controller
         session()->flash('success', trans('admin::app.contacts.persons.index.create-success'));
 
         return redirect()->route('admin.contacts.persons.index');
+    }
+
+    /**
+     * Neutral review-flow answer: identical whether the phone matched
+     * an existing person or not, so the response never leaks portfolio
+     * membership to users without the sensitive-data grant.
+     */
+    private function pendingReviewResponse(?Person $person = null): RedirectResponse|JsonResponse
+    {
+        $message = trans('admin::app.contacts.persons.index.pending-review');
+
+        if (request()->ajax()) {
+            return response()->json([
+                'data' => $person ? new PersonResource($person) : null,
+                'message' => $message,
+            ], 202);
+        }
+
+        session()->flash('success', $message);
+
+        return redirect()->route('admin.contacts.persons.index');
+    }
+
+    /**
+     * Find an existing person sharing any submitted phone number.
+     *
+     * Compares digit-only variants (country code, optional 9th digit)
+     * so formatting never hides a duplicate from the distributor.
+     */
+    private function findDuplicateByPhone(mixed $contactNumbers): ?Person
+    {
+        $digits = collect(is_array($contactNumbers) ? $contactNumbers : [])
+            ->map(fn ($contact) => preg_replace('/\D+/', '', (string) data_get($contact, 'value')))
+            ->filter()
+            ->flatMap(function (string $number) {
+                $variants = [$number];
+
+                if (str_starts_with($number, '55') && strlen($number) === 13) {
+                    $variants[] = substr($number, 0, 4).substr($number, 5);
+                }
+
+                if (str_starts_with($number, '55') && strlen($number) === 12) {
+                    $variants[] = substr($number, 0, 4).'9'.substr($number, 4);
+                }
+
+                return $variants;
+            })
+            ->unique()
+            ->values();
+
+        if ($digits->isEmpty()) {
+            return null;
+        }
+
+        return Person::query()->where(function ($query) use ($digits) {
+            foreach ($digits as $digit) {
+                $query->orWhere('contact_numbers', 'LIKE', '%'.$digit.'%');
+            }
+        })->first();
     }
 
     /**

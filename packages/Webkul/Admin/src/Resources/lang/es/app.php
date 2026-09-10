@@ -501,6 +501,8 @@ return [
                 'title' => 'Personas',
                 'create-btn' => 'Crear Persona',
                 'create-success' => 'Persona creada con éxito.',
+                'pending-review' => 'Contacto enviado para revisión.',
+                'already-linked-warning' => 'Contacto ya vinculado a :name. Creación bloqueada para evitar duplicados.',
                 'update-success' => 'Persona actualizada con éxito.',
                 'all-delete-success' => 'Todas las personas seleccionadas fueron eliminadas exitosamente.',
                 'partial-delete-warning' => 'Algunas personas fueron eliminadas con éxito. Otras no se pudieron eliminar porque están vinculadas a clientes potenciales.',
