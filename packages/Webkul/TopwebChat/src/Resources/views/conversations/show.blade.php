@@ -16,10 +16,10 @@
 
     <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section
-            class="relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-            style="height: clamp(30rem, calc(100dvh - 10rem), 48rem); min-height: 0;"
+            class="relative flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+            style="height: clamp(30rem, calc(100dvh - 10rem), 48rem); min-height: 0; display: flex; flex-direction: column;"
         >
-            <header class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 dark:border-gray-800 dark:bg-gray-900">
+            <header class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 dark:border-gray-800 dark:bg-gray-900 flex-shrink-0">
                 <div class="flex min-w-0 items-center gap-3">
                     <div class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brandColor text-lg font-bold text-white">
                         {{ mb_strtoupper(mb_substr($conversation->person?->name ?? '?', 0, 1)) }}
@@ -60,13 +60,13 @@
 
             <div
                 id="topweb-chat-connection-warning"
-                class="{{ $conversation->instance?->status === 'ready' ? 'hidden' : '' }} border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                class="{{ $conversation->instance?->status === 'ready' ? 'hidden' : '' }} border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 flex-shrink-0"
             >
                 @lang('topweb_chat::app.messages.instance_not_connected')
             </div>
 
             @if ($historyUnavailable || $readUnavailable || $providerUnavailable)
-                <div class="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                <div class="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 flex-shrink-0">
                     @lang('topweb_chat::app.messages.integration_unavailable')
                 </div>
             @endif
@@ -157,27 +157,75 @@
                     id="topweb-chat-send-form"
                     method="POST"
                     action="{{ route('admin.topweb_chat.messages.store', $conversation) }}"
-                    class="flex shrink-0 items-end gap-3 border-t border-gray-200 bg-white p-3 sm:p-4 dark:border-gray-800 dark:bg-gray-900"
-                    style="flex: 0 0 auto;"
+                    class="flex shrink-0 items-end gap-3 border-t border-gray-200 bg-white p-3 sm:p-4 dark:border-gray-800 dark:bg-gray-900 flex-shrink-0"
                 >
                     @csrf
                     <input type="hidden" name="operation_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
 
-                    <button
-                        id="topweb-chat-attach"
-                        type="button"
-                        class="grid max-h-11 min-h-11 min-w-11 place-items-center rounded-full border border-gray-300 bg-gray-50 text-lg text-gray-600 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
-                        title="@lang('topweb_chat::app.messages.attach')"
-                        aria-label="@lang('topweb_chat::app.messages.attach')"
-                        @disabled($conversation->instance?->status !== 'ready')
-                    >📎</button>
-                    <input
-                        id="topweb-chat-media-input"
-                        type="file"
-                        name="media"
-                        class="hidden"
-                        accept="image/*,audio/*,video/*,.pdf,.doc,.docx"
-                    >
+                    <div class="flex items-center gap-2">
+                        <button
+                            id="topweb-chat-attach-image"
+                            type="button"
+                            class="grid max-h-11 min-h-11 min-w-11 place-items-center rounded-full border border-gray-300 bg-gray-50 text-lg text-gray-600 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                            title="@lang('topweb_chat::app.messages.attach_image')"
+                            aria-label="@lang('topweb_chat::app.messages.attach_image')"
+                            @disabled($conversation->instance?->status !== 'ready')
+                        >📷</button>
+                        <input
+                            id="topweb-chat-media-input"
+                            type="file"
+                            name="media"
+                            class="hidden"
+                            accept="image/*,video/*"
+                        >
+
+                        <button
+                            id="topweb-chat-attach-document"
+                            type="button"
+                            class="grid max-h-11 min-h-11 min-w-11 place-items-center rounded-full border border-gray-300 bg-gray-50 text-lg text-gray-600 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                            title="@lang('topweb_chat::app.messages.attach_document')"
+                            aria-label="@lang('topweb_chat::app.messages.attach_document')"
+                            @disabled($conversation->instance?->status !== 'ready')
+                        >📄</button>
+                        <input
+                            id="topweb-chat-document-input"
+                            type="file"
+                            name="document"
+                            class="hidden"
+                            accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
+                        >
+
+                        @if ($sensitiveData->canView())
+                            <button
+                                id="topweb-chat-attach-location"
+                                type="button"
+                                class="grid max-h-11 min-h-11 min-w-11 place-items-center rounded-full border border-gray-300 bg-gray-50 text-lg text-gray-600 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                                title="@lang('topweb_chat::app.messages.attach_location')"
+                                aria-label="@lang('topweb_chat::app.messages.attach_location')"
+                                @disabled($conversation->instance?->status !== 'ready')
+                            >📍</button>
+                            <input
+                                id="topweb-chat-location-input"
+                                type="hidden"
+                                name="location"
+                            >
+
+                            <button
+                                id="topweb-chat-attach-contact"
+                                type="button"
+                                class="grid max-h-11 min-h-11 min-w-11 place-items-center rounded-full border border-gray-300 bg-gray-50 text-lg text-gray-600 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                                title="@lang('topweb_chat::app.messages.attach_contact')"
+                                aria-label="@lang('topweb_chat::app.messages.attach_contact')"
+                                @disabled($conversation->instance?->status !== 'ready')
+                            >👤</button>
+                            <input
+                                id="topweb-chat-contact-input"
+                                type="hidden"
+                                name="contact"
+                            >
+                        @endif
+                    </div>
+
                     <div id="topweb-chat-media-preview" class="hidden max-h-11 items-center gap-2 overflow-hidden text-xs text-gray-600 dark:text-gray-300"></div>
 
                     <textarea
@@ -196,7 +244,6 @@
                     </div>
                 </form>
             @endif
-        </section>
 
         <aside class="grid content-start gap-4">
             <section class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
@@ -751,8 +798,12 @@
                     }
                 };
 
-                const attachButton = document.getElementById('topweb-chat-attach');
+                const attachImageButton = document.getElementById('topweb-chat-attach-image');
                 const mediaInput = document.getElementById('topweb-chat-media-input');
+                const attachDocumentButton = document.getElementById('topweb-chat-attach-document');
+                const documentInput = document.getElementById('topweb-chat-document-input');
+                const attachLocationButton = document.getElementById('topweb-chat-attach-location');
+                const attachContactButton = document.getElementById('topweb-chat-attach-contact');
                 const mediaPreview = document.getElementById('topweb-chat-media-preview');
                 const contentField = document.getElementById('topweb-chat-content');
 
@@ -765,32 +816,78 @@
                     contentField?.setAttribute('placeholder', @json(trans('topweb_chat::app.messages.placeholder')));
                 };
 
-                attachButton?.addEventListener('click', () => mediaInput?.click());
+                const setupAttachButton = (button, input, accept) => {
+                    button?.addEventListener('click', () => {
+                        input.accept = accept;
+                        input?.click();
+                    });
+                };
 
-                mediaInput?.addEventListener('change', () => {
-                    const file = mediaInput.files?.[0];
-                    if (!file || !mediaPreview) {
+                setupAttachButton(attachImageButton, mediaInput, 'image/*,video/*');
+                setupAttachButton(attachDocumentButton, documentInput, '.pdf,.doc,.docx,.txt,.xls,.xlsx');
+
+                if (attachLocationButton) {
+                    attachLocationButton.addEventListener('click', () => {
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    const locationData = JSON.stringify({
+                                        latitude: position.coords.latitude,
+                                        longitude: position.coords.longitude,
+                                    });
+                                    const locationInput = document.getElementById('topweb-chat-location-input');
+                                    locationInput.value = locationData;
+                                    document.getElementById('topweb-chat-send-form').requestSubmit();
+                                },
+                                (error) => {
+                                    window.alert(@json(trans('topweb_chat::app.messages.location_failed')));
+                                }
+                            );
+                        } else {
+                            window.alert(@json(trans('topweb_chat::app.messages.location_not_supported')));
+                        }
+                    });
+                }
+
+                if (attachContactButton) {
+                    attachContactButton.addEventListener('click', () => {
+                        window.alert(@json(trans('topweb_chat::app.messages.contact_not_available')));
+                    });
+                }
+
+                const handleFileInput = (input, preview) => {
+                    const file = input.files?.[0];
+                    if (!file || !preview) {
                         clearMediaPreview();
-
                         return;
                     }
 
-                    mediaPreview.replaceChildren();
-                    mediaPreview.classList.remove('hidden');
-                    mediaPreview.classList.add('flex');
+                    preview.replaceChildren();
+                    preview.classList.remove('hidden');
+                    preview.classList.add('flex');
 
                     if (file.type.startsWith('image/')) {
                         const thumb = document.createElement('img');
                         thumb.src = URL.createObjectURL(file);
                         thumb.alt = file.name;
                         thumb.className = 'max-h-11 w-auto rounded-lg object-contain';
-                        mediaPreview.appendChild(thumb);
+                        preview.appendChild(thumb);
+                    } else if (file.type.startsWith('video/')) {
+                        const thumb = document.createElement('video');
+                        thumb.src = URL.createObjectURL(file);
+                        thumb.className = 'max-h-11 w-auto rounded-lg object-contain';
+                        preview.appendChild(thumb);
+                    } else {
+                        const icon = document.createElement('span');
+                        icon.className = 'text-2xl';
+                        icon.textContent = '📄';
+                        preview.appendChild(icon);
                     }
 
                     const name = document.createElement('span');
                     name.className = 'max-w-40 truncate';
                     name.textContent = file.name;
-                    mediaPreview.appendChild(name);
+                    preview.appendChild(name);
 
                     const remove = document.createElement('button');
                     remove.type = 'button';
@@ -798,11 +895,14 @@
                     remove.textContent = '×';
                     remove.setAttribute('aria-label', @json(trans('topweb_chat::app.messages.remove_attachment')));
                     remove.addEventListener('click', () => {
-                        mediaInput.value = '';
+                        input.value = '';
                         clearMediaPreview();
                     });
-                    mediaPreview.appendChild(remove);
-                });
+                    preview.appendChild(remove);
+                };
+
+                mediaInput?.addEventListener('change', () => handleFileInput(mediaInput, mediaPreview));
+                documentInput?.addEventListener('change', () => handleFileInput(documentInput, mediaPreview));
 
                 form?.addEventListener('submit', async (event) => {
                     event.preventDefault();
@@ -812,10 +912,11 @@
 
                     try {
                         const mediaInput = document.getElementById('topweb-chat-media-input');
+                        const documentInput = document.getElementById('topweb-chat-document-input');
                         const contentField = document.getElementById('topweb-chat-content');
                         const payload = new FormData(form);
 
-                        if (!mediaInput?.files?.length && !contentField?.value.trim()) {
+                        if (!mediaInput?.files?.length && !documentInput?.files?.length && !contentField?.value.trim()) {
                             contentField?.focus();
 
                             return;
@@ -837,6 +938,9 @@
                         form.querySelector('textarea').value = '';
                         if (mediaInput) {
                             mediaInput.value = '';
+                        }
+                        if (documentInput) {
+                            documentInput.value = '';
                         }
                         clearMediaPreview();
                         form.querySelector('[name="operation_key"]').value = crypto.randomUUID();

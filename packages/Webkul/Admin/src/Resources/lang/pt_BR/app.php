@@ -501,6 +501,8 @@ return [
                 'title' => 'Pessoas',
                 'create-btn' => 'Adicionar Pessoa',
                 'create-success' => 'Pessoa adicionada com sucesso.',
+                'pending-review' => 'Contato encaminhado para revisão.',
+                'already-linked-warning' => 'Contato já vinculado a :name. Criação bloqueada para evitar duplicidade.',
                 'update-success' => 'Pessoa atualizada com sucesso.',
                 'all-delete-success' => 'Todas as pessoas selecionadas foram excluídas com sucesso.',
                 'partial-delete-warning' => 'Algumas pessoas foram excluídas com sucesso. Outras não puderam ser excluídas porque estão vinculadas a leads ou conversas.',

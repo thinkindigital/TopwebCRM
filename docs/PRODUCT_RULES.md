@@ -153,6 +153,7 @@ Permitir atendimento e histórico conversacional dentro do CRM.
 
 ### 11.3 Propriedade e visibilidade
 - o dono do Lead é a fonte de verdade para acesso à conversa vinculada;
+- o escopo acima vale também para busca e descoberta: ninguém localiza Pessoa/Lead fora de sua carteira por nenhum campo;
 - administradores podem consultar todas as conversas;
 - conversas sem responsável ficam restritas a administradores;
 - transferências de Lead devem atualizar o acesso ao chat de forma atômica;

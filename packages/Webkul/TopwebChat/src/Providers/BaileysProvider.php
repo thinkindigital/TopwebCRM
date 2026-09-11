@@ -11,21 +11,9 @@ use Webkul\TopwebChat\Exceptions\ProviderRequestException;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 
-class OpenWaProvider implements MessagingProvider
+class BaileysProvider implements MessagingProvider
 {
     // --- Session Management ---
-
-    public function health(Instance $instance): array
-    {
-        $response = $this->client($instance)->get('/api/health');
-
-        $this->ensureSuccessful(
-            $response,
-            trans('topweb_chat::app.provider.health_failed')
-        );
-
-        return $response->json();
-    }
 
     public function createSession(Instance $instance, array $options = []): array
     {
@@ -453,6 +441,13 @@ class OpenWaProvider implements MessagingProvider
             'chatId' => $chatId,
             'limit' => min(max($count, 1), 100),
         ];
+
+        if ($from) {
+            $query['after'] = $from->timestamp;
+        }
+        if ($to) {
+            $query['before'] = $to->timestamp;
+        }
 
         $response = $this->client($instance)->get(
             "/api/sessions/{$instance->session_uuid}/messages",
@@ -906,7 +901,7 @@ class OpenWaProvider implements MessagingProvider
         $number = preg_replace('/\D+/', '', $recipient);
 
         return Cache::remember(
-            "topweb-chat:openwa-chat-id:{$instance->id}:{$number}",
+            "topweb-chat:baileys-chat-id:{$instance->id}:{$number}",
             now()->addDay(),
             function () use ($instance, $number) {
                 $response = $this->client($instance)->get(

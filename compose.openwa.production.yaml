@@ -1,6 +1,6 @@
 services:
   openwa_api:
-    image: ghcr.io/rmyndharis/openwa:${OPENWA_IMAGE_TAG:-0.23.3}
+    image: ghcr.io/rmyndharis/openwa:${OPENWA_IMAGE_TAG:-0.23.4}
     entrypoint:
       - dumb-init
       - --
@@ -41,9 +41,19 @@ services:
       REDIS_PASSWORD_FILE: /run/secrets/openwa_redis_password
       CACHE_ENABLED: "true"
       QUEUE_ENABLED: "true"
-      ENGINE_TYPE: ${OPENWA_ENGINE_TYPE:-whatsapp-web.js}
+      # ENGINE_TYPE propositalmente AUSENTE: quando unset, o engine é escolhido
+      # no dashboard (Infrastructure → Engine), padrão whatsapp-web.js.
+      # Fixar ENGINE_TYPE via env sempre vence o dashboard e exibe o aviso
+      # "Fixado pela variável de ambiente". Só fixe se quiser travar o engine
+      # (ex.: ENGINE_TYPE=baileys) e aceite que o painel não poderá trocar.
+      # Trocar de engine NÃO migra sessão: exige novo QR (cada engine tem
+      # suas próprias credenciais).
       SESSION_DATA_PATH: /app/data/sessions
       PUPPETEER_HEADLESS: "true"
+      # PUPPETEER_PROTOCOL_TIMEOUT_MS propositalmente AUSENTE: unset mantém o
+      # default do Puppeteer (~180s). Só defina se conta grande estourar
+      # "Runtime.callFunctionOn timed out" (ex.: 300000). Valor deve ser
+      # inteiro positivo; 0 desarma o timer (não recomendado).
       AUTO_START_SESSIONS: "true"
       BAILEYS_MARK_ONLINE_ON_CONNECT: "false"
       API_MASTER_KEY_FILE: /run/secrets/openwa_api_master_key
@@ -87,7 +97,11 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        # condition: any (não on-failure): o Swarm recria a task mesmo após
+        # saída limpa (ex.: docker stop). replicas permanece 1 por design —
+        # o OpenWA é single-process por volume de sessão (doc self-hosting);
+        # NUNCA escale para >1 (corrompe a sessão e força logout).
+        condition: any
         delay: 10s
       update_config:
         order: stop-first

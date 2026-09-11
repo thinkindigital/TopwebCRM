@@ -25,15 +25,15 @@ it('documents unassigned queue and atomic claim behavior in executable code', fu
         "['assigned_user_id' => null]"
     )->and($messages)->toContain(
         'lockForUpdate()',
-        "if ($lockedConversation->assigned_user_id === null)",
-        "['assigned_user_id' => $user->id]"
+        'if ($lockedConversation->assigned_user_id === null)',
+        '[\'assigned_user_id\' => $user->id]'
     )->and($view)->toContain(
         'topweb_chat::app.assignment.release',
         'topweb_chat::app.assignment.release_confirm',
         '$isAdmin || $conversation->assigned_user_id === null',
         'value=""'
     )->and($repository)->toContain(
-        "'unassigned' => $query->whereNull('assigned_user_id')"
+        '\'unassigned\' => $query->whereNull(\'assigned_user_id\')'
     );
 });
 
@@ -48,7 +48,7 @@ it('includes last_error in polling render signatures for media failures', functi
         base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
     );
 
-    expect($controller)->toContain("'last_error' => $message->last_error")
-        ->and($messageController)->toContain("'last_error' => $message->last_error")
+    expect($controller)->toContain('\'last_error\' => $message->last_error')
+        ->and($messageController)->toContain('\'last_error\' => $message->last_error')
         ->and($view)->toContain('message.last_error');
 });

@@ -6,9 +6,10 @@ it('keeps the media composer affordances in the timeline view', function () {
     );
 
     expect($view)->toContain(
-        'id="topweb-chat-attach"',
+        'id="topweb-chat-attach-image"',
         'id="topweb-chat-media-input"',
-        'name="media"',
+        'id="topweb-chat-attach-document"',
+        'id="topweb-chat-document-input"',
         'id="topweb-chat-media-preview"',
         'id="topweb-chat-content"',
         'clearMediaPreview',
