@@ -57,12 +57,18 @@ class ConversationController
         ]);
     }
 
-    public function show(Conversation $conversation): View
+    public function show(Request $request, Conversation $conversation): View
     {
         abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
 
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
+
+        // PROTOTYPE-UX (descartável, S02): mesma auth/dados, só troca o render.
+        $prototypeView = match ($request->string('variant')->toString()) {
+            'A', 'B' => 'topweb_chat::conversations.show-prototype',
+            default => null,
+        };
 
         $conversation->load([
             'person',
@@ -100,6 +106,38 @@ class ConversationController
                     'exception' => $exception::class,
                 ]);
             }
+        }
+
+        // PROTOTYPE-UX: fila no mesmo escopo autorizado, só para o shell visual.
+        $prototypeQueue = $request->string('queue', 'mine')->toString();
+        if (! in_array($prototypeQueue, ['mine', 'unassigned', 'all'], true)) {
+            $prototypeQueue = 'mine';
+        }
+
+        if ($prototypeView) {
+            return view($prototypeView, [
+                'conversation' => $conversation,
+                'variant' => $request->string('variant')->toString(),
+                'queue' => $prototypeQueue,
+                'queueConversations' => $this->conversationRepository
+                    ->accessibleQuery($user, $prototypeQueue)
+                    ->latest('last_message_at')
+                    ->limit(30)
+                    ->get(),
+                'historyUnavailable' => Cache::has(
+                    "topweb-chat:history-unavailable:{$conversation->instance_id}"
+                ),
+                'readUnavailable' => Cache::has(
+                    "topweb-chat:read-unavailable:{$conversation->instance_id}"
+                ),
+                'providerUnavailable' => Cache::has(
+                    "topweb-chat:provider-unavailable:{$conversation->instance_id}"
+                ),
+                'pipelineStages' => $conversation->lead
+                    ? $conversation->lead->pipeline->stages
+                    : collect(),
+                'canViewSensitiveMedia' => $this->sensitiveData->canView($user),
+            ]);
         }
 
         return view('topweb_chat::conversations.show', [

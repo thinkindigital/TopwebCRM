@@ -251,11 +251,16 @@ networks:
 secrets:
   topwebcrm_app_key:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_app_key
   topwebcrm_db_password:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_db_password
   topwebcrm_db_root_password:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_db_root_password
   topwebcrm_mail_password:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_mail_password
   topwebcrm_admin_password:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_admin_password

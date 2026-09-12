@@ -25,7 +25,7 @@ O código atual contém:
 - **clip menu UX**: Imagem/Vídeo (sendMedia) + Documento (sendDocument) sempre visíveis; Localização/Contato apenas para `can_view_sensitive_data`;
 - **visual bug fix**: formulário de envio movido para fora do container de scroll (não mais empurrado por preview de imagem);
 - **media UX**: Imagem/Vídeo via `sendMedia` (preview inline); Documento via `sendDocument` (anexo);
-- **BaileysProvider** skeleton implementando `MessagingProvider` para engine `baileys` (envio de mídia nativo funcionando).
+- **BaileysProvider** implementando `MessagingProvider` para engine `baileys`, com paridade funcional e envio de mídia nativo (Epic E13, #80).
 
 Os testes de feature em `tests/Feature/TopwebChat` cobrem o contrato HTTP principal, Settings, webhook, histórico, retry/timeline e geração da URL pública. Isso não substitui o smoke test com uma sessão WhatsApp real em cada release.
 
@@ -189,6 +189,7 @@ O scheduler registra:
 - `topweb-chat:reconcile --history` a cada cinco minutos, para conversas conhecidas.
 - `topweb-chat:close-stale-attendances` a cada minuto, para encerrar janelas inativas;
 - `topweb-chat:project-lead-media` a cada cinco minutos, para reconciliar mídia armazenada após associação tardia do Lead.
+- `topweb-chat:retry-failed` a cada cinco minutos, para reenfileirar falhas por sessão desconectada que voltou a `ready`.
 
 Jobs usam a fila Laravel padrão. As opções `--state`, `--full` e `--limit` não existem no comando atual.
 

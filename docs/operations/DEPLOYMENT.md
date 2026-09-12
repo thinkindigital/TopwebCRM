@@ -240,6 +240,38 @@ via `ensure_mysql_db`); a senha continua em `topwebcrm_db_password`.
 Validação: `docker compose -f compose.production.yaml config` com as variáveis
 acima deve mostrar os hosts externos e `replicas: 0` só em `topwebcrm_db`/`topwebcrm_redis`.
 
+## Stack de homologação (dev)
+
+Para reproduzir a `dev` no navegador sem tocar a produção nem as instalações
+futuras (que seguem na `main`), existe a tag mutável `dev` mais a imutável
+`sha-<commit>` por push. O workflow `.github/workflows/publish-dev-image.yml`
+publica ambas a cada push na `dev` (pula escopo só-docs) e faz repull/redeploy
+somente da stack `topwebcrm-dev`.
+
+Crie a stack `topwebcrm-dev` no Portainer com o **mesmo** `compose.production.yaml`
+e variáveis próprias — nunca reutilize volumes, banco ou secrets da produção:
+
+```dotenv
+TOPWEBCRM_DOMAIN=crmdev.scgroup.com.br
+TOPWEBCRM_IMAGE_TAG=dev
+TOPWEBCRM_SECRET_PREFIX=topwebcrm_dev
+TOPWEBCRM_STORAGE_VOLUME=topwebcrm_dev_storage
+TOPWEBCRM_DB_VOLUME=topwebcrm_dev_db
+TOPWEBCRM_REDIS_VOLUME=topwebcrm_dev_redis
+TOPWEBCRM_INTEGRATIONS_NETWORK=topweb_integrations
+```
+
+Secrets dedicados `topwebcrm_dev_*` e volumes `topwebcrm_dev_*` (driver local,
+já criados no manager em 2026-09-11).
+Banco zerado: primeiro deploy com `TOPWEBCRM_INITIAL_INSTALL=true`, depois `false`.
+
+OpenWA é o **mesmo** gateway (`http://openwa_openwa_api:2785`, rede
+`topweb_integrations` compartilhada; `TOPWEB_CHAT_PUBLIC_URL` aponta para o
+domínio dev). Disciplina obrigatória: **nunca** configure o webhook da dev em
+sessão real (sequestraria os eventos da produção) nem envie para contatos reais —
+use o lead de teste com o contato `5511993193118` e, se preciso, uma sessão de
+teste dedicada.
+
 ## Release automático
 
 O workflow `.github/workflows/publish-production-image.yml` é executado após o CI bem-sucedido em `main`. Ele constrói a imagem, publica as tags e chama a API autenticada do Portainer para:
