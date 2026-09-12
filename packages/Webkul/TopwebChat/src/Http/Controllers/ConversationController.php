@@ -6,6 +6,7 @@ use App\Services\SensitiveDataService;
 use App\Services\SensitiveFileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -123,7 +124,7 @@ class ConversationController
         ]);
     }
 
-    public function messages(Request $request, Conversation $conversation): JsonResponse
+    public function messages(Request $request, Conversation $conversation): Response
     {
         abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
 
@@ -134,6 +135,22 @@ class ConversationController
 
         $user = auth()->guard('user')->user();
         $canViewSensitiveMedia = $this->sensitiveData->canView($user);
+
+        // E-03: fragmento do servidor como representação canônica da timeline.
+        if ($request->string('fragment')->toString() === 'timeline') {
+            $conversation->load([
+                'messages' => fn ($query) => $query
+                    ->orderByRaw('COALESCE(sent_at, created_at) DESC')
+                    ->orderByDesc('id')
+                    ->limit(100),
+            ]);
+            $conversation->setRelation('messages', $conversation->messages->reverse()->values());
+
+            return response()->view('topweb_chat::conversations.partials.timeline-messages', [
+                'conversation' => $conversation,
+                'canViewSensitiveMedia' => $canViewSensitiveMedia,
+            ]);
+        }
         $messages = $conversation->messages()
             ->orderByRaw('COALESCE(sent_at, created_at) DESC')
             ->orderByDesc('id')

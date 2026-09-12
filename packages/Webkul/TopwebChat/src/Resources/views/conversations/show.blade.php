@@ -34,70 +34,10 @@
                 data-messages-url="{{ route('admin.topweb_chat.messages.index', $conversation) }}"
                 aria-live="polite"
             >
-                @forelse ($conversation->messages as $message)
-                    <article
-                        class="flex {{ $message->direction === 'outgoing' ? 'justify-end' : 'justify-start' }}"
-                        data-message-id="{{ $message->id }}"
-                    >
-                        <div class="max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm sm:max-w-[72%] {{ $message->direction === 'outgoing' ? 'rounded-br-md bg-brandColor text-white' : 'rounded-bl-md border border-gray-100 bg-white text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-white' }}">
-                            @if ($message->hasMedia())
-                                @php($mediaMime = (string) data_get($message->metadata, 'media_mime'))
-
-                                @if ($canViewSensitiveMedia && $message->mediaIsStored())
-                                    @if (str_starts_with($mediaMime, 'image/'))
-                                        <a href="{{ route('admin.topweb_chat.messages.media', [$conversation, $message]) }}" target="_blank" rel="noopener">
-                                            <img
-                                                src="{{ route('admin.topweb_chat.messages.media', [$conversation, $message]) }}"
-                                                alt="@lang('topweb_chat::app.messages.media_image')"
-                                                class="mb-2 max-h-80 w-auto max-w-full rounded-xl object-contain"
-                                                loading="lazy"
-                                            >
-                                        </a>
-                                    @elseif (str_starts_with($mediaMime, 'audio/'))
-                                        <audio class="mb-2 max-w-full" controls preload="metadata" src="{{ route('admin.topweb_chat.messages.media', [$conversation, $message]) }}"></audio>
-                                    @elseif (str_starts_with($mediaMime, 'video/'))
-                                        <video class="mb-2 max-h-80 max-w-full rounded-xl" controls preload="metadata" src="{{ route('admin.topweb_chat.messages.media', [$conversation, $message]) }}"></video>
-                                    @else
-                                        <a class="mb-2 flex items-center gap-2 rounded-xl bg-black/10 px-3 py-2 font-medium hover:underline" href="{{ route('admin.topweb_chat.messages.media', [$conversation, $message]) }}" target="_blank" rel="noopener">
-                                            @lang('topweb_chat::app.messages.open_media')
-                                        </a>
-                                    @endif
-                                @elseif ($canViewSensitiveMedia)
-                                    <p class="mb-1 text-sm opacity-80">@lang('topweb_chat::app.messages.media_processing')</p>
-                                @else
-                                    <p class="mb-1 text-sm opacity-80">@lang('topweb_chat::app.messages.media_restricted')</p>
-                                @endif
-                            @endif
-
-                            @if ($message->content)
-                                <p class="whitespace-pre-wrap break-words">{{ $message->content }}</p>
-                            @elseif (! $message->hasMedia())
-                                <p class="whitespace-pre-wrap break-words">@lang('topweb_chat::app.messages.unsupported')</p>
-                            @endif
-                            <div class="mt-2 flex items-center gap-2 text-xs opacity-75">
-                                <span>{{ $message->sent_at?->format('d/m/Y H:i') ?? $message->created_at?->format('d/m/Y H:i') }}</span>
-                                <span>{{ $message->status }}</span>
-                                @if ($message->status === 'failed' && $message->last_error)
-                                    <span class="text-red-600 dark:text-red-400" title="{{ $message->last_error }}">
-                                        {{ $message->last_error }}
-                                    </span>
-                                @endif
-                                @if (app(\Webkul\TopwebChat\Services\MessageService::class)->canRetry($message))
-                                    <button
-                                        type="button"
-                                        class="underline"
-                                        data-retry-url="{{ route('admin.topweb_chat.messages.retry', [$conversation, $message]) }}"
-                                    >
-                                        @lang('topweb_chat::app.messages.retry')
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
-                    </article>
-                @empty
-                    <p class="py-10 text-center text-gray-600 dark:text-gray-300">@lang('topweb_chat::app.messages.empty')</p>
-                @endforelse
-                <div id="topweb-chat-anchor" style="height: 1px;" aria-hidden="true"></div>
+                @include('topweb_chat::conversations.partials.timeline-messages', [
+                    'conversation' => $conversation,
+                    'canViewSensitiveMedia' => $canViewSensitiveMedia,
+                ])
             </div>
 
             <button
@@ -341,12 +281,10 @@
                 const newMessages = document.getElementById('topweb-chat-new-messages');
                 const syncStatus = document.getElementById('topweb-chat-sync-status');
                 const clientLogUrl = @json(route('admin.topweb_chat.client_events.store', $conversation));
-                const canViewSensitiveMedia = @json($canViewSensitiveMedia);
                 const rawBrowserLocale = (document.documentElement.lang || 'pt-BR').trim().replaceAll('_', '-');
                 let browserLocale = 'pt-BR';
                 try { browserLocale = Intl.getCanonicalLocales(rawBrowserLocale)[0] ?? 'pt-BR'; } catch { browserLocale = 'pt-BR'; }
                 let refreshing = false;
-                let lastMessagesSignature = null;
                 let lastMessageId = Number(
                     timeline?.querySelector('[data-message-id]:last-of-type')?.dataset.messageId || 0
                 );
@@ -415,262 +353,31 @@
                     timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 100
                 );
 
-                const mediaElement = (message) => {
-                    if (!message.has_media) {
-                        return null;
-                    }
-
-                    if (!message.media_url) {
-                        const notice = document.createElement('p');
-                        notice.className = 'mb-1 text-sm opacity-80';
-                        notice.textContent = canViewSensitiveMedia
-                            ? @json(trans('topweb_chat::app.messages.media_processing'))
-                            : @json(trans('topweb_chat::app.messages.media_restricted'));
-
-                        return notice;
-                    }
-
-                    if (message.media_mime?.startsWith('image/')) {
-                        const link = document.createElement('a');
-                        const image = document.createElement('img');
-                        link.href = message.media_url;
-                        link.target = '_blank';
-                        link.rel = 'noopener';
-                        image.src = message.media_url;
-                        image.alt = @json(trans('topweb_chat::app.messages.media_image'));
-                        image.loading = 'lazy';
-                        image.className = 'mb-2 max-h-80 w-auto max-w-full rounded-xl object-contain';
-                        link.appendChild(image);
-
-                        return link;
-                    }
-
-                    if (message.media_mime?.startsWith('audio/')) {
-                        const audio = document.createElement('audio');
-                        audio.controls = true;
-                        audio.preload = 'metadata';
-                        audio.src = message.media_url;
-                        audio.className = 'mb-2 max-w-full';
-
-                        return audio;
-                    }
-
-                    if (message.media_mime?.startsWith('video/')) {
-                        const video = document.createElement('video');
-                        video.controls = true;
-                        video.preload = 'metadata';
-                        video.src = message.media_url;
-                        video.className = 'mb-2 max-h-80 max-w-full rounded-xl';
-
-                        return video;
-                    }
-
-                    const link = document.createElement('a');
-                    link.href = message.media_url;
-                    link.target = '_blank';
-                    link.rel = 'noopener';
-                    link.className = 'mb-2 flex items-center gap-2 rounded-xl bg-black/10 px-3 py-2 font-medium hover:underline';
-                    link.textContent = @json(trans('topweb_chat::app.messages.open_media'));
-
-                    return link;
-                };
-
-                const messageRenderSig = (message) => [
-                    message.status,
-                    message.media_status,
-                    message.media_url,
-                    message.last_error,
-                    message.content,
-                ].join(':');
-
-                const dateSeparator = (messageDate) => {
-                    const separator = document.createElement('div');
-                    separator.className = 'my-2 flex justify-center topweb-chat-date-separator';
-                    separator.innerHTML = `<span class="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-300">${new Intl.DateTimeFormat(browserLocale, { dateStyle: 'medium' }).format(messageDate)}</span>`;
-
-                    return separator;
-                };
-
-                const buildMessageArticle = (message) => {
-                    const article = document.createElement('article');
-                    const bubble = document.createElement('div');
-                    const content = document.createElement('p');
-                    const metadata = document.createElement('div');
-                    const timestamp = document.createElement('span');
-                    const status = document.createElement('span');
-                    const retry = document.createElement('button');
-                    const outgoing = message.direction === 'outgoing';
-
-                    article.dataset.messageId = message.id;
-                    article.dataset.renderSig = messageRenderSig(message);
-                    article.className = `flex ${outgoing ? 'justify-end' : 'justify-start'}`;
-                    bubble.className = `max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm sm:max-w-[72%] ${
-                        outgoing
-                            ? 'rounded-br-md bg-brandColor text-white'
-                            : 'rounded-bl-md border border-gray-100 bg-white text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-white'
-                    }`;
-                    content.className = 'whitespace-pre-wrap break-words';
-                    content.textContent = message.content || (
-                        message.has_media
-                            ? ''
-                            : @json(trans('topweb_chat::app.messages.unsupported'))
-                    );
-                    metadata.className = 'mt-2 flex gap-2 text-xs opacity-75';
-                    timestamp.textContent = message.sent_at
-                        ? new Intl.DateTimeFormat(browserLocale, {
-                            timeStyle: 'short',
-                        }).format(new Date(message.sent_at))
-                        : '';
-                    status.textContent = message.status;
-
-                    metadata.append(timestamp, status);
-
-                    if (message.status === 'failed' && message.last_error) {
-                        const errorSpan = document.createElement('span');
-                        errorSpan.className = 'text-red-600 dark:text-red-400';
-                        errorSpan.textContent = message.last_error;
-                        errorSpan.title = message.last_error;
-                        metadata.appendChild(errorSpan);
-                    }
-
-                    if (message.can_retry && message.retry_url) {
-                        retry.type = 'button';
-                        retry.className = 'underline';
-                        retry.dataset.retryUrl = message.retry_url;
-                        retry.textContent = @json(trans('topweb_chat::app.messages.retry'));
-                        metadata.appendChild(retry);
-                    }
-
-                    const media = mediaElement(message);
-
-                    if (media) {
-                        bubble.appendChild(media);
-                    }
-
-                    if (content.textContent) {
-                        bubble.appendChild(content);
-                    }
-
-                    bubble.appendChild(metadata);
-                    article.appendChild(bubble);
-
-                    return article;
-                };
-
-                const emptyTimeline = () => {
-                    timeline.replaceChildren();
-                    const empty = document.createElement('p');
-                    empty.className = 'py-10 text-center text-gray-600 dark:text-gray-300';
-                    empty.textContent = @json(trans('topweb_chat::app.messages.empty'));
-                    timeline.appendChild(empty);
-                    timeline.appendChild(ensureAnchor());
-                };
-
-                const renderTimelineFull = (messages) => {
-                    timeline.replaceChildren();
-
-                    if (!messages.length) {
-                        emptyTimeline();
-
-                        return;
-                    }
-
-                    let previousDate = null;
-
-                    messages.forEach((message) => {
-                        const messageDate = message.sent_at ? new Date(message.sent_at) : null;
-                        const dateKey = messageDate?.toLocaleDateString('en-CA');
-
-                        if (dateKey && dateKey !== previousDate) {
-                            timeline.appendChild(dateSeparator(messageDate));
-                            previousDate = dateKey;
-                        }
-
-                        timeline.appendChild(buildMessageArticle(message));
-                    });
-
-                    timeline.appendChild(ensureAnchor());
-                };
-
-                const renderTimelineDiff = (messages) => {
-                    const existing = new Map(
-                        [...timeline.querySelectorAll('[data-message-id]')]
-                            .map((el) => [el.dataset.messageId, el])
-                    );
-
-                    timeline.querySelectorAll('.topweb-chat-date-separator')
-                        .forEach((el) => el.remove());
-
-                    if (!messages.length) {
-                        emptyTimeline();
-
-                        return;
-                    }
-
-                    const seen = new Set();
-                    let previousDate = null;
-
-                    messages.forEach((message) => {
-                        const key = String(message.id);
-                        seen.add(key);
-
-                        const messageDate = message.sent_at ? new Date(message.sent_at) : null;
-                        const dateKey = messageDate?.toLocaleDateString('en-CA');
-
-                        if (dateKey && dateKey !== previousDate) {
-                            timeline.appendChild(dateSeparator(messageDate));
-                            previousDate = dateKey;
-                        }
-
-                        const current = existing.get(key);
-                        const node = (current && current.dataset.renderSig === messageRenderSig(message))
-                            ? current
-                            : buildMessageArticle(message);
-
-                        timeline.appendChild(node);
-                    });
-
-                    for (const [key, el] of existing) {
-                        if (!seen.has(key)) {
-                            el.remove();
-                        }
-                    }
-
-                    timeline.appendChild(ensureAnchor());
-                };
-
-                const renderMessages = (messages, forceScroll = false) => {
-                    const signature = messages.map((message) => [
-                        message.id,
-                        message.status,
-                        message.media_status,
-                        message.media_url,
-                    ].join(':')).join('|');
-
-                    if (!forceScroll && signature === lastMessagesSignature) {
-                        return;
-                    }
-
+                const renderFragment = (html) => {
                     const wasNearBottom = isNearBottom();
                     const distanceFromBottom = timeline.scrollHeight
                         - timeline.scrollTop
                         - timeline.clientHeight;
                     const previousLastMessageId = lastMessageId;
-                    const nextLastMessageId = Number(messages.at(-1)?.id || 0);
+
+                    timeline.innerHTML = html;
+                    ensureAnchor();
+
+                    const meta = document.getElementById('topweb-chat-poll-meta');
+
+                    if (!meta) {
+                        throw new Error('message_fragment_malformed');
+                    }
+
+                    const nextLastMessageId = Number(meta.dataset.lastId || 0);
+                    const connected = (meta.dataset.instanceStatus || 'unknown') === 'ready';
                     const receivedNewMessage = previousLastMessageId > 0
                         && nextLastMessageId !== previousLastMessageId;
-                    lastMessagesSignature = signature;
-
-                    try {
-                        renderTimelineDiff(messages);
-                    } catch {
-                        renderTimelineFull(messages);
-                    }
 
                     lastMessageId = nextLastMessageId;
 
                     const restoreScroll = () => {
-                        if (forceScroll || (wasNearBottom && isPinned)) {
+                        if (wasNearBottom && isPinned) {
                             timeline.scrollTop = timeline.scrollHeight;
                         } else {
                             timeline.scrollTop = Math.max(
@@ -682,13 +389,15 @@
 
                     window.requestAnimationFrame(restoreScroll);
 
-                    if (forceScroll || (wasNearBottom && isPinned)) {
+                    if (wasNearBottom && isPinned) {
                         newMessages?.classList.add('hidden');
                     }
 
-                    if (receivedNewMessage && !(wasNearBottom && isPinned) && !forceScroll) {
+                    if (receivedNewMessage && !(wasNearBottom && isPinned)) {
                         newMessages?.classList.remove('hidden');
                     }
+
+                    return connected;
                 };
 
                 const refresh = async () => {
@@ -701,45 +410,26 @@
                     try {
                         const url = new URL(timeline.dataset.messagesUrl, window.location.origin);
                         url.searchParams.set('_poll', Date.now().toString());
+                        url.searchParams.set('fragment', 'timeline');
 
                         const response = await fetch(url, {
                             cache: 'no-store',
                             credentials: 'same-origin',
                             headers: {
-                                Accept: 'application/json',
+                                Accept: 'text/html',
                                 'X-Requested-With': 'XMLHttpRequest',
                             },
                         });
 
-                        if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+                        if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) {
                             throw new Error('message_refresh_failed');
                         }
 
-                        const payload = await response.json();
-                        const connected = payload.instance?.status === 'ready';
-
-                        renderMessages(payload.messages);
+                        const connected = renderFragment(await response.text());
                         updateSyncStatus(true);
 
-                        const payloadLastId = Number(payload.messages.at(-1)?.id || 0);
-                        const domLastId = Number(
-                            timeline.querySelector('[data-message-id]:last-of-type')?.dataset.messageId || 0
-                        );
-
-                        if (payloadLastId !== domLastId || !timeline.isConnected) {
-                            reportClientEvent('error', 'client.render_mismatch', {
-                                payload_last_id: payloadLastId,
-                                dom_last_id: domLastId,
-                                timeline_connected: timeline.isConnected,
-                                form_connected: form?.isConnected || false,
-                                scroll_top: timeline.scrollTop,
-                                scroll_height: timeline.scrollHeight,
-                                client_height: timeline.clientHeight,
-                            });
-                        }
-
                         if (instanceStatus) {
-                            instanceStatus.textContent = payload.instance?.status || 'unknown';
+                            instanceStatus.textContent = connected ? 'ready' : instanceStatus.textContent;
                         }
 
                         connectionBadge?.classList.toggle('bg-emerald-50', connected);
