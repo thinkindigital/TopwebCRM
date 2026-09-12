@@ -8,10 +8,17 @@
 
 - `--color-primary: #0F766E` (teal) / `--color-accent: #0369A1`
   / `--color-destructive: #DC2626` / bg `#F0FDFA`, card `#FFFFFF`
-- Tipografia do Admin Krayin (sem fontes externas no chat).
-- Spacing 4/8; radii moderados (workspace contínuo, sem cards soltos).
+- Tipografia do Admin Krayin (sem fontes externas no chat; queries de pairing
+  retornaram estilos editoriais incompatíveis — fallback registrado, não adotado).
+- Spacing 4/8: base 4 (gaps densos), seções 16/24/32; composer/queue usam 8/12/16.
+- Radii moderados (workspace contínuo, sem cards soltos): bolhas 16, painéis 12,
+  pills/badges 9999.
+- Hierarquia de texto (relativa ao Admin): contato/nome 800, corpo 400 14,
+  meta/tempo 11–12 secundário, header operacional 11 uppercase.
 - Semânticos: success/warning/error/info + unread + nota-âmbar + in/out +
   restricted + offline + unknown. Dark equivalente; nada só-cor.
+- Focus: anel visível `primary`; disabled: opacidade + sem ação; reduced motion
+  respeitado; alvos 44 px.
 
 ## Regras (veredito)
 
