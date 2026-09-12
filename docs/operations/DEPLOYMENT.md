@@ -254,6 +254,7 @@ e variáveis próprias — nunca reutilize volumes, banco ou secrets da produç�
 ```dotenv
 TOPWEBCRM_DOMAIN=crmdev.scgroup.com.br
 TOPWEBCRM_IMAGE_TAG=dev
+TOPWEBCRM_ROUTER_NAME=topwebcrm-dev
 TOPWEBCRM_SECRET_PREFIX=topwebcrm_dev
 TOPWEBCRM_STORAGE_VOLUME=topwebcrm_dev_storage
 TOPWEBCRM_DB_VOLUME=topwebcrm_dev_db
