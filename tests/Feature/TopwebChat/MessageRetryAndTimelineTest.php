@@ -57,6 +57,10 @@ it('keeps the composer outside the scrollable chronological timeline', function 
         base_path('packages/Webkul/TopwebChat/src/Services/WebhookProcessor.php')
     );
 
+    $partial = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/timeline-messages.blade.php')
+    );
+
     expect($view)->toContain(
         'min-h-0 flex-1 flex-col justify-start',
         'height: clamp(30rem, calc(100dvh - 10rem), 48rem)',
@@ -65,22 +69,24 @@ it('keeps the composer outside the scrollable chronological timeline', function 
         'flex-shrink-0',
         'data-retry-url',
         'timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 100',
-        'lastMessagesSignature',
+        'renderFragment',
         'distanceFromBottom',
         'window.requestAnimationFrame(restoreScroll)',
         "replaceAll('_', '-')",
         'getCanonicalLocales',
-        'new Intl.DateTimeFormat(browserLocale',
+        'toLocaleTimeString(browserLocale)',
         "console.error('TopwebChat refresh failed.'",
         'window.setTimeout(() => {',
         'timeline_connected: timeline.isConnected',
-        'client.render_mismatch',
         'topweb-chat-sync-status',
         "cache: 'no-store'",
         'window.setTimeout(poll, 3000)',
-        "message.media_mime?.startsWith('image/')",
         "timeline.scrollTo({ top: timeline.scrollHeight, behavior: 'smooth' })",
         "event.key === 'Enter' && !event.shiftKey"
+    )->and($partial)->toContain(
+        'topweb-chat-poll-meta',
+        'topweb-chat-date-separator',
+        'data-message-id'
     )->and(strpos($view, 'id="topweb-chat-timeline"'))
         ->toBeLessThan(strpos($view, 'id="topweb-chat-send-form"'))
         ->and($controller)->toContain(
