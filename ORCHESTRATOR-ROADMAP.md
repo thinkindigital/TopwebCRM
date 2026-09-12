@@ -56,6 +56,10 @@ Catalogo de ferramentas com resolvedor de dependencias estilo SetupOrion: traefi
 
 Operar o engine Baileys do OpenWA como alternativa ao `whatsapp-web.js` via feature flag `TOPWEB_CHAT_ENGINE`, com paridade de `MessagingProvider` e smoke parametrizado. Restam migração assistida, auto-detecção e testes de integração no CI.
 
+### [**[E14] TopwebChat Commercial Workspace**](https://github.com/thinkindigital/TopwebCRM/issues/91) - `todo`
+
+Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/topweb-chat/TOPWEBCHAT-COMMERCIAL-WORKSPACE-SPEC.md`. Slices D-01, E-01–E-03, V-01–V-08; E08 mantém Kanban/dashboard/busca global.
+
 ## Marcos
 
 | Marco | Epics | Saida verificavel |
@@ -63,7 +67,7 @@ Operar o engine Baileys do OpenWA como alternativa ao `whatsapp-web.js` via feat
 | M1 Governanca reproduzivel | E01, E02, E04 | Docs, seguranca e deploy alinhados a evidencias atuais |
 | M2 WhatsApp funcional | E03, E05 | Sessao, QR, envio de texto/midia, recebimento, fila sem atendente e historico OpenWA testados |
 | M3 Seguranca operacional | E06, E07, E10 | Quarentena, midia, auditoria e isolamento por Lead |
-| M4 Experiencia integrada | E08 | Atendimento em Activities, busca e metricas |
+| M4 Experiencia integrada | E08, E14 | Atendimento em Activities, busca e metricas; workspace comercial do chat |
 | M5 Provedores alternativos | E09, E13 | Contrato compartilhado, Evolution validada e engine Baileys operacional |
 
 ## Ordem de execucao
