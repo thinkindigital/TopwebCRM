@@ -151,12 +151,13 @@ Ao salvar, a API key, o segredo do webhook e demais atributos sensíveis usam cr
 
 Uma resposta HTTP de aceite não prova entrega ao destinatário. Timeout após chamada externa pode deixar o resultado como desconhecido; nesse caso nunca faça retry cego.
 
-### Fila sem atendente
+### Fila sem atendente (decisão A3)
 
 1. Administradores podem desatribuir qualquer conversa pelo painel lateral da conversa.
 2. O agente responsável pode devolver sua própria conversa para a fila sem atendente.
-3. Conversas abertas sem `assigned_user_id` aparecem na aba **Sem atendente** para todos os agentes autorizados no TopwebChat.
-4. O primeiro agente que responder assume a conversa dentro da mesma transação que cria a mensagem. Respostas concorrentes posteriores são recusadas se a conversa já tiver sido assumida por outro agente.
+3. Itens sem responsável aparecem na aba **Sem atendente** como **não identificáveis** (tempo de espera + botão Assumir; sem nome, preview ou link) para agentes; administradores veem identificado.
+4. O claim (botão ou primeiro outbound autorizado) revela o contexto em transação atômica; quem perde a corrida recebe erro nomeando o dono atual.
+5. Abas com contadores no escopo (`Meus`, `Sem atendente`, `Todos` só admin).
 
 ### Entrada
 

@@ -132,8 +132,9 @@ return [
         'save' => 'Salvar responsável',
         'claim' => 'Assumir atendimento',
         'release' => 'Deixar sem atendente',
-        'release_confirm' => 'Esta conversa ficará visível para todos os agentes na fila sem atendente. Continuar?',
+        'release_confirm' => 'Esta conversa voltará à fila sem atendente como item não identificável. Continuar?',
         'updated' => 'Responsável atualizado.',
+        'taken' => 'Conversa já assumida por :name.',
     ],
     'settings' => [
         'title' => 'Configurações do Topweb Chat',

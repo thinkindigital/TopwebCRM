@@ -132,8 +132,9 @@ return [
         'save' => 'Save assignee',
         'claim' => 'Claim conversation',
         'release' => 'Leave unassigned',
-        'release_confirm' => 'This conversation will be visible to all agents in the unassigned queue. Continue?',
+        'release_confirm' => 'This conversation will return to the unassigned queue as a non-identifiable item. Continue?',
         'updated' => 'Assignee updated.',
+        'taken' => 'Conversation already taken by :name.',
     ],
     'settings' => [
         'title' => 'Topweb Chat settings',
