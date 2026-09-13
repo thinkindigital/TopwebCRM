@@ -14,7 +14,7 @@ use Webkul\User\Models\User;
 beforeEach(function () {
     config()->set('app.debug', false);
 
-    foreach (['topweb_chat_messages', 'topweb_chat_conversations', 'topweb_chat_instances', 'users', 'roles', 'core_config'] as $table) {
+    foreach (['topweb_chat_messages', 'topweb_chat_internal_notes', 'topweb_chat_conversations', 'topweb_chat_instances', 'users', 'roles', 'core_config'] as $table) {
         Schema::dropIfExists($table);
     }
 
@@ -89,6 +89,14 @@ beforeEach(function () {
         $table->timestamps();
     });
 
+    Schema::create('topweb_chat_internal_notes', function (Blueprint $table) {
+        $table->id();
+        $table->unsignedBigInteger('conversation_id');
+        $table->unsignedInteger('user_id')->nullable();
+        $table->text('content');
+        $table->timestamps();
+    });
+
     touch(storage_path('installed'));
 });
 
@@ -159,4 +167,32 @@ it('renders the initial timeline from the same partial', function () {
     );
 
     expect($show)->toContain('conversations.partials.timeline-messages');
+});
+
+it('shows internal notes inline only to users with the notes permission', function () {
+    ['admin' => $admin, 'conversation' => $conversation] = fragmentContext();
+    \Webkul\TopwebChat\Models\InternalNote::query()->create([
+        'conversation_id' => $conversation->id, 'user_id' => $admin->id,
+        'content' => 'cliente quer visitar sabado',
+    ]);
+
+    $this->actingAs($admin, 'user');
+    $fragment = $this->get(route('admin.topweb_chat.messages.index', $conversation).'?fragment=timeline');
+    $fragment->assertOk();
+    $fragment->assertSee('cliente quer visitar sabado', false);
+    $fragment->assertSee('topweb-chat-internal-note', false);
+
+    $agentRole = \Webkul\User\Models\Role::query()->create([
+        'name' => 'Agente', 'permission_type' => 'custom',
+        'permissions' => ['topweb_chat.inbox.view'],
+    ]);
+    $agent = \Webkul\User\Models\User::query()->create([
+        'name' => 'Agente', 'email' => 'agente@example.com',
+        'role_id' => $agentRole->id, 'status' => true,
+    ]);
+
+    $this->actingAs($agent, 'user');
+    $this->get(route('admin.topweb_chat.messages.index', $conversation).'?fragment=timeline')
+        ->assertOk()
+        ->assertDontSee('cliente quer visitar sabado', false);
 });

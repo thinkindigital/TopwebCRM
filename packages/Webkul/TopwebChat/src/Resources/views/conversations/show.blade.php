@@ -37,6 +37,7 @@
                 @include('topweb_chat::conversations.partials.timeline-messages', [
                     'conversation' => $conversation,
                     'canViewSensitiveMedia' => $canViewSensitiveMedia,
+                    'canViewNotes' => $canViewNotes ?? false,
                 ])
             </div>
 

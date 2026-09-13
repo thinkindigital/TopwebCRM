@@ -121,6 +121,7 @@ class ConversationController
                 ? User::query()->where('status', 1)->orderBy('name')->get()
                 : collect(),
             'canViewSensitiveMedia' => $this->sensitiveData->canView($user),
+            'canViewNotes' => bouncer()->hasPermission('topweb_chat.inbox.notes'),
         ]);
     }
 
@@ -143,12 +144,14 @@ class ConversationController
                     ->orderByRaw('COALESCE(sent_at, created_at) DESC')
                     ->orderByDesc('id')
                     ->limit(100),
+                'internalNotes' => fn ($query) => $query->with('user')->orderBy('id'),
             ]);
             $conversation->setRelation('messages', $conversation->messages->reverse()->values());
 
             return response()->view('topweb_chat::conversations.partials.timeline-messages', [
                 'conversation' => $conversation,
                 'canViewSensitiveMedia' => $canViewSensitiveMedia,
+                'canViewNotes' => bouncer()->hasPermission('topweb_chat.inbox.notes'),
             ]);
         }
         $messages = $conversation->messages()

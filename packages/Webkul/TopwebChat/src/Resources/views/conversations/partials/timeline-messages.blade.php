@@ -1,10 +1,11 @@
 {{-- E-03: representação canônica da timeline (única fonte visual).
-     Interface: $conversation (com messages ordenadas), $canViewSensitiveMedia.
-     SSR inicial e polling usam este partial; JS não reconstrói markup. --}}
+     Interface: $conversation (com messages ordenadas), $canViewSensitiveMedia,
+     $canViewNotes. JS não reconstrói markup. --}}
 @php
     $previousDate = null;
     $today = \Illuminate\Support\Carbon::today();
     $yesterday = \Illuminate\Support\Carbon::yesterday();
+    $showNotes = $canViewNotes ?? false;
 @endphp
 @forelse ($conversation->messages as $message)
     @php
@@ -79,5 +80,14 @@
 @empty
     <p class="py-10 text-center text-gray-600 dark:text-gray-300">@lang('topweb_chat::app.messages.empty')</p>
 @endforelse
+@if ($showNotes)
+    @foreach (($conversation->internalNotes ?? collect()) as $note)
+        <div class="topweb-chat-internal-note mx-6 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+            <p class="font-bold">Nota interna — visível só para a equipe</p>
+            <p class="whitespace-pre-wrap break-words">{{ $note->content }}</p>
+            <p class="opacity-70">{{ $note->user?->name }} · {{ $note->created_at?->format('d/m/Y H:i') }}</p>
+        </div>
+    @endforeach
+@endif
 <div id="topweb-chat-anchor" style="height: 1px;" aria-hidden="true"></div>
 <div id="topweb-chat-poll-meta" class="hidden" data-instance-status="{{ $conversation->instance?->status ?? 'unknown' }}" data-last-id="{{ $conversation->messages->last()?->id ?? 0 }}"></div>
