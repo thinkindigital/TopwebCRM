@@ -68,7 +68,6 @@ it('keeps the composer outside the scrollable chronological timeline', function 
         'min-h-0 flex-1 flex-col justify-start',
         'height: clamp(30rem, calc(100dvh - 10rem), 48rem)',
         'style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"',
-        'flex-shrink-0',
         'data-retry-url',
         'timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 100',
         'renderFragment',
@@ -91,6 +90,7 @@ it('keeps the composer outside the scrollable chronological timeline', function 
         'data-message-id'
     )->and($composer)->toContain(
         'id="topweb-chat-send-form"',
+        'flex-shrink-0',
         'name="operation_key"'
     )->and(strpos($view, 'timeline-messages'))
         ->toBeLessThan(strpos($view, 'partials.composer'))
