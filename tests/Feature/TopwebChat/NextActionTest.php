@@ -158,3 +158,24 @@ it('hides the owner from other non-admin viewers', function () {
 
     expect($service->envelope($today, $other, false)['owner'])->toBeNull();
 });
+
+it('lists recent envelopes without system noise', function () {
+    ['agent' => $agent, 'lead' => $lead, 'today' => $today] = actionContext();
+    $service = app(NextActionService::class);
+
+    $recents = $service->recentEnvelopes($lead->id, $agent, false);
+
+    expect($recents)->not->toBeEmpty();
+    expect(collect($recents)->pluck('kind')->all())->not->toContain('SYSTEM');
+    expect(json_encode($recents))->not->toContain('Ligar agora');
+
+    expect($service->recentEnvelopes(999999, $agent, false))->toEqual([]);
+});
+
+it('keeps instance technical and recents in the aside', function () {
+    $view = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    );
+
+    expect($view)->toContain('next_action.recent', 'topweb_chat.settings.index');
+});

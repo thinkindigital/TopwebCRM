@@ -85,8 +85,28 @@ class NextActionService
     }
 
     /**
-     * @return array<int, array{overdue: bool, today: bool}>
+     * @return array<int, array{kind: string, when: string, status: string, owner: ?string}>
      */
+    public function recentEnvelopes(?int $leadId, User $viewer, bool $isAdmin, int $limit = 3): array
+    {
+        if (! $leadId) {
+            return [];
+        }
+
+        return Activity::query()
+            ->join('lead_activities', 'lead_activities.activity_id', '=', 'activities.id')
+            ->where('lead_activities.lead_id', $leadId)
+            ->whereNotIn('activities.type', self::SYSTEM_TYPES)
+            ->orderByDesc('activities.updated_at')
+            ->limit($limit)
+            ->select('activities.*')
+            ->with('user')
+            ->get()
+            ->map(fn (Activity $activity) => $this->envelope($activity, $viewer, $isAdmin))
+            ->filter()
+            ->values()
+            ->all();
+    }
     public function flagsForLeadIds(array $leadIds): array
     {
         $leadIds = array_values(array_unique(array_filter($leadIds)));

@@ -141,7 +141,9 @@
                 <div class="mt-3 grid gap-2 text-sm text-gray-600 dark:text-gray-300">
                     <p>@lang('topweb_chat::app.crm.person'): {{ $conversation->person?->name ?? trans('topweb_chat::app.crm.not_linked') }}</p>
                     <p>@lang('topweb_chat::app.crm.lead'): {{ $conversation->lead?->title ?? trans('topweb_chat::app.crm.not_linked') }}</p>
-                    <p>@lang('topweb_chat::app.crm.instance'): {{ $conversation->instance?->name }}</p>
+                    @if (bouncer()->hasPermission('topweb_chat.settings.index'))
+                        <p>@lang('topweb_chat::app.crm.instance'): {{ $conversation->instance?->name }}</p>
+                    @endif
                 </div>
 
                 <div class="mt-3 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-950">
@@ -164,6 +166,19 @@
                         </a>
                     @endif
                 </div>
+
+                @if ($recentActions !== [])
+                    <div class="mt-3 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-950">
+                        <p class="font-semibold text-gray-800 dark:text-white">@lang('topweb_chat::app.next_action.recent')</p>
+                        <ul class="mt-1 grid gap-1.5">
+                            @foreach ($recentActions as $recent)
+                                <li class="text-gray-700 dark:text-gray-200">
+                                    {{ trans('topweb_chat::app.next_action.kind_'.$recent['kind']) }}@if ($recent['when']) · {{ $recent['when'] }}@endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 @if (
                     $conversation->lead

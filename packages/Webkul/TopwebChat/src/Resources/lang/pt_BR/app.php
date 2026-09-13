@@ -131,6 +131,7 @@ return [
         'title' => 'Próxima ação',
         'none' => 'Nenhuma próxima ação',
         'manage' => 'Gerenciar follow-ups',
+        'recent' => 'Recentes',
         'overdue_dot' => 'Ação vencida',
         'today_dot' => 'Ação para hoje',
         'kind_CALL' => 'Ligação',

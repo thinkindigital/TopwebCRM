@@ -131,6 +131,7 @@ return [
         'title' => 'Next action',
         'none' => 'No next action',
         'manage' => 'Manage follow-ups',
+        'recent' => 'Recent',
         'overdue_dot' => 'Overdue action',
         'today_dot' => 'Action due today',
         'kind_CALL' => 'Call',

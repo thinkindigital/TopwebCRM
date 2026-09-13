@@ -149,6 +149,11 @@ class ConversationController
                     $this->access->isAdministrator($user)
                 )
                 : null,
+            'recentActions' => $this->nextActions->recentEnvelopes(
+                $conversation->lead_id,
+                $user,
+                $this->access->isAdministrator($user)
+            ),
         ]);
     }
 
