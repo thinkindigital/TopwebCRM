@@ -91,6 +91,18 @@
                             @if ($conversation->unread_count)
                                 <span class="label-active">{{ $conversation->unread_count }}</span>
                             @endif
+                            @php
+                                $actionFlag = $conversation->lead_id
+                                    ? ($nextActionFlags[$conversation->lead_id] ?? null)
+                                    : null;
+                            @endphp
+                            @if ($actionFlag && ($actionFlag['overdue'] || $actionFlag['today']))
+                                <span
+                                    class="topweb-chat-action-dot inline-block h-2.5 w-2.5 rounded-full {{ $actionFlag['overdue'] ? 'bg-red-600' : 'bg-amber-500' }}"
+                                    title="@lang($actionFlag['overdue'] ? 'topweb_chat::app.next_action.overdue_dot' : 'topweb_chat::app.next_action.today_dot')"
+                                    aria-label="@lang($actionFlag['overdue'] ? 'topweb_chat::app.next_action.overdue_dot' : 'topweb_chat::app.next_action.today_dot')"
+                                ></span>
+                            @endif
                         </div>
 
                         <p class="truncate text-sm text-gray-600 dark:text-gray-300">{{ $remoteId }}</p>

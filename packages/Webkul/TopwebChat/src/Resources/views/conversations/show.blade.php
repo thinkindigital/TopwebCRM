@@ -144,6 +144,27 @@
                     <p>@lang('topweb_chat::app.crm.instance'): {{ $conversation->instance?->name }}</p>
                 </div>
 
+                <div class="mt-3 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-950">
+                    <p class="font-semibold text-gray-800 dark:text-white">@lang('topweb_chat::app.next_action.title')</p>
+                    @if ($nextAction)
+                        <p class="mt-1 text-gray-700 dark:text-gray-200">
+                            {{ trans('topweb_chat::app.next_action.kind_'.$nextAction['kind']) }}
+                            @if ($nextAction['when']) · {{ $nextAction['when'] }}@endif
+                            @if ($nextAction['status'] === 'overdue') · @lang('topweb_chat::app.next_action.overdue_dot')@endif
+                        </p>
+                        @if ($nextAction['owner'])
+                            <p class="text-xs text-gray-500">{{ $nextAction['owner'] }}</p>
+                        @endif
+                    @else
+                        <p class="mt-1 text-gray-500">@lang('topweb_chat::app.next_action.none')</p>
+                    @endif
+                    @if ($conversation->lead)
+                        <a href="{{ route('admin.leads.view', $conversation->lead) }}" class="mt-1 inline-block text-xs font-medium text-brandColor hover:underline">
+                            @lang('topweb_chat::app.next_action.manage')
+                        </a>
+                    @endif
+                </div>
+
                 @if (
                     $conversation->lead
                     && bouncer()->hasPermission('topweb_chat.inbox.stage')

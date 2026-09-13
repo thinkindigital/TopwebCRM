@@ -21,6 +21,7 @@ use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Repositories\ConversationRepository;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 use Webkul\TopwebChat\Services\MessageService;
+use Webkul\TopwebChat\Services\NextActionService;
 use Webkul\User\Models\User;
 
 class ConversationController
@@ -30,7 +31,8 @@ class ConversationController
         protected ConversationAccessService $access,
         protected MessageService $messages,
         protected SensitiveDataService $sensitiveData,
-        protected SensitiveFileService $sensitiveFiles
+        protected SensitiveFileService $sensitiveFiles,
+        protected NextActionService $nextActions
     ) {}
 
     public function index(Request $request): View
@@ -51,13 +53,21 @@ class ConversationController
         // V-01: contadores honestos, derivados do mesmo escopo autorizado.
         $isAdministrator = $this->access->isAdministrator($user);
 
+        $conversations = $this->conversationRepository
+            ->accessibleQuery($user, $queue)
+            ->paginate(30)
+            ->withQueryString();
+
+        // V-04: um dot por linha, sem conteúdo — uma query para a página toda.
+        $nextActionFlags = $this->nextActions->flagsForLeadIds(
+            $conversations->getCollection()->pluck('lead_id')->filter()->all()
+        );
+
         return view('topweb_chat::conversations.index', [
             'queue' => $queue,
-            'conversations' => $this->conversationRepository
-                ->accessibleQuery($user, $queue)
-                ->paginate(30)
-                ->withQueryString(),
+            'conversations' => $conversations,
             'selectedConversation' => null,
+            'nextActionFlags' => $nextActionFlags,
             'queueCounts' => [
                 'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
                 'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
@@ -132,6 +142,13 @@ class ConversationController
                 : collect(),
             'canViewSensitiveMedia' => $this->sensitiveData->canView($user),
             'canViewNotes' => bouncer()->hasPermission('topweb_chat.inbox.notes'),
+            'nextAction' => $conversation->lead_id
+                ? $this->nextActions->envelope(
+                    $this->nextActions->nextForLead($conversation->lead_id),
+                    $user,
+                    $this->access->isAdministrator($user)
+                )
+                : null,
         ]);
     }
 
