@@ -40,8 +40,10 @@
         </div>
 
         <div class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-            @php($isAdmin = auth()->guard('user')->user()->role?->permission_type === 'all')
-            @php($blindQueue = $queue === 'unassigned' && ! $isAdmin)
+            @php
+                $isAdmin = auth()->guard('user')->user()->role?->permission_type === 'all';
+                $blindQueue = $queue === 'unassigned' && ! $isAdmin;
+            @endphp
             @forelse ($conversations as $conversation)
                 @if ($blindQueue)
                     {{-- V-01/A3: item cego — sem identidade, sem preview, sem link para a conversa. --}}
