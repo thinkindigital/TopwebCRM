@@ -13,7 +13,7 @@ use Webkul\User\Models\User;
 beforeEach(function () {
     config()->set('app.debug', false);
 
-    foreach (['topweb_chat_messages', 'topweb_chat_conversations', 'topweb_chat_instances', 'persons', 'users', 'roles', 'core_config'] as $table) {
+    foreach (['topweb_chat_messages', 'topweb_chat_conversations', 'topweb_chat_instances', 'persons', 'users', 'roles', 'activities', 'core_config'] as $table) {
         Schema::dropIfExists($table);
     }
 
@@ -71,6 +71,15 @@ beforeEach(function () {
         $table->increments('id');
         $table->string('code');
         $table->string('value')->nullable();
+        $table->timestamps();
+    });
+
+    Schema::create('activities', function (Blueprint $table) {
+        $table->increments('id');
+        $table->string('type')->nullable();
+        $table->string('title')->nullable();
+        $table->boolean('is_done')->default(false);
+        $table->unsignedInteger('user_id')->nullable();
         $table->timestamps();
     });
 
