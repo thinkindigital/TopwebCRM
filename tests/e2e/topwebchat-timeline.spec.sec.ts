@@ -47,6 +47,83 @@ test('sem permissão: show, messages, media e client-events bloqueados', async (
   expect([401, 403, 404, 419]).toContain(postStatus);
 });
 
+test('fragmento exige auth e respeita escopo', async ({ page }) => {
+  // Sem login: redirect, sem HTML.
+  const anon = await page.evaluate(async (u) => {
+    const res = await fetch(u, { headers: { Accept: 'text/html' } });
+    return { status: res.status, body: await res.text() };
+  }, conversationUrl('/messages?fragment=timeline'));
+  expect([401, 403, 404]).toContain(anon.status);
+
+  // Usuário sem inbox.view: bloqueado também no fragmento.
+  await page.goto('/admin/login');
+  await page.locator('input[name="email"]').fill(process.env.E2E_USER_EMAIL ?? '');
+  await page.locator('input[name="password"]').fill(process.env.E2E_USER_PASSWORD ?? '');
+  await page.locator('form button.primary-button').click();
+  await expect(page).not.toHaveURL(/login/);
+  const denied = await page.evaluate(async (u) => {
+    const res = await fetch(u, { headers: { Accept: 'text/html' } });
+    return res.status;
+  }, conversationUrl('/messages?fragment=timeline'));
+  expect([401, 403, 404]).toContain(denied);
+});
+
+test('notas internas não vazam no fragmento sem permissão', async ({ browser }) => {
+  const secret = `NOTA-E2E-${Date.now()}`;
+  const adminCtx = await browser.newContext();
+  const admin = await adminCtx.newPage();
+  await admin.goto('/admin/login');
+  await admin.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL ?? '');
+  await admin.locator('input[name="password"]').fill(process.env.E2E_ADMIN_PASSWORD ?? '');
+  await admin.locator('form button.primary-button').click();
+  await expect(admin).not.toHaveURL(/login/);
+  await admin.goto(conversationUrl());
+  const token = await admin.evaluate(() => (
+    document.querySelector('#topweb-chat-send-form [name="_token"]')?.getAttribute('value') ?? ''
+  ));
+  const created = await admin.evaluate(async ({ url, csrf, content }) => {
+    const res = await fetch(url, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrf },
+      body: new URLSearchParams({ content }),
+    });
+    return res.status;
+  }, { url: conversationUrl('/notes'), csrf: token, content: secret });
+  expect([200, 302]).toContain(created);
+
+  const userCtx = await browser.newContext();
+  const user = await userCtx.newPage();
+  await user.goto('/admin/login');
+  await user.locator('input[name="email"]').fill(process.env.E2E_USER_EMAIL ?? '');
+  await user.locator('input[name="password"]').fill(process.env.E2E_USER_PASSWORD ?? '');
+  await user.locator('form button.primary-button').click();
+  await expect(user).not.toHaveURL(/login/);
+  const body = await user.evaluate(async (u) => {
+    const res = await fetch(u, { headers: { Accept: 'text/html' } });
+    return await res.text();
+  }, conversationUrl('/messages?fragment=timeline'));
+  expect(body).not.toContain(secret);
+  await adminCtx.close();
+  await userCtx.close();
+});
+
+test('assignment sem permissão é bloqueado', async ({ page }) => {
+  await page.goto('/admin/login');
+  await page.locator('input[name="email"]').fill(process.env.E2E_USER_EMAIL ?? '');
+  await page.locator('input[name="password"]').fill(process.env.E2E_USER_PASSWORD ?? '');
+  await page.locator('form button.primary-button').click();
+  await expect(page).not.toHaveURL(/login/);
+  const status = await page.evaluate(async (u) => {
+    const res = await fetch(u, {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': 'x' },
+      body: JSON.stringify({ assigned_user_id: 1 }),
+    });
+    return res.status;
+  }, conversationUrl('/assignment'));
+  expect([401, 403, 404, 419]).toContain(status);
+});
+
 test('client-events rejeita nível e contexto inválidos', async ({ page }) => {
   // Login como ADMIN (tem permissão): a validação 422 precisa ser alcançável.
   await page.goto('/admin/login');
