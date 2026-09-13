@@ -1,17 +1,22 @@
 <?php
 
 it('keeps the media composer affordances in the timeline view', function () {
-    $view = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    $composer = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
+    );
+    $runtime = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/chat-runtime.blade.php')
     );
 
-    expect($view)->toContain(
+    expect($composer)->toContain(
         'id="topweb-chat-attach-image"',
         'id="topweb-chat-media-input"',
         'id="topweb-chat-attach-document"',
         'id="topweb-chat-document-input"',
         'id="topweb-chat-media-preview"',
-        'id="topweb-chat-content"',
+        'id="topweb-chat-content"'
+    );
+    expect($runtime)->toContain(
         'clearMediaPreview',
         "reportClientEvent('error', 'client.send_failed'",
     );

@@ -57,40 +57,62 @@ it('keeps the composer outside the scrollable chronological timeline', function 
         base_path('packages/Webkul/TopwebChat/src/Services/WebhookProcessor.php')
     );
 
+    $partial = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/timeline-messages.blade.php')
+    );
+    $composer = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
+    );
+    $header = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/conversation-header.blade.php')
+    );
+    $runtime = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/chat-runtime.blade.php')
+    );
+
     expect($view)->toContain(
         'min-h-0 flex-1 flex-col justify-start',
         'height: clamp(30rem, calc(100dvh - 10rem), 48rem)',
-        'style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"',
-        'id="topweb-chat-send-form"',
-        'flex-shrink-0',
-        'data-retry-url',
+        'style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"'
+    );
+    expect($runtime)->toContain(
         'timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 100',
-        'lastMessagesSignature',
+        'renderFragment',
         'distanceFromBottom',
         'window.requestAnimationFrame(restoreScroll)',
         "replaceAll('_', '-')",
         'getCanonicalLocales',
-        'new Intl.DateTimeFormat(browserLocale',
+        'toLocaleTimeString(browserLocale)',
         "console.error('TopwebChat refresh failed.'",
         'window.setTimeout(() => {',
         'timeline_connected: timeline.isConnected',
-        'client.render_mismatch',
-        'topweb-chat-sync-status',
         "cache: 'no-store'",
         'window.setTimeout(poll, 3000)',
-        "message.media_mime?.startsWith('image/')",
         "timeline.scrollTo({ top: timeline.scrollHeight, behavior: 'smooth' })",
         "event.key === 'Enter' && !event.shiftKey"
-    )->and(strpos($view, 'id="topweb-chat-timeline"'))
-        ->toBeLessThan(strpos($view, 'id="topweb-chat-send-form"'))
-        ->and($controller)->toContain(
-            "orderByRaw('COALESCE(sent_at, created_at) DESC')",
-            "->orderByDesc('id')",
-            '->reverse()'
-        )->and($processor)->toContain(
-            "str_ends_with(\$remoteId, '@newsletter')",
-            "str_ends_with(\$remoteId, '@broadcast')"
-        );
+    );
+    expect($header)->toContain('topweb-chat-sync-status');
+    expect($partial)->toContain(
+        'topweb-chat-poll-meta',
+        'topweb-chat-date-separator',
+        'data-message-id',
+        'data-retry-url'
+    );
+    expect($composer)->toContain(
+        'id="topweb-chat-send-form"',
+        'flex-shrink-0',
+        'name="operation_key"'
+    );
+    expect(strpos($view, 'timeline-messages'))
+        ->toBeLessThan(strpos($view, 'partials.composer'));
+    expect($controller)->toContain(
+        "orderByRaw('COALESCE(sent_at, created_at) DESC')",
+        "->orderByDesc('id')",
+        '->reverse()'
+    )->and($processor)->toContain(
+        "str_ends_with(\$remoteId, '@newsletter')",
+        "str_ends_with(\$remoteId, '@broadcast')"
+    );
 });
 
 it('keeps media behind an authorized private route', function () {

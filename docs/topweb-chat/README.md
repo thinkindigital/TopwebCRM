@@ -25,7 +25,7 @@ O código atual contém:
 - **clip menu UX**: Imagem/Vídeo (sendMedia) + Documento (sendDocument) sempre visíveis; Localização/Contato apenas para `can_view_sensitive_data`;
 - **visual bug fix**: formulário de envio movido para fora do container de scroll (não mais empurrado por preview de imagem);
 - **media UX**: Imagem/Vídeo via `sendMedia` (preview inline); Documento via `sendDocument` (anexo);
-- **BaileysProvider** skeleton implementando `MessagingProvider` para engine `baileys` (envio de mídia nativo funcionando).
+- **BaileysProvider** implementando `MessagingProvider` para engine `baileys`, com paridade funcional e envio de mídia nativo (Epic E13, #80).
 
 Os testes de feature em `tests/Feature/TopwebChat` cobrem o contrato HTTP principal, Settings, webhook, histórico, retry/timeline e geração da URL pública. Isso não substitui o smoke test com uma sessão WhatsApp real em cada release.
 
@@ -151,12 +151,13 @@ Ao salvar, a API key, o segredo do webhook e demais atributos sensíveis usam cr
 
 Uma resposta HTTP de aceite não prova entrega ao destinatário. Timeout após chamada externa pode deixar o resultado como desconhecido; nesse caso nunca faça retry cego.
 
-### Fila sem atendente
+### Fila sem atendente (decisão A3)
 
 1. Administradores podem desatribuir qualquer conversa pelo painel lateral da conversa.
 2. O agente responsável pode devolver sua própria conversa para a fila sem atendente.
-3. Conversas abertas sem `assigned_user_id` aparecem na aba **Sem atendente** para todos os agentes autorizados no TopwebChat.
-4. O primeiro agente que responder assume a conversa dentro da mesma transação que cria a mensagem. Respostas concorrentes posteriores são recusadas se a conversa já tiver sido assumida por outro agente.
+3. Itens sem responsável aparecem na aba **Sem atendente** como **não identificáveis** (tempo de espera + botão Assumir; sem nome, preview ou link) para agentes; administradores veem identificado.
+4. O claim (botão ou primeiro outbound autorizado) revela o contexto em transação atômica; quem perde a corrida recebe erro nomeando o dono atual.
+5. Abas com contadores no escopo (`Meus`, `Sem atendente`, `Todos` só admin).
 
 ### Entrada
 
@@ -189,6 +190,7 @@ O scheduler registra:
 - `topweb-chat:reconcile --history` a cada cinco minutos, para conversas conhecidas.
 - `topweb-chat:close-stale-attendances` a cada minuto, para encerrar janelas inativas;
 - `topweb-chat:project-lead-media` a cada cinco minutos, para reconciliar mídia armazenada após associação tardia do Lead.
+- `topweb-chat:retry-failed` a cada cinco minutos, para reenfileirar falhas por sessão desconectada que voltou a `ready`.
 
 Jobs usam a fila Laravel padrão. As opções `--state`, `--full` e `--limit` não existem no comando atual.
 

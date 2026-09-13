@@ -16,6 +16,9 @@ it('documents unassigned queue and atomic claim behavior in executable code', fu
     $repository = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Repositories/ConversationRepository.php')
     );
+    $aside = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
+    );
 
     expect($access)->toContain(
         'public function canUnassign',
@@ -27,7 +30,7 @@ it('documents unassigned queue and atomic claim behavior in executable code', fu
         'lockForUpdate()',
         'if ($lockedConversation->assigned_user_id === null)',
         '[\'assigned_user_id\' => $user->id]'
-    )->and($view)->toContain(
+    )->and($aside)->toContain(
         'topweb_chat::app.assignment.release',
         'topweb_chat::app.assignment.release_confirm',
         '$isAdmin || $conversation->assigned_user_id === null',
@@ -37,18 +40,18 @@ it('documents unassigned queue and atomic claim behavior in executable code', fu
     );
 });
 
-it('includes last_error in polling render signatures for media failures', function () {
+it('includes last_error in server-rendered messages for media failures', function () {
     $controller = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Http/Controllers/ConversationController.php')
     );
     $messageController = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Http/Controllers/MessageController.php')
     );
-    $view = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    $partial = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/timeline-messages.blade.php')
     );
 
     expect($controller)->toContain('\'last_error\' => $message->last_error')
         ->and($messageController)->toContain('\'last_error\' => $message->last_error')
-        ->and($view)->toContain('message.last_error');
+        ->and($partial)->toContain('$message->last_error');
 });

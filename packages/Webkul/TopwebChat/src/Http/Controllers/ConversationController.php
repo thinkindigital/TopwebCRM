@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 use Webkul\Contact\Models\Person;
@@ -20,6 +21,7 @@ use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Repositories\ConversationRepository;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 use Webkul\TopwebChat\Services\MessageService;
+use Webkul\TopwebChat\Services\NextActionService;
 use Webkul\User\Models\User;
 
 class ConversationController
@@ -29,7 +31,8 @@ class ConversationController
         protected ConversationAccessService $access,
         protected MessageService $messages,
         protected SensitiveDataService $sensitiveData,
-        protected SensitiveFileService $sensitiveFiles
+        protected SensitiveFileService $sensitiveFiles,
+        protected NextActionService $nextActions
     ) {}
 
     public function index(Request $request): View
@@ -47,13 +50,31 @@ class ConversationController
             $queue = 'mine';
         }
 
+        // V-01: contadores honestos, derivados do mesmo escopo autorizado.
+        $isAdministrator = $this->access->isAdministrator($user);
+
+        $conversations = $this->conversationRepository
+            ->accessibleQuery($user, $queue)
+            ->paginate(30)
+            ->withQueryString();
+
+        // V-04: um dot por linha, sem conteúdo — uma query para a página toda.
+        $nextActionFlags = $this->nextActions->flagsForLeadIds(
+            $conversations->getCollection()->pluck('lead_id')->filter()->all()
+        );
+
         return view('topweb_chat::conversations.index', [
             'queue' => $queue,
-            'conversations' => $this->conversationRepository
-                ->accessibleQuery($user, $queue)
-                ->paginate(30)
-                ->withQueryString(),
+            'conversations' => $conversations,
             'selectedConversation' => null,
+            'nextActionFlags' => $nextActionFlags,
+            'queueCounts' => [
+                'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
+                'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
+                'all' => $isAdministrator
+                    ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
+                    : 0,
+            ],
         ]);
     }
 
@@ -120,10 +141,23 @@ class ConversationController
                 ? User::query()->where('status', 1)->orderBy('name')->get()
                 : collect(),
             'canViewSensitiveMedia' => $this->sensitiveData->canView($user),
+            'canViewNotes' => bouncer()->hasPermission('topweb_chat.inbox.notes'),
+            'nextAction' => $conversation->lead_id
+                ? $this->nextActions->envelope(
+                    $this->nextActions->nextForLead($conversation->lead_id),
+                    $user,
+                    $this->access->isAdministrator($user)
+                )
+                : null,
+            'recentActions' => $this->nextActions->recentEnvelopes(
+                $conversation->lead_id,
+                $user,
+                $this->access->isAdministrator($user)
+            ),
         ]);
     }
 
-    public function messages(Request $request, Conversation $conversation): JsonResponse
+    public function messages(Request $request, Conversation $conversation): Response
     {
         abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
 
@@ -134,6 +168,24 @@ class ConversationController
 
         $user = auth()->guard('user')->user();
         $canViewSensitiveMedia = $this->sensitiveData->canView($user);
+
+        // E-03: fragmento do servidor como representação canônica da timeline.
+        if ($request->string('fragment')->toString() === 'timeline') {
+            $conversation->load([
+                'messages' => fn ($query) => $query
+                    ->orderByRaw('COALESCE(sent_at, created_at) DESC')
+                    ->orderByDesc('id')
+                    ->limit(100),
+                'internalNotes' => fn ($query) => $query->with('user')->orderBy('id'),
+            ]);
+            $conversation->setRelation('messages', $conversation->messages->reverse()->values());
+
+            return response()->view('topweb_chat::conversations.partials.timeline-messages', [
+                'conversation' => $conversation,
+                'canViewSensitiveMedia' => $canViewSensitiveMedia,
+                'canViewNotes' => bouncer()->hasPermission('topweb_chat.inbox.notes'),
+            ]);
+        }
         $messages = $conversation->messages()
             ->orderByRaw('COALESCE(sent_at, created_at) DESC')
             ->orderByDesc('id')

@@ -92,12 +92,12 @@ services:
       labels:
         - traefik.enable=true
         - traefik.docker.network=${TOPWEBCRM_PROXY_NETWORK:-renacesso}
-        - traefik.http.routers.topwebcrm.rule=Host(`${TOPWEBCRM_DOMAIN:-crm.scgroup.com.br}`)
-        - traefik.http.routers.topwebcrm.entrypoints=websecure
-        - traefik.http.routers.topwebcrm.tls=true
-        - traefik.http.routers.topwebcrm.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.topwebcrm.service=topwebcrm
-        - traefik.http.services.topwebcrm.loadbalancer.server.port=8080
+        - traefik.http.routers.${TOPWEBCRM_ROUTER_NAME:-topwebcrm}.rule=Host(`${TOPWEBCRM_DOMAIN:-crm.scgroup.com.br}`)
+        - traefik.http.routers.${TOPWEBCRM_ROUTER_NAME:-topwebcrm}.entrypoints=websecure
+        - traefik.http.routers.${TOPWEBCRM_ROUTER_NAME:-topwebcrm}.tls=true
+        - traefik.http.routers.${TOPWEBCRM_ROUTER_NAME:-topwebcrm}.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.${TOPWEBCRM_ROUTER_NAME:-topwebcrm}.service=${TOPWEBCRM_ROUTER_NAME:-topwebcrm}
+        - traefik.http.services.${TOPWEBCRM_ROUTER_NAME:-topwebcrm}.loadbalancer.server.port=8080
 
   topwebcrm_queue:
     <<: *topwebcrm-runtime
@@ -251,11 +251,16 @@ networks:
 secrets:
   topwebcrm_app_key:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_app_key
   topwebcrm_db_password:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_db_password
   topwebcrm_db_root_password:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_db_root_password
   topwebcrm_mail_password:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_mail_password
   topwebcrm_admin_password:
     external: true
+    name: ${TOPWEBCRM_SECRET_PREFIX:-topwebcrm}_admin_password
