@@ -7,6 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
+use Webkul\TopwebChat\Models\InternalNote;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\User\Models\Role;
 use Webkul\User\Models\User;
@@ -171,7 +172,7 @@ it('renders the initial timeline from the same partial', function () {
 
 it('explains ambiguous sends without offering retry', function () {
     ['admin' => $admin, 'conversation' => $conversation] = fragmentContext();
-    \Webkul\TopwebChat\Models\Message::query()->create([
+    Message::query()->create([
         'conversation_id' => $conversation->id, 'direction' => 'outgoing',
         'type' => 'text', 'content' => 'duvida', 'status' => 'unknown',
         'source' => 'topweb_chat', 'sent_at' => now(),
@@ -195,7 +196,7 @@ it('handles expired sessions on submit', function () {
 
 it('shows internal notes inline only to users with the notes permission', function () {
     ['admin' => $admin, 'conversation' => $conversation] = fragmentContext();
-    \Webkul\TopwebChat\Models\InternalNote::query()->create([
+    InternalNote::query()->create([
         'conversation_id' => $conversation->id, 'user_id' => $admin->id,
         'content' => 'cliente quer visitar sabado',
     ]);
@@ -206,11 +207,11 @@ it('shows internal notes inline only to users with the notes permission', functi
     $fragment->assertSee('cliente quer visitar sabado', false);
     $fragment->assertSee('topweb-chat-internal-note', false);
 
-    $agentRole = \Webkul\User\Models\Role::query()->create([
+    $agentRole = Role::query()->create([
         'name' => 'Agente', 'permission_type' => 'custom',
         'permissions' => ['topweb_chat.inbox.view'],
     ]);
-    $agent = \Webkul\User\Models\User::query()->create([
+    $agent = User::query()->create([
         'name' => 'Agente', 'email' => 'agente@example.com',
         'role_id' => $agentRole->id, 'status' => true,
     ]);

@@ -106,13 +106,13 @@ it('keeps the composer outside the scrollable chronological timeline', function 
     expect(strpos($view, 'timeline-messages'))
         ->toBeLessThan(strpos($view, 'partials.composer'));
     expect($controller)->toContain(
-            "orderByRaw('COALESCE(sent_at, created_at) DESC')",
-            "->orderByDesc('id')",
-            '->reverse()'
-        )->and($processor)->toContain(
-            "str_ends_with(\$remoteId, '@newsletter')",
-            "str_ends_with(\$remoteId, '@broadcast')"
-        );
+        "orderByRaw('COALESCE(sent_at, created_at) DESC')",
+        "->orderByDesc('id')",
+        '->reverse()'
+    )->and($processor)->toContain(
+        "str_ends_with(\$remoteId, '@newsletter')",
+        "str_ends_with(\$remoteId, '@broadcast')"
+    );
 });
 
 it('keeps media behind an authorized private route', function () {

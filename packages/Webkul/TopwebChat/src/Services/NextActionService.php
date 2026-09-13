@@ -107,6 +107,7 @@ class NextActionService
             ->values()
             ->all();
     }
+
     public function flagsForLeadIds(array $leadIds): array
     {
         $leadIds = array_values(array_unique(array_filter($leadIds)));
