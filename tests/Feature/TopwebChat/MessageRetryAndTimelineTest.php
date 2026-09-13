@@ -63,12 +63,19 @@ it('keeps the composer outside the scrollable chronological timeline', function 
     $composer = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
     );
+    $header = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/conversation-header.blade.php')
+    );
+    $runtime = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/chat-runtime.blade.php')
+    );
 
     expect($view)->toContain(
         'min-h-0 flex-1 flex-col justify-start',
         'height: clamp(30rem, calc(100dvh - 10rem), 48rem)',
-        'style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"',
-        'data-retry-url',
+        'style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"'
+    );
+    expect($runtime)->toContain(
         'timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 100',
         'renderFragment',
         'distanceFromBottom',
@@ -79,22 +86,26 @@ it('keeps the composer outside the scrollable chronological timeline', function 
         "console.error('TopwebChat refresh failed.'",
         'window.setTimeout(() => {',
         'timeline_connected: timeline.isConnected',
-        'topweb-chat-sync-status',
         "cache: 'no-store'",
         'window.setTimeout(poll, 3000)',
         "timeline.scrollTo({ top: timeline.scrollHeight, behavior: 'smooth' })",
         "event.key === 'Enter' && !event.shiftKey"
-    )->and($partial)->toContain(
+    );
+    expect($header)->toContain('topweb-chat-sync-status');
+    expect($partial)->toContain(
         'topweb-chat-poll-meta',
         'topweb-chat-date-separator',
-        'data-message-id'
-    )->and($composer)->toContain(
+        'data-message-id',
+        'data-retry-url'
+    );
+    expect($composer)->toContain(
         'id="topweb-chat-send-form"',
         'flex-shrink-0',
         'name="operation_key"'
-    )->and(strpos($view, 'timeline-messages'))
-        ->toBeLessThan(strpos($view, 'partials.composer'))
-        ->and($controller)->toContain(
+    );
+    expect(strpos($view, 'timeline-messages'))
+        ->toBeLessThan(strpos($view, 'partials.composer'));
+    expect($controller)->toContain(
             "orderByRaw('COALESCE(sent_at, created_at) DESC')",
             "->orderByDesc('id')",
             '->reverse()'
