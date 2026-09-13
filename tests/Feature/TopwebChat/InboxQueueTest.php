@@ -110,7 +110,10 @@ function queueContext(): array
     $adminRole = Role::query()->create(['name' => 'Admin', 'permission_type' => 'all']);
     $agentRole = Role::query()->create([
         'name' => 'Agente', 'permission_type' => 'custom',
-        'permissions' => ['topweb_chat.inbox', 'topweb_chat.inbox.view', 'topweb_chat.inbox.assign', 'dashboard'],
+        // Papel espelha os criados pela UI (pais inclusos): sem a chave pai o
+        // merge do menu Admin gera nó sem nome — fragilidade do Core fora do
+        // escopo V-01, registrada como achado.
+        'permissions' => ['topweb_chat', 'topweb_chat.inbox', 'topweb_chat.inbox.view', 'topweb_chat.inbox.assign', 'dashboard'],
     ]);
     $admin = User::query()->create([
         'name' => 'Admin', 'email' => 'admin@example.com',
