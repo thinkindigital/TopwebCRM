@@ -48,6 +48,9 @@ class ConversationController
             $queue = 'mine';
         }
 
+        // V-01: contadores honestos, derivados do mesmo escopo autorizado.
+        $isAdministrator = $this->access->isAdministrator($user);
+
         return view('topweb_chat::conversations.index', [
             'queue' => $queue,
             'conversations' => $this->conversationRepository
@@ -55,6 +58,13 @@ class ConversationController
                 ->paginate(30)
                 ->withQueryString(),
             'selectedConversation' => null,
+            'queueCounts' => [
+                'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
+                'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
+                'all' => $isAdministrator
+                    ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
+                    : 0,
+            ],
         ]);
     }
 

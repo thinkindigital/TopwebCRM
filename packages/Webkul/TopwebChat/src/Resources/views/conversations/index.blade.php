@@ -16,6 +16,7 @@
                     class="{{ $queue === 'mine' ? 'primary-button' : 'secondary-button' }}"
                 >
                     @lang('topweb_chat::app.queues.mine')
+                    <span class="topweb-chat-queue-count">{{ $queueCounts['mine'] ?? 0 }}</span>
                 </a>
 
                 <a
@@ -23,6 +24,7 @@
                     class="{{ $queue === 'unassigned' ? 'primary-button' : 'secondary-button' }}"
                 >
                     @lang('topweb_chat::app.queues.unassigned')
+                    <span class="topweb-chat-queue-count">{{ $queueCounts['unassigned'] ?? 0 }}</span>
                 </a>
 
                 @if (auth()->guard('user')->user()->role?->permission_type === 'all')
@@ -31,13 +33,42 @@
                         class="{{ $queue === 'all' ? 'primary-button' : 'secondary-button' }}"
                     >
                         @lang('topweb_chat::app.queues.all')
+                        <span class="topweb-chat-queue-count">{{ $queueCounts['all'] ?? 0 }}</span>
                     </a>
                 @endif
             </div>
         </div>
 
         <div class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            @php($isAdmin = auth()->guard('user')->user()->role?->permission_type === 'all')
+            @php($blindQueue = $queue === 'unassigned' && ! $isAdmin)
             @forelse ($conversations as $conversation)
+                @if ($blindQueue)
+                    {{-- V-01/A3: item cego — sem identidade, sem preview, sem link para a conversa. --}}
+                    <div class="topweb-chat-blind-item grid gap-2 border-b border-gray-200 p-4 dark:border-gray-800 md:grid-cols-[1fr_auto]">
+                        <div class="min-w-0">
+                            <p class="font-semibold text-gray-800 dark:text-white">
+                                @lang('topweb_chat::app.queues.unassigned')
+                            </p>
+                            <p class="text-sm text-gray-500">{{ $conversation->last_message_at?->diffForHumans() }}</p>
+                        </div>
+
+                        @if (bouncer()->hasPermission('topweb_chat.inbox.assign'))
+                            <form
+                                method="POST"
+                                action="{{ route('admin.topweb_chat.assignment.update', $conversation) }}"
+                                class="md:text-right"
+                            >
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="assigned_user_id" value="{{ auth()->guard('user')->user()->id }}">
+                                <button type="submit" class="primary-button">
+                                    @lang('topweb_chat::app.assignment.claim')
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                @else
                 @php
                     $sensitiveData = app(\App\Services\SensitiveDataService::class);
                     $remoteId = $sensitiveData->canView()
@@ -72,6 +103,7 @@
                         <p>{{ $conversation->last_message_at?->diffForHumans() }}</p>
                     </div>
                 </a>
+                @endif
             @empty
                 <div class="p-8 text-center text-gray-600 dark:text-gray-300">
                     @lang('topweb_chat::app.conversations.empty')
