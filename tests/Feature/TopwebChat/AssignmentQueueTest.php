@@ -16,6 +16,9 @@ it('documents unassigned queue and atomic claim behavior in executable code', fu
     $repository = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Repositories/ConversationRepository.php')
     );
+    $aside = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
+    );
 
     expect($access)->toContain(
         'public function canUnassign',
@@ -27,7 +30,7 @@ it('documents unassigned queue and atomic claim behavior in executable code', fu
         'lockForUpdate()',
         'if ($lockedConversation->assigned_user_id === null)',
         '[\'assigned_user_id\' => $user->id]'
-    )->and($view)->toContain(
+    )->and($aside)->toContain(
         'topweb_chat::app.assignment.release',
         'topweb_chat::app.assignment.release_confirm',
         '$isAdmin || $conversation->assigned_user_id === null',

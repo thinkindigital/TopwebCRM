@@ -184,13 +184,13 @@ it('explains ambiguous sends without offering retry', function () {
 });
 
 it('handles expired sessions on submit', function () {
-    $view = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    $runtime = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/chat-runtime.blade.php')
     );
 
-    expect($view)->toContain('message_queue_failed:${response.status}')
-        ->and($view)->toContain('messages.session_expired')
-        ->and($view)->toContain('window.location.reload()');
+    expect($runtime)->toContain('message_queue_failed:${response.status}')
+        ->and($runtime)->toContain('messages.session_expired')
+        ->and($runtime)->toContain('window.location.reload()');
 });
 
 it('shows internal notes inline only to users with the notes permission', function () {

@@ -173,9 +173,9 @@ it('lists recent envelopes without system noise', function () {
 });
 
 it('keeps instance technical and recents in the aside', function () {
-    $view = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    $aside = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
     );
 
-    expect($view)->toContain('next_action.recent', 'topweb_chat.settings.index');
+    expect($aside)->toContain('next_action.recent', 'topweb_chat.settings.index');
 });

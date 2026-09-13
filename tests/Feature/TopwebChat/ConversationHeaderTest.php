@@ -23,5 +23,5 @@ it('keeps header markup in a single place', function () {
         ->and($markup)->toContain('topweb-chat-instance-status');
 
     // O monólito não duplica o bloco extraído.
-    expect(substr_count($show, 'topweb-chat-connection-badge'))->toBe(1);
+    expect($show)->not->toContain('topweb-chat-connection-badge');
 });
