@@ -110,7 +110,7 @@ function queueContext(): array
     $adminRole = Role::query()->create(['name' => 'Admin', 'permission_type' => 'all']);
     $agentRole = Role::query()->create([
         'name' => 'Agente', 'permission_type' => 'custom',
-        'permissions' => ['topweb_chat.inbox', 'topweb_chat.inbox.view', 'topweb_chat.inbox.assign'],
+        'permissions' => ['topweb_chat.inbox', 'topweb_chat.inbox.view', 'topweb_chat.inbox.assign', 'dashboard'],
     ]);
     $admin = User::query()->create([
         'name' => 'Admin', 'email' => 'admin@example.com',
