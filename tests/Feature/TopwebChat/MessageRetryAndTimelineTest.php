@@ -60,12 +60,14 @@ it('keeps the composer outside the scrollable chronological timeline', function 
     $partial = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/timeline-messages.blade.php')
     );
+    $composer = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
+    );
 
     expect($view)->toContain(
         'min-h-0 flex-1 flex-col justify-start',
         'height: clamp(30rem, calc(100dvh - 10rem), 48rem)',
         'style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"',
-        'id="topweb-chat-send-form"',
         'flex-shrink-0',
         'data-retry-url',
         'timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 100',
@@ -87,8 +89,11 @@ it('keeps the composer outside the scrollable chronological timeline', function 
         'topweb-chat-poll-meta',
         'topweb-chat-date-separator',
         'data-message-id'
-    )->and(strpos($view, 'id="topweb-chat-timeline"'))
-        ->toBeLessThan(strpos($view, 'id="topweb-chat-send-form"'))
+    )->and($composer)->toContain(
+        'id="topweb-chat-send-form"',
+        'name="operation_key"'
+    )->and(strpos($view, 'timeline-messages'))
+        ->toBeLessThan(strpos($view, 'partials.composer'))
         ->and($controller)->toContain(
             "orderByRaw('COALESCE(sent_at, created_at) DESC')",
             "->orderByDesc('id')",

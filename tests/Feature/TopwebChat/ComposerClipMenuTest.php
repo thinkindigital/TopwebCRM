@@ -3,26 +3,26 @@
 // V-03: composer com clip menu SVG único, sem emoji funcional, sem affordance morta.
 
 it('uses a single svg clip menu without emoji buttons or dead contact action', function () {
-    $view = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    $composer = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
     );
 
-    expect($view)->toContain('id="topweb-chat-attach-menu"')
-        ->and($view)->toContain('<svg')
-        ->and($view)->not->toContain('id="topweb-chat-attach-contact"')
-        ->and($view)->not->toContain('name="contact"')
-        ->and($view)->not->toContain('>📷<')
-        ->and($view)->not->toContain('>📄<')
-        ->and($view)->not->toContain('>📍<')
-        ->and($view)->not->toContain('>👤<');
+    expect($composer)->toContain('id="topweb-chat-attach-menu"')
+        ->and($composer)->toContain('<svg')
+        ->and($composer)->not->toContain('id="topweb-chat-attach-contact"')
+        ->and($composer)->not->toContain('name="contact"')
+        ->and($composer)->not->toContain('>📷<')
+        ->and($composer)->not->toContain('>📄<')
+        ->and($composer)->not->toContain('>📍<')
+        ->and($composer)->not->toContain('>👤<');
 });
 
 it('keeps the working composer contracts untouched', function () {
-    $view = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    $composer = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
     );
 
-    expect($view)->toContain(
+    expect($composer)->toContain(
         'id="topweb-chat-attach-image"',
         'id="topweb-chat-media-input"',
         'id="topweb-chat-attach-document"',
