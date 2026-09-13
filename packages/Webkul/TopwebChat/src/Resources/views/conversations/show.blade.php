@@ -607,7 +607,7 @@
                         });
 
                         if (!response.ok) {
-                            throw new Error('message_queue_failed');
+                            throw new Error(`message_queue_failed:${response.status}`);
                         }
 
                         form.querySelector('textarea').value = '';
@@ -628,6 +628,12 @@
                             message: String(error?.message || error).slice(0, 240),
                             browser_locale: browserLocale,
                         });
+                        if (String(error?.message || '').endsWith(':419')) {
+                            window.alert(@json(trans('topweb_chat::app.messages.session_expired')));
+                            window.location.reload();
+
+                            return;
+                        }
                         window.alert(@json(trans('topweb_chat::app.messages.send_failed')));
                     } finally {
                         submit?.toggleAttribute(

@@ -169,6 +169,30 @@ it('renders the initial timeline from the same partial', function () {
     expect($show)->toContain('conversations.partials.timeline-messages');
 });
 
+it('explains ambiguous sends without offering retry', function () {
+    ['admin' => $admin, 'conversation' => $conversation] = fragmentContext();
+    \Webkul\TopwebChat\Models\Message::query()->create([
+        'conversation_id' => $conversation->id, 'direction' => 'outgoing',
+        'type' => 'text', 'content' => 'duvida', 'status' => 'unknown',
+        'source' => 'topweb_chat', 'sent_at' => now(),
+    ]);
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.messages.index', $conversation).'?fragment=timeline')
+        ->assertOk()
+        ->assertSee('topweb-chat-status-unknown', false);
+});
+
+it('handles expired sessions on submit', function () {
+    $view = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    );
+
+    expect($view)->toContain('message_queue_failed:${response.status}')
+        ->and($view)->toContain('messages.session_expired')
+        ->and($view)->toContain('window.location.reload()');
+});
+
 it('shows internal notes inline only to users with the notes permission', function () {
     ['admin' => $admin, 'conversation' => $conversation] = fragmentContext();
     \Webkul\TopwebChat\Models\InternalNote::query()->create([

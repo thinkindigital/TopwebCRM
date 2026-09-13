@@ -60,6 +60,9 @@
             <div class="mt-2 flex items-center gap-2 text-xs opacity-75">
                 <span>{{ $message->sent_at?->format('d/m/Y H:i') ?? $message->created_at?->format('d/m/Y H:i') }}</span>
                 <span>{{ $message->status }}</span>
+                @if ($message->status === 'unknown')
+                    <span class="topweb-chat-status-unknown" title="@lang('topweb_chat::app.messages.status_unknown_hint')">@lang('topweb_chat::app.messages.status_unknown_hint')</span>
+                @endif
                 @if ($message->status === 'failed' && $message->last_error)
                     <span class="text-red-600 dark:text-red-400" title="{{ $message->last_error }}">
                         {{ $message->last_error }}

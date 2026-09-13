@@ -85,6 +85,8 @@ return [
         'retry' => 'Try again',
         'retry_queued' => 'Message queued again for delivery.',
         'retry_not_available' => 'This message cannot be retried safely.',
+        'status_unknown_hint' => 'Unconfirmed delivery: resend is unavailable to avoid duplication.',
+        'session_expired' => 'Your session has expired. The page will reload for login.',
         'instance_not_connected' => 'Sending is temporarily disabled: reconcile the session and confirm it is ready.',
         'integration_unavailable' => 'OpenWA is partially unavailable. The CRM remains available, but history or read confirmation may be temporarily outdated.',
         'sync_connecting' => 'Connecting updates…',

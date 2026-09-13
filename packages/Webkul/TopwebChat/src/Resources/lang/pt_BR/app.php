@@ -85,6 +85,8 @@ return [
         'retry' => 'Tentar novamente',
         'retry_queued' => 'Mensagem adicionada novamente à fila.',
         'retry_not_available' => 'Esta mensagem não pode ser reenviada com segurança.',
+        'status_unknown_hint' => 'Envio sem confirmação: o reenvio está indisponível para evitar duplicidade.',
+        'session_expired' => 'Sua sessão expirou. A página será recarregada para login.',
         'instance_not_connected' => 'Envio temporariamente bloqueado: sincronize a sessão e confirme o estado ready.',
         'integration_unavailable' => 'O OpenWA está parcialmente indisponível. O CRM continua funcionando, mas o histórico ou a confirmação de leitura podem estar temporariamente desatualizados.',
         'sync_connecting' => 'Conectando atualização…',
