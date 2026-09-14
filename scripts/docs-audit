@@ -3,6 +3,7 @@ set -u
 
 DOCS_PATH="${DOCS_PATH:-.}"
 ROOT_PATH="${ROOT_PATH:-..}"
+DOCS_RE=${DOCS_PATH//./\\.}
 
 failures=0
 fail() { printf 'FAIL [%s] %s\n' "$1" "$2"; failures=$((failures + 1)); }
@@ -15,12 +16,12 @@ active_docs() {
 
 # DOC001: every explicit Markdown path in active docs resolves.
 missing=""
-while IFS= read -r ref; do
-  [ -e "$ref" ] || missing="$missing $ref"
-done < <(while IFS= read -r file; do
-  grep -hoE '\.\./[A-Za-z0-9_\-][A-Za-z0-9_\-/]*\.md' "$file"
-  grep -hoE '\./[A-Za-z0-9_\-][A-Za-z0-9_\-/]*\.md' "$file"
-done < <(active_docs) | sort -u)
+while IFS= read -r file; do
+  dir=${file%/*}
+  while IFS= read -r ref; do
+    [ -e "$dir/$ref" ] || [ -e "$ref" ] || missing="$missing $file->$ref"
+  done < <(grep -hoE '(\.\./)+[-A-Za-z0-9_][-/A-Za-z0-9_]*\.md|\./[-A-Za-z0-9_][-/A-Za-z0-9_]*\.md' "$file" | sort -u)
+done < <(active_docs)
 
 while IFS= read -r file; do
   dir=${file%/*}
@@ -81,11 +82,13 @@ done < <(grep -rl '^type: playbook$' "$DOCS_PATH" --include='*.md' 2>/dev/null |
 
 # DOC007: explicit ADR links resolve.
 missing=""
-while IFS= read -r file; do
-  grep -hoE "$DOCS_PATH/architecture/adr/[A-Za-z0-9_\-][A-Za-z0-9_\-/]*\.md" "$file"
-done < <(active_docs) | sort -u | while IFS= read -r ref; do
+refs=$(while IFS= read -r file; do
+  grep -hoE "$DOCS_RE/architecture/adr/[-A-Za-z0-9_][-/A-Za-z0-9_]*\.md" "$file"
+done < <(active_docs) | sort -u)
+while IFS= read -r ref; do
+  [ -z "$ref" ] && continue
   [ -e "$ref" ] || missing="$missing $ref"
-done
+done <<< "$refs"
 [ -z "$missing" ] && pass DOC007 'ADR links resolve' || fail DOC007 "missing:$missing"
 
 # DOC008: mandatory canonical sources cannot be ignored or untracked.
@@ -127,7 +130,7 @@ done < <(find "$DOCS_PATH/programs" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
 # DOC012: README is the index and links every canonical area.
 bad=""
 for path in "DOCUMENTATION-GOVERNANCE.md" "product/" "policies/" "architecture/" "modules/topweb-chat/README.md" "operations/" "programs/e14-commercial-workspace/README.md"; do
-  grep -qE "(\[|\(|\`|\s|^)($path|\./$path)(\]|\s|\)|\`|$)" "$DOCS_PATH/README.md" || bad="$bad $path"
+  grep -qE "(\[|\(|\`|\s|^)($path|\\./$path)(\]|\s|\)|\`|$)" "$DOCS_PATH/README.md" || bad="$bad $path"
 done
 [ -z "$bad" ] && pass DOC012 'README indexes canonical areas' || fail DOC012 "index:$bad"
 

@@ -16,6 +16,16 @@ Antes de analisar ou alterar o projeto, leia nesta ordem:
 
 Se um arquivo estiver ausente ou contradisser o codigo, registre a divergencia. A ordem de autoridade esta em `docs/README.md`.
 
+## Bootstrap do submodule de documentacao
+
+`docs/` e um submodule privado (`thinkindigital/TopwebCRM-docs`). Antes de
+usar qualquer documento canonico:
+
+1. se `docs/README.md` estiver ausente, execute
+   `git submodule update --init --recursive` e releia o indice;
+2. se o repositorio privado nao puder ser acessado, pare: nao implemente sem
+   a documentacao canonica e registre o bloqueio na Issue.
+
 ## Regras obrigatorias
 
 - Verifique a estrutura real do Krayin; nao presuma convencoes Laravel.
