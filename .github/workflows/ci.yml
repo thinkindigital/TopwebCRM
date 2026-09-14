@@ -36,6 +36,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Audit Documentation
+        run: scripts/docs-audit --strict
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:

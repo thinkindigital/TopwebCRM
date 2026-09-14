@@ -1,3 +1,14 @@
+---
+doc_id: domain-glossary
+type: glossary
+status: active
+authority: canonical
+scope: topwebcrm
+last_verified_commit: 205c296
+update_triggers: [domain-term, term-meaning]
+related: [docs/architecture/DOMAIN_MAP.md]
+---
+
 # Linguagem do TopwebCRM
 
 Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes de implementacao pertencem aos documentos do modulo e ADRs.
@@ -20,7 +31,9 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Administrador**: Usuario com escopo administrativo total no dominio correspondente. Administracao do CRM nao implica exposicao de credenciais de integracao no navegador.
 
-**Dono do Lead**: Usuario atribuido ao Lead e fonte de verdade para acesso as conversas vinculadas.
+**Dono do Lead**: Usuario responsável por um Lead.
+
+**Projecao operacional**: representação derivada de uma fonte de verdade, usada para apoiar uma operação sem criar autoridade própria.
 
 ## Seguranca
 
@@ -48,11 +61,11 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Conversa (Conversation)**: historico local entre uma Conta WhatsApp e uma Identidade Remota, vinculado a Pessoa, Lead quando conhecido e ao Dono do Lead. Atualmente o codigo ainda a vincula diretamente a uma Instancia.
 
-**Fila Sem Atendente**: conjunto operacional de Conversas abertas com `assigned_user_id` vazio. Fica visivel para agentes autorizados e a primeira Mensagem enviada por um agente assume a Conversa de forma atomica.
+**Fila Sem Atendente**: conjunto operacional de Conversas abertas que ainda não possuem atendente.
 
-**Estado da Conversa (decidido)**: estagio operacional explicito da Conversa (`nova`, `sem_atendente`, `atribuida`, `ativa`, `aguardando_cliente`, `escalada`, `encerrada`), persistido em coluna propria com backfill a partir do estado atual. Substitui a inferencia via `assigned_user_id`/`status`/`closed_at`.
+**Estado da Conversa**: estágio operacional explícito de uma Conversa.
 
-**SLA de Atendimento (decidido)**: prazo configuravel por pipeline para primeira resposta e retomadas, persistido em `sla_due_at`, com alerta aos 80% e escalonamento aos 100%.
+**SLA de Atendimento**: prazo operacional para primeira resposta ou retomada de uma Conversa.
 
 **Mensagem (Message)**: registro local de comunicacao recebida ou enviada, com tipo, conteudo, estado e identificador externo.
 
@@ -64,9 +77,9 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Arquivamento de Sessao (planejado)**: retirada de uma Sessao OpenWA da operacao, com logout remoto retentavel, sem apagar Conta WhatsApp, Conversas, Mensagens, notas, midias ou Activities.
 
-**Atendimento WhatsApp**: Activity agregadora aberta pela primeira Mensagem enviada por um Usuario do CRM e encerrada apos 24 horas sem Mensagem real.
+**Atendimento WhatsApp**: Activity que agrega uma janela de atendimento do TopwebChat.
 
-**Atendimento Continuado**: novo Atendimento WhatsApp aberto por Mensagem enviada por Usuario do CRM depois do encerramento de um atendimento anterior.
+**Atendimento Continuado**: Atendimento WhatsApp posterior a uma janela já encerrada.
 
 **Mensagem Real**: conteudo enviado ou recebido por uma pessoa. Reacao, ACK, leitura e evento tecnico nao sao Mensagens Reais.
 

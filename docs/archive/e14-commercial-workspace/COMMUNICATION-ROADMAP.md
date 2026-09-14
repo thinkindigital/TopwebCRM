@@ -1,3 +1,7 @@
+STATUS: ARCHIVED
+SUPERSEDED BY: docs/programs/e14-commercial-workspace/README.md
+DO NOT USE FOR IMPLEMENTATION
+
 # Projeto de evolucao do TopwebChat
 
 Este documento organiza a evolucao do chat como canal operacional de CRM. Ele nao substitui `ORCHESTRATOR-ROADMAP.md`; detalha o comportamento esperado do modulo TopwebChat.

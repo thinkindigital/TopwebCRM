@@ -1,3 +1,14 @@
+---
+doc_id: local-development
+type: runbook
+status: active
+authority: operational
+scope: development
+last_verified_commit: 205c296
+update_triggers: [compose, local-service, development-command]
+related: [docs/operations/DEPLOYMENT.md]
+---
+
 # Desenvolvimento local
 
 O `compose.yaml` inicia somente TopwebCRM, MySQL e Redis. O OpenWA é um projeto independente e precisa ser iniciado separadamente quando o fluxo WhatsApp estiver em teste.

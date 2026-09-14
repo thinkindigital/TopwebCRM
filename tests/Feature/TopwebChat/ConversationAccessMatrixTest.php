@@ -2,7 +2,7 @@
 
 // Matriz negativa de acesso a conversas (#23, slice 1).
 // Documenta o comportamento atual por perfil; divergências vs
-// SECURITY_RULES §14 / PRODUCT_RULES §11.3 são achados, não auto-fix.
+// AUTHORIZATION_POLICY e TopwebChat STATE são achados, não auto-fix.
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -195,7 +195,7 @@ it('documents unassigned conversation access for common users', function () {
     $this->get(route('admin.topweb_chat.show', $unassigned))->assertOk();
 
     // Comportamento atual: usuário comum enxerga conversa sem responsável.
-    // Diverge de SECURITY_RULES §14.2 / PRODUCT_RULES §11.3 — achado #23,
+    // Diverge de AUTHORIZATION_POLICY / TopwebChat STATE — achado #23,
     // sem auto-fix: mudar quebra o fluxo de claim (assignment).
     $this->actingAs($stranger, 'user');
     $this->get(route('admin.topweb_chat.show', $unassigned))->assertOk();

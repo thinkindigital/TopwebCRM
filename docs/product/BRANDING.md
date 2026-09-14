@@ -1,3 +1,14 @@
+---
+doc_id: branding
+type: product
+status: active
+authority: canonical
+scope: topwebcrm
+last_verified_commit: 205c296
+update_triggers: [brand-name, logo, visual-identity]
+related: [docs/product/UX_PRINCIPLES.md]
+---
+
 # Personalização de Marca do TopwebCRM
 
 ## Nome da Aplicação

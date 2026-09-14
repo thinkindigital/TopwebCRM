@@ -1,3 +1,14 @@
+---
+doc_id: deployment
+type: runbook
+status: active
+authority: operational
+scope: production
+last_verified_commit: 205c296
+update_triggers: [compose, secret, volume, healthcheck, release-workflow]
+related: [docs/operations/RELEASE_CHECKLIST.md]
+---
+
 # Produção no SetupOrion, Portainer e Docker Swarm
 
 Este é o runbook canônico para instalar, atualizar, verificar e recuperar TopwebCRM e OpenWA. Ele assume um servidor já preparado pelo SetupOrion com Docker Swarm, Portainer e Traefik.

@@ -1,3 +1,14 @@
+---
+doc_id: topwebchat-provider-openwa
+type: provider-contract
+status: active
+authority: canonical
+scope: topweb-chat
+last_verified_commit: 205c296
+update_triggers: [openwa-version, consumed-endpoint, authentication, webhook]
+related: [docs/modules/topweb-chat/STATE.md, docs/operations/TOPWEBCHAT.md]
+---
+
 # Contrato OpenWA consumido pelo TopwebCRM
 
 Este documento registra apenas o subconjunto da API externa usado pelo adapter. A existência de um endpoint no OpenWA não significa que exista uma ação correspondente na interface do CRM.

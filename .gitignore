@@ -15,12 +15,14 @@
 /storage/framework/sessions/
 /storage/framework/views/
 
-# Documentação privada local (decisões, segurança, dados sensíveis, histórico).
-# Mantida no disco, fora do repositório público. Ver ORCHESTRATOR-ROADMAP.
-docs/SECURITY_RULES.md
-docs/SENSITIVE_DATA_VISIBILITY.md
-docs/adr/
-docs/agents/
+# Referências pesadas e histórico privado permanecem locais. Decisões e
+# invariantes necessárias à execução ficam versionadas em docs/.
 docs/archive/
+!docs/archive/
+docs/archive/*
+!docs/archive/e14-commercial-workspace/
+!docs/archive/e14-commercial-workspace/*.md
+!docs/archive/documentation-reform/
+!docs/archive/documentation-reform/*.md
 docs/krayincrm/
 docs/reference/

@@ -73,15 +73,8 @@ O runbook único de instalação, release, validação, backup e rollback está 
 
 ## Documentação
 
-Comece por `docs/README.md`. Os documentos centrais são:
-
-- `CONTEXT.md`: linguagem e limites do domínio;
-- `docs/ARCHITECTURE.md`: decisões e fronteiras do sistema;
-- `docs/PRODUCT_RULES.md`: invariantes de produto;
-- `docs/SECURITY_RULES.md`: controles obrigatórios;
-- `docs/topweb-chat/README.md`: funcionamento e operação do TopwebChat;
-- `docs/topweb-chat/OPENWA.md`: contrato da API externa usado pelo adapter;
-- `docs/operations/DEPLOYMENT.md`: produção no SetupOrion, Portainer e Swarm.
+Comece e navegue somente por `docs/README.md`; ele aponta todas as fontes
+canônicas por objetivo.
 
 ## Contribuição
 

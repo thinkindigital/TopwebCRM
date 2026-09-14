@@ -1,8 +1,17 @@
-Não faça refatoração estética. Não renomeie sem necessidade. Não reorganize estrutura inteira. Foque só no objetivo.
+---
+doc_id: architecture
+type: architecture
+status: active
+authority: canonical
+scope: topwebcrm
+last_verified_commit: 205c296
+update_triggers: [component-boundary, dependency-direction, extension-pattern]
+related: [docs/architecture/SYSTEM_MAP.md, docs/architecture/adr/README.md]
+---
 
-# ARCHITECTURE.md — Princípios e Padrões (Resumo)
+# Arquitetura do TopwebCRM
 
-> **Fontes autoritativas:** `docs/README.md`, `CONTEXT.md`, ADRs aceitos em `docs/adr/` e código local
+> **Fontes autoritativas:** `docs/README.md`, `CONTEXT.md`, policies e ADRs versionados.
 
 ---
 
@@ -89,7 +98,7 @@ Ao analisar qualquer módulo Krayin, localizar:
 
 **Arquitetura:** Provider-agnostic via `MessagingProvider`  
 **Provedor Primário:** OpenWA (self-hosted, HMAC webhooks, API Key)  
-**Detalhes:** `docs/adr/0004-topwebchat-whatsapp-module.md` + `docs/topweb-chat/README.md` + `docs/topweb-chat/OPENWA.md`
+**Detalhes:** `docs/architecture/adr/0004-topwebchat-whatsapp-module.md` + `docs/modules/topweb-chat/README.md`
 
 **Requisitos Mínimos:**
 - Provedor desacoplado (adapter)

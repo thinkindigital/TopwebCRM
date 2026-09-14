@@ -1,44 +1,56 @@
+---
+doc_id: documentation-index
+type: entrypoint
+status: active
+authority: canonical-index
+scope: topwebcrm
+last_verified_commit: 205c296
+update_triggers: [canonical-document, reading-order, authority]
+related: [docs/DOCUMENTATION-GOVERNANCE.md]
+---
+
 # Documentação do TopwebCRM
 
-Este índice aponta para a fonte certa sem repetir o mesmo procedimento em vários lugares. Um comportamento só é tratado como implementado quando estiver confirmado no código e puder ser verificado por teste ou procedimento reproduzível.
+Este é o único índice documental. Um comportamento é implementado somente
+quando código e evidência reproduzível confirmam; decisão futura deve ser
+marcada como tal.
 
-## Leitura por objetivo
+## Ordem de leitura
 
-| Preciso entender... | Fonte canônica |
+1. `AGENTS.md`
+2. `docs/README.md`
+3. `CONTEXT.md`
+4. policies aplicáveis
+5. `docs/architecture/ARCHITECTURE.md`
+6. `docs/architecture/SYSTEM_MAP.md`
+7. README/STATE/CONTRACTS/SECURITY do módulo
+8. README/COVERAGE do programa, ADRs, Epic e Issue
+9. código, migrations, configuração e testes
+
+## Fontes por objetivo
+
+| Preciso entender | Fonte |
 |---|---|
-| linguagem, atores e limites do produto | `CONTEXT.md` |
-| arquitetura e fronteiras dos componentes | `docs/ARCHITECTURE.md` |
-| regras funcionais e de segurança | `docs/PRODUCT_RULES.md` e `docs/SECURITY_RULES.md` |
-| localização do código | `docs/SYSTEM_MAP.md` |
-| funcionamento e operação do TopwebChat | `docs/topweb-chat/README.md` |
-| endpoints OpenWA consumidos pelo CRM | `docs/topweb-chat/OPENWA.md` |
-| desenvolvimento local | `docs/operations/LOCAL_DEVELOPMENT.md` |
-| instalação, release e rollback no SetupOrion | `docs/operations/DEPLOYMENT.md` |
-| decisões arquiteturais aceitas | `docs/adr/` |
-| trabalho planejado ou pendente | `ORCHESTRATOR-ROADMAP.md` e GitHub Issues |
-| protocolo para agentes automatizados | `AGENTS.md` |
+| Linguagem | `CONTEXT.md` |
+| Governança dos documentos | `docs/DOCUMENTATION-GOVERNANCE.md` |
+| Produto e UX global | `docs/product/` |
+| Segurança, autorização e auditoria | `docs/policies/` |
+| Fronteiras e decisões | `docs/architecture/ARCHITECTURE.md` e `docs/architecture/adr/` |
+| Localização no checkout | `docs/architecture/SYSTEM_MAP.md` |
+| TopwebChat | `docs/modules/topweb-chat/README.md` |
+| Operação | `docs/operations/` |
+| Commercial Workspace | `docs/programs/e14-commercial-workspace/README.md` |
+| Trabalho pendente | `ORCHESTRATOR-ROADMAP.md` e GitHub Issues |
+| Skills | `docs/SKILL_MAP.md` |
 
-## Autoridade e estado
+## Autoridade
 
-Documentos de decisões (ADRs), regras de segurança, dados sensíveis, referências
-internas e histórico vivem apenas no checkout local e não são versionados.
-Em outro servidor, o agente trabalha com este índice, regras de produto,
-arquitetura, mapa do sistema, operação e roadmap.
+Em conflito: código/migrations/config/testes para CURRENT; policies para
+invariantes; ADRs vigentes para decisões; contexto e regras de produto;
+arquitetura e contratos de módulo; runbooks; programas; roadmap/Issues;
+referências e arquivo. Divergência entre CURRENT e DECIDED deve ficar explícita,
+nunca resolvida por silêncio.
 
-A ordem de autoridade é: código, migrations, configuração e testes; ADRs vigentes; contexto e regras; arquitetura e documentação de módulo; runbooks; roadmap e Issues; histórico e referências externas.
-
-Os termos usados na documentação têm significado específico:
-
-- **Implementado:** existe no código atual e possui verificação reproduzível.
-- **Decidido:** contrato aceito, mesmo que a entrega ainda esteja incompleta.
-- **Planejado:** escopo de roadmap ou Issue, sem garantia de disponibilidade.
-- **Histórico:** registro preservado, mas sem autoridade sobre o comportamento atual.
-- **Referência externa:** material de outro projeto, usado apenas como apoio.
-
-## Manutenção
-
-- Atualize a fonte canônica e apenas faça referência a ela nos demais documentos.
-- Não copie catálogos completos de APIs externas.
-- Não use um changelog ou uma tarefa concluída como especificação atual.
-- Atualize testes e documentação no mesmo slice de uma mudança funcional.
-- Use ADR somente para decisões duradouras, surpreendentes ou difíceis de reverter.
+Nenhuma fonte necessária para decidir, autorizar, implementar ou validar pode
+existir apenas no checkout local. Material privado pode ficar local; sua
+invariante sanitizada deve ser versionada.

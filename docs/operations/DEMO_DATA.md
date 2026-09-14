@@ -1,3 +1,14 @@
+---
+doc_id: demo-data
+type: runbook
+status: active
+authority: operational
+scope: demo
+last_verified_commit: 205c296
+update_triggers: [demo-command, demo-schema, demo-data]
+related: [docs/modules/topweb-chat/README.md]
+---
+
 # Dados Demo Comerciais
 
 Para preencher o CRM para apresentação comercial sem apagar acessos existentes, use o importador CSV aditivo:

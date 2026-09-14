@@ -1,4 +1,20 @@
+---
+doc_id: skill-map
+type: skillmap
+status: active
+authority: canonical
+scope: agents
+last_verified_commit: 205c296
+update_triggers: [skill-installed, skill-removed, workflow-changed]
+related: [docs/DOCUMENTATION-GOVERNANCE.md]
+---
+
 # SKILL_MAP — Mapa de skills
+
+## Documentation workflows
+
+Classes, autoridade, impactos e gates documentais vivem em
+`docs/DOCUMENTATION-GOVERNANCE.md`.
 
 > Só skills disponíveis + como se relacionam com o desenvolvimento do TopwebCRM.
 > Decisões, auditorias e problemas vivem nos lugares próprios (§4).
@@ -32,7 +48,7 @@
 | Skill | O que faz | Quando escolher aqui | Não confundir com |
 |---|---|---|---|
 | `orchestrator` | Gerente do ciclo fechado: verifica framework/GitHub, audita, monta DAG em Issues, delega às especializadas, exige QA antes de PR. Não executa trabalho pesado direto. | Qualquer programa ou etapa multi-skill; ponto de entrada padrão. | `grill-*` (mentoria pontual, sem DAG); `triage` (só move Issues). |
-| `setup-skills` | Provisiona artefatos de governança (`AGENTS.md`, `CONTEXT.md`, `docs/agents/`, `docs/adr/`). | Só se faltar artefato (hoje presentes). | `agent-md-refactor` (reforma docs inchados, não cria governança). |
+| `setup-skills` | Provisiona artefatos de governança (`AGENTS.md`, `CONTEXT.md`, `docs/agents/`, ADRs). | Só se faltar artefato (hoje presentes; ADRs canônicos em `docs/architecture/adr/`). | `agent-md-refactor` (reforma docs inchados, não cria governança). |
 | `roadmap` | Mantém `ORCHESTRATOR-ROADMAP.md`: Epics `E##` estáveis + Issues linkadas, sem renumerar nem inventar. | Reconciliar E08/E13 e decidir a E14, antes de fatiar. | `to-issues` (fatia o decidido; não decide Epics). |
 | `grill-feature-with-docs` | Mentoria de módulo **existente**: lê código + docs, confronta divergências, entrevista 1 pergunta por vez, gera/atualiza docs por arquivo. Nunca implementa. | Entender ou preparar um módulo com código (TopwebChat feito em 2026-09-11). | `grill-with-docs` (domínio/linguagem, sem código-alvo); `grill-me` (qualquer plano, sem docs). |
 | `grill-with-docs` | Mentoria de linguagem de domínio e ADRs antes de implementar. | Termo novo de domínio fora do TopwebChat. | `grill-feature-with-docs` (exige módulo com código). |
@@ -112,6 +128,6 @@ grill-feature-with-docs → roadmap → ui-ux-pro-max → prototype → veredito
 
 ## 4. Onde vive cada coisa
 
-- Decisões do grill + inventário do módulo: `docs/agents/topwebchat.md` (local).
+- Contexto para agentes: `docs/agents/`; contratos canônicos: `docs/modules/`.
 - Rastreamento e aceite: GitHub Issues + `ORCHESTRATOR-ROADMAP.md`.
 - Segredos e runtime: `/root/.topweb-ops/paths.md` (0600, fora do repo).

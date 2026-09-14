@@ -1,3 +1,14 @@
+---
+doc_id: system-map
+type: system-map
+status: active
+authority: canonical
+scope: topwebcrm
+last_verified_commit: 205c296
+update_triggers: [package, controller, service, repository, model, job, view, test]
+related: [docs/architecture/ARCHITECTURE.md]
+---
+
 # Mapa Operacional do TopwebCRM
 
 ## Como usar este mapa
@@ -103,20 +114,3 @@ Há quatro builds independentes:
 - WebForm: `packages/Webkul/WebForm/package.json` -> `public/webform/build`.
 
 O TopwebChat reutiliza Blade, Vue e classes do Admin; não possui build Vite próprio.
-
-## Pontos seguros de extensão
-
-- Novo domínio: pacote em `packages/Webkul`, seguindo contracts, proxies, providers e repositories.
-- Ações nas telas: eventos `view_render_event`, evitando cópia de views do Admin.
-- Integrações externas: contrato + adapter + service + job; controllers apenas validam e coordenam.
-- Dados sensíveis: `app/Services/SensitiveDataService.php` na saída e autorização backend; nunca somente máscara visual.
-- Arquivos sensíveis: `app/Services/SensitiveFileService.php` e disco `private`.
-
-## Zonas de risco
-
-- `bootstrap/providers.php`, `config/concord.php` e `composer.json`: erro impede bootstrap do módulo.
-- Bouncer, ACL, DataGrid e Resources: mudanças afetam várias telas, APIs e exportações.
-- Atributos EAV e JSON de contato: filtros ou updates ingênuos podem apagar ou revelar dados.
-- Migrations de pacote: não devem controlar colunas globais de outro domínio.
-- Eventos Blade recebem models; qualquer extensão deve reaplicar autorização e sanitização.
-- `storage/app/private`, `APP_KEY` e campos criptografados não podem ser perdidos entre releases.

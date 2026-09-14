@@ -6,7 +6,7 @@ O GitHub Issue de cada Epic e a fonte detalhada. Este arquivo resume objetivo, e
 
 ### [**[E01] Fundacao Documental e Governanca**](https://github.com/thinkindigital/TopwebCRM/issues/5) - `in_progress`
 
-Consolidar fontes de autoridade, glossario, ADRs, tracker e documentacao sem duplicidade.
+Consolidar fontes de autoridade, glossario, ADRs, tracker e documentacao sem duplicidade. Norma: `docs/DOCUMENTATION-GOVERNANCE.md`; índice: `docs/README.md`; cobertura E14: `docs/programs/e14-commercial-workspace/COVERAGE.md`. Playbook e inventário concluídos estão em `docs/archive/documentation-reform/`.
 
 ### [**[E02] Visibilidade de Dados Sensiveis**](https://github.com/thinkindigital/TopwebCRM/issues/6) - `in_progress`
 
@@ -34,7 +34,7 @@ Registrar acoes sensiveis, configuracoes, mensagens e atribuicoes em trilha imut
 
 ### [**[E08] Melhorias de UX Operacional**](https://github.com/thinkindigital/TopwebCRM/issues/3) - `in_progress`
 
-Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronologica e rolavel, filas operacionais claras, Kanban e metricas confiaveis.
+Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronologica e rolavel, filas operacionais claras, Kanban e metricas confiaveis. Fronteira com E14: busca global/Kanban/dashboard ficam em E08; busca escopada ao chat (§13 + zero-oráculo) é V-06 da E14, bloqueada por E10.
 
 ### [**[E09] Multi-provider e Evolution API**](https://github.com/thinkindigital/TopwebCRM/issues/4) - `todo`
 
@@ -42,7 +42,7 @@ Adicionar Evolution API somente apos contratos compartilhados e OpenWA estabiliz
 
 ### [**[E10] Propriedade e Distribuicao de Leads**](https://github.com/thinkindigital/TopwebCRM/issues/10) - `todo`
 
-Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API.
+Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. Decisão D04 grillada (ADR 0012 local); implementação pendente e bloqueia E14 V-06.
 
 ### [**[E11] Instalador Automatico TopwebCRM**](https://github.com/thinkindigital/TopwebCRM/issues/49) - `todo`
 
@@ -56,9 +56,9 @@ Catalogo de ferramentas com resolvedor de dependencias estilo SetupOrion: traefi
 
 Operar o engine Baileys do OpenWA como alternativa ao `whatsapp-web.js` via feature flag `TOPWEB_CHAT_ENGINE`, com paridade de `MessagingProvider` e smoke parametrizado. Restam migração assistida, auto-detecção e testes de integração no CI.
 
-### [**[E14] TopwebChat Commercial Workspace**](https://github.com/thinkindigital/TopwebCRM/issues/91) - `todo`
+### [**[E14] TopwebChat Commercial Workspace**](https://github.com/thinkindigital/TopwebCRM/issues/91) - `in_progress`
 
-Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/topweb-chat/TOPWEBCHAT-COMMERCIAL-WORKSPACE-SPEC.md`. Slices D-01, E-01–E-03, V-01–V-08; E08 mantém Kanban/dashboard/busca global.
+Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/programs/e14-commercial-workspace/MASTER.md`. Slices D-01, E-01–E-03, V-01–V-05, V-07, V-08 entregues (#92–#100, #102–#103); V-06 bloqueada por E10 (#101). Cobertura em `docs/programs/e14-commercial-workspace/COVERAGE.md`. E08 mantém Kanban/dashboard/busca global.
 
 ## Marcos
 
@@ -71,6 +71,8 @@ Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Ac
 | M5 Provedores alternativos | E09, E13 | Contrato compartilhado, Evolution validada e engine Baileys operacional |
 
 ## Ordem de execucao
+
+NEXT único: E10 (destrava V-06) — depois follow-ups do COVERAGE E14 (matriz viewport/dark/teclado, E2E V-02/V-04, ADR E-03).
 
 1. Concluir E01 e restaurar baseline de testes.
 2. Executar E03 e E05 em slices verticais pequenos.

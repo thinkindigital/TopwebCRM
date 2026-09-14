@@ -5,12 +5,12 @@
 Antes de analisar ou alterar o projeto, leia nesta ordem:
 
 1. `AGENTS.md`
-2. `CONTEXT.md`
-3. `docs/README.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/SECURITY_RULES.md`
-6. `docs/PRODUCT_RULES.md`
-7. documentacao canonica do modulo afetado
+2. `docs/README.md`
+3. `CONTEXT.md`
+4. policies aplicaveis em `docs/policies/`
+5. `docs/architecture/ARCHITECTURE.md`
+6. `docs/architecture/SYSTEM_MAP.md`
+7. documentacao canonica do modulo/programa afetado
 8. ADRs e GitHub Issues aplicaveis
 9. somente entao, codigo, migrations, configuracao e testes
 
@@ -28,29 +28,11 @@ Se um arquivo estiver ausente ou contradisser o codigo, registre a divergencia. 
 - Preserve alteracoes locais alheias ao trabalho atual.
 - Nao altere Scoop, PHP global, PATH ou servicos do host sem autorizacao explicita.
 
-## Dados sensiveis
+## Politicas
 
-Toda mudanca envolvendo Pessoa, Organizacao, Lead, Mensagem ou Activity deve verificar:
-
-- interface e URL direta;
-- autorizacao de backend;
-- API e Resources;
-- busca, filtro e autocomplete;
-- exportacao e relatorios;
-- arquivos e downloads;
-- logs, notificacoes e cache;
-- webhooks e integracoes.
-
-Se alguma superficie nao for validada, o trabalho e parcial.
-
-## Integracoes externas
-
-- Mantenha logica do provedor em adapter ou normalizador.
-- Controllers apenas validam, autorizam e coordenam.
-- Segredos ficam criptografados ou em configuracao segura e nunca retornam ao navegador.
-- Use jobs para fluxos assincronos e modele idempotencia, timeout, retry e reconciliacao.
-- Nao registre payload sensivel integral em logs.
-- Cubra contratos externos com testes reproduziveis.
+Seguranca, autorizacao, dados sensiveis e auditoria vivem em `docs/policies/`.
+Contratos de integracao e superficies obrigatorias vivem na documentacao do
+modulo. Nao replique essas regras aqui.
 
 ## GitHub e planejamento
 
