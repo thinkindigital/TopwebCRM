@@ -40,9 +40,9 @@ Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronolog
 
 Adicionar Evolution API somente apos contratos compartilhados e OpenWA estabilizado. Nao manter compatibilidade RyzeAPI.
 
-### [**[E10] Propriedade e Distribuicao de Leads**](https://github.com/thinkindigital/TopwebCRM/issues/10) - `todo`
+### [**[E10] Propriedade e Distribuicao de Leads**](https://github.com/thinkindigital/TopwebCRM/issues/10) - `in_progress`
 
-Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. Decisão D04 grillada (ADR 0012 local); implementação pendente e bloqueia E14 V-06.
+Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. D04/E10-S01 entregue (#15 fechada; CI verde): autoridade por dono, fila A3 sem Lead, cascata na transferência. Restam #19 (ingestão) e #20 (roleta). V-06 destravada.
 
 ### [**[E11] Instalador Automatico TopwebCRM**](https://github.com/thinkindigital/TopwebCRM/issues/49) - `todo`
 
@@ -72,7 +72,7 @@ Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Ac
 
 ## Ordem de execucao
 
-NEXT único: E10 (destrava V-06) — depois follow-ups do COVERAGE E14 (matriz viewport/dark/teclado, E2E V-02/V-04, ADR E-03).
+NEXT único: V-06 busca segura (#101, destravada por D04) — depois follow-ups do COVERAGE E14 (matriz viewport/dark/teclado, E2E V-02/V-04, ADR E-03). E14 segue PARTIAL.
 
 1. Concluir E01 e restaurar baseline de testes.
 2. Executar E03 e E05 em slices verticais pequenos.
