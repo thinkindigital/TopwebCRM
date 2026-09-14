@@ -22,21 +22,25 @@ it('documents unassigned queue and atomic claim behavior in executable code', fu
 
     expect($access)->toContain(
         'public function canUnassign',
-        '$conversation->assigned_user_id === $user->id'
+        '$conversation->assigned_user_id === $user->id',
+        'D04: onde ha Lead, o dono e a unica autoridade operacional',
+        '$lead->user_id'
     )->and($assignment)->toContain(
         "'assigned_user_id' => ['nullable', 'integer', 'exists:users,id']",
         "['assigned_user_id' => null]"
     )->and($messages)->toContain(
         'lockForUpdate()',
         'if ($lockedConversation->assigned_user_id === null)',
-        '[\'assigned_user_id\' => $user->id]'
+        'D04: com Lead, so o dono assume',
+        '? $leadOwnerId'
     )->and($aside)->toContain(
         'topweb_chat::app.assignment.release',
         'topweb_chat::app.assignment.release_confirm',
         '$isAdmin || $conversation->assigned_user_id === null',
         'value=""'
     )->and($repository)->toContain(
-        '\'unassigned\' => $query->whereNull(\'assigned_user_id\')'
+        'whereNull(\'lead_id\')',
+        'whereHas(\'lead\''
     );
 });
 

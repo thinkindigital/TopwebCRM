@@ -13,7 +13,7 @@ use Webkul\User\Models\User;
 beforeEach(function () {
     config()->set('app.debug', false);
 
-    foreach (['topweb_chat_messages', 'topweb_chat_conversations', 'topweb_chat_instances', 'persons', 'users', 'roles', 'activities', 'person_activities', 'attributes', 'core_config'] as $table) {
+    foreach (['topweb_chat_messages', 'topweb_chat_conversations', 'topweb_chat_instances', 'persons', 'leads', 'users', 'roles', 'activities', 'person_activities', 'attributes', 'core_config'] as $table) {
         Schema::dropIfExists($table);
     }
 
@@ -58,6 +58,7 @@ beforeEach(function () {
         $table->id();
         $table->unsignedBigInteger('instance_id');
         $table->unsignedInteger('person_id')->nullable();
+        $table->unsignedInteger('lead_id')->nullable();
         $table->unsignedInteger('assigned_user_id')->nullable();
         $table->text('remote_jid');
         $table->char('remote_jid_key', 64);
@@ -71,6 +72,15 @@ beforeEach(function () {
         $table->increments('id');
         $table->string('code');
         $table->string('value')->nullable();
+        $table->timestamps();
+    });
+
+    // D04: accessibleQuery filtra por dono do Lead; a tabela existe em producao.
+    Schema::create('leads', function (Blueprint $table) {
+        $table->increments('id');
+        $table->string('title');
+        $table->unsignedInteger('person_id')->nullable();
+        $table->unsignedInteger('user_id')->nullable();
         $table->timestamps();
     });
 

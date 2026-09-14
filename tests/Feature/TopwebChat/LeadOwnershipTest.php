@@ -16,7 +16,7 @@ use Webkul\User\Models\User;
 beforeEach(function () {
     config()->set('app.debug', false);
 
-    foreach (['topweb_chat_messages', 'topweb_chat_internal_notes', 'topweb_chat_conversations', 'topweb_chat_instances', 'leads', 'users', 'roles', 'core_config', 'attributes'] as $table) {
+    foreach (['topweb_chat_messages', 'topweb_chat_internal_notes', 'topweb_chat_conversations', 'topweb_chat_instances', 'leads', 'lead_pipelines', 'lead_pipeline_stages', 'activities', 'lead_activities', 'users', 'roles', 'core_config', 'attributes'] as $table) {
         Schema::dropIfExists($table);
     }
 
@@ -46,7 +46,43 @@ beforeEach(function () {
         $table->string('title');
         $table->unsignedInteger('person_id')->nullable();
         $table->unsignedInteger('user_id')->nullable();
+        $table->unsignedInteger('lead_pipeline_id')->nullable();
+        $table->unsignedInteger('lead_pipeline_stage_id')->nullable();
         $table->timestamps();
+    });
+
+    // D04: o show com Lead renderiza pipeline, next action e recentes.
+    Schema::create('lead_pipelines', function (Blueprint $table) {
+        $table->increments('id');
+        $table->string('name');
+        $table->unsignedInteger('rotten_days')->default(0);
+        $table->boolean('is_default')->default(false);
+        $table->timestamps();
+    });
+
+    Schema::create('lead_pipeline_stages', function (Blueprint $table) {
+        $table->increments('id');
+        $table->string('code')->nullable();
+        $table->string('name');
+        $table->unsignedInteger('probability')->default(0);
+        $table->unsignedInteger('sort_order')->default(0);
+        $table->unsignedInteger('lead_pipeline_id')->nullable();
+    });
+
+    Schema::create('activities', function (Blueprint $table) {
+        $table->increments('id');
+        $table->string('type')->nullable();
+        $table->string('title')->nullable();
+        $table->datetime('schedule_from')->nullable();
+        $table->datetime('schedule_to')->nullable();
+        $table->boolean('is_done')->default(false);
+        $table->unsignedInteger('user_id')->nullable();
+        $table->timestamps();
+    });
+
+    Schema::create('lead_activities', function (Blueprint $table) {
+        $table->unsignedInteger('activity_id');
+        $table->unsignedInteger('lead_id');
     });
 
     Schema::create('topweb_chat_instances', function (Blueprint $table) {
@@ -164,6 +200,10 @@ function ownershipContext(): array
     ]);
     $leadId = DB::table('leads')->insertGetId([
         'title' => 'Lead D04', 'person_id' => null, 'user_id' => $owner->id,
+        'lead_pipeline_id' => DB::table('lead_pipelines')->insertGetId([
+            'name' => 'Pipeline D04', 'rotten_days' => 0, 'is_default' => false,
+            'created_at' => now(), 'updated_at' => now(),
+        ]),
         'created_at' => now(), 'updated_at' => now(),
     ]);
     $linked = Conversation::query()->create([
@@ -221,11 +261,17 @@ it('enforces zero divergence between projection and lead ownership', function ()
 it('syncs the projection atomically on lead transfer and revokes the ex-owner', function () {
     ['owner' => $owner, 'stranger' => $stranger, 'leadId' => $leadId, 'linked' => $linked] = ownershipContext();
 
-    Lead::unsetEventDispatcher();
+    // Isola o observer D04 do LogsActivity (que exige tabelas de auditoria).
+    $dispatcher = Lead::getEventDispatcher();
+    Lead::setEventDispatcher(new \Illuminate\Events\Dispatcher(app()));
     LeadOwnershipObserver::register();
 
-    $lead = Lead::query()->findOrFail($leadId);
-    $lead->update(['user_id' => $stranger->id]);
+    try {
+        $lead = Lead::query()->findOrFail($leadId);
+        $lead->update(['user_id' => $stranger->id]);
+    } finally {
+        Lead::setEventDispatcher($dispatcher);
+    }
 
     expect($linked->fresh()->assigned_user_id)->toBe($stranger->id);
 
