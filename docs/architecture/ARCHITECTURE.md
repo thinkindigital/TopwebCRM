@@ -38,7 +38,7 @@ Orientar mudanças arquiteturais no TopwebCRM. Não inventa arquitetura — regi
 3. `docs/krayincrm/llms-full.txt` (consultar por seção)
 4. Documentação online v2.2 / upstream
 
-> Referência detalhada: `docs/krayincrm/REFERENCE_POLICY.md` (local-only reference snapshot)  
+  
 > Divergências conhecidas: Laravel 12 no fork vs 11 no snapshot; middleware/ACL diferentes; REST API opcional (`krayin/rest-api`)
 
 ---
