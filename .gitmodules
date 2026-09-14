@@ -1,0 +1,3 @@
+[submodule "docs"]
+	path = docs
+	url = file:///tmp/topwebcrm-docs
