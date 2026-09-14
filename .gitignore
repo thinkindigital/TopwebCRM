@@ -14,15 +14,3 @@
 /storage/framework/cache/
 /storage/framework/sessions/
 /storage/framework/views/
-
-# Referências pesadas e histórico privado permanecem locais. Decisões e
-# invariantes necessárias à execução ficam versionadas em docs/.
-docs/archive/
-!docs/archive/
-docs/archive/*
-!docs/archive/e14-commercial-workspace/
-!docs/archive/e14-commercial-workspace/*.md
-!docs/archive/documentation-reform/
-!docs/archive/documentation-reform/*.md
-docs/krayincrm/
-docs/reference/
