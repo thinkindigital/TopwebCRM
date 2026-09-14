@@ -14,6 +14,8 @@ use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Console\Commands\RetryFailedMessages;
 use Webkul\TopwebChat\Console\Commands\SeedRealEstateDemo;
 use Webkul\TopwebChat\Console\Commands\SmokeChat;
+use Webkul\TopwebChat\Observers\LeadOwnershipObserver;
+use Webkul\TopwebChat\Providers\BaileysProvider;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 
@@ -61,6 +63,9 @@ class TopwebChatServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(dirname(__DIR__).'/Database/Migrations');
         $this->loadTranslationsFrom(dirname(__DIR__).'/Resources/lang', 'topweb_chat');
         $this->loadViewsFrom(dirname(__DIR__).'/Resources/views', 'topweb_chat');
+
+        // D04: transferencia do Lead sincroniza a projecao sem tocar o modulo Lead.
+        LeadOwnershipObserver::register();
 
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command('topweb-chat:reconcile')

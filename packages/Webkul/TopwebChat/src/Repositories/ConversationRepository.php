@@ -29,9 +29,17 @@ class ConversationRepository extends Repository
             };
         }
 
+        // D04: carteira por dono do Lead; sem Lead, vale o legado.
+        $mine = fn (Builder $query) => $query->where(function (Builder $query) use ($user) {
+            $query->whereHas('lead', fn (Builder $query) => $query->where('user_id', $user->id))
+                ->orWhere(fn (Builder $query) => $query
+                    ->whereNull('lead_id')
+                    ->where('assigned_user_id', $user->id));
+        });
+
         return match ($queue) {
-            'unassigned' => $query->whereNull('assigned_user_id'),
-            default => $query->where('assigned_user_id', $user->id),
+            'unassigned' => $query->whereNull('lead_id')->whereNull('assigned_user_id'),
+            default => $mine($query),
         };
     }
 }

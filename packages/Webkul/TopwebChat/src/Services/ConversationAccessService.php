@@ -17,9 +17,19 @@ class ConversationAccessService
 
     public function canView(User $user, Conversation $conversation): bool
     {
-        return $this->isAdministrator($user)
-            || $conversation->assigned_user_id === null
-            || $conversation->assigned_user_id === $user->id;
+        if ($this->isAdministrator($user)) {
+            return true;
+        }
+
+        // D04: onde ha Lead, o dono e a unica autoridade operacional.
+        if ($conversation->lead_id !== null && $lead = $conversation->lead) {
+            return $lead->user_id !== null
+                && (int) $lead->user_id === (int) $user->id;
+        }
+
+        // Sem Lead, vale o legado (fila A3 cega na listagem).
+        return $conversation->assigned_user_id === null
+            || (int) $conversation->assigned_user_id === (int) $user->id;
     }
 
     public function authorizeView(User $user, Conversation $conversation): void
@@ -31,6 +41,16 @@ class ConversationAccessService
 
     public function canAssign(User $user, Conversation $conversation, int $targetUserId): bool
     {
+        // D04: com Lead, a projecao deve espelhar a autoridade.
+        if ($conversation->lead_id !== null && $lead = $conversation->lead) {
+            if ($lead->user_id === null || (int) $targetUserId !== (int) $lead->user_id) {
+                return false;
+            }
+
+            return $this->isAdministrator($user)
+                || (int) $lead->user_id === (int) $user->id;
+        }
+
         if ($this->isAdministrator($user)) {
             return true;
         }
@@ -41,8 +61,17 @@ class ConversationAccessService
 
     public function canUnassign(User $user, Conversation $conversation): bool
     {
-        return $this->isAdministrator($user)
-            || $conversation->assigned_user_id === $user->id;
+        if ($this->isAdministrator($user)) {
+            return true;
+        }
+
+        // D04: com Lead, so o dono devolve a conversa a fila.
+        if ($conversation->lead_id !== null && $lead = $conversation->lead) {
+            return $lead->user_id !== null
+                && (int) $lead->user_id === (int) $user->id;
+        }
+
+        return $conversation->assigned_user_id === $user->id;
     }
 
     public function canAccessPerson(User $user, Person $person): bool

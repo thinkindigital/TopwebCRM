@@ -44,7 +44,23 @@ class MessageService
                 ->findOrFail($conversation->id);
 
             if ($lockedConversation->assigned_user_id === null) {
-                $lockedConversation->update(['assigned_user_id' => $user->id]);
+                $leadOwnerId = $lockedConversation->lead_id !== null
+                    ? $lockedConversation->lead?->user_id
+                    : null;
+
+                // D04: com Lead, so o dono assume; a projecao espelha o dono.
+                if ($lockedConversation->lead_id !== null
+                    && ! $this->access->isAdministrator($user)
+                    && ($leadOwnerId === null || (int) $leadOwnerId !== (int) $user->id)
+                ) {
+                    throw new AuthorizationException;
+                }
+
+                $lockedConversation->update([
+                    'assigned_user_id' => $lockedConversation->lead_id !== null
+                        ? $leadOwnerId
+                        : $user->id,
+                ]);
             } elseif (
                 $lockedConversation->assigned_user_id !== $user->id
                 && ! $this->access->isAdministrator($user)
@@ -139,7 +155,23 @@ class MessageService
                 ->findOrFail($conversation->id);
 
             if ($lockedConversation->assigned_user_id === null) {
-                $lockedConversation->update(['assigned_user_id' => $user->id]);
+                $leadOwnerId = $lockedConversation->lead_id !== null
+                    ? $lockedConversation->lead?->user_id
+                    : null;
+
+                // D04: com Lead, so o dono assume; a projecao espelha o dono.
+                if ($lockedConversation->lead_id !== null
+                    && ! $this->access->isAdministrator($user)
+                    && ($leadOwnerId === null || (int) $leadOwnerId !== (int) $user->id)
+                ) {
+                    throw new AuthorizationException;
+                }
+
+                $lockedConversation->update([
+                    'assigned_user_id' => $lockedConversation->lead_id !== null
+                        ? $leadOwnerId
+                        : $user->id,
+                ]);
             } elseif (
                 $lockedConversation->assigned_user_id !== $user->id
                 && ! $this->access->isAdministrator($user)
