@@ -1,32 +1,38 @@
 #!/usr/bin/env bash
 set -u
 
+DOCS_PATH="${DOCS_PATH:-.}"
+ROOT_PATH="${ROOT_PATH:-..}"
+
 failures=0
 fail() { printf 'FAIL [%s] %s\n' "$1" "$2"; failures=$((failures + 1)); }
 pass() { printf 'ok   [%s] %s\n' "$1" "$2"; }
 
 active_docs() {
-  grep -rl '^status: active$' docs --include='*.md' 2>/dev/null \
-    | grep -v '^docs/archive/' | sort
+  grep -rl '^status: active$' "$DOCS_PATH" --include='*.md' 2>/dev/null \
+    | grep -v "^$DOCS_PATH/archive/" | sort
 }
 
 # DOC001: every explicit Markdown path in active docs resolves.
 missing=""
 while IFS= read -r ref; do
   [ -e "$ref" ] || missing="$missing $ref"
-done < <(while IFS= read -r file; do grep -hoE 'docs/[A-Za-z0-9_./-]+\.md' "$file"; done < <(active_docs) | sort -u)
+done < <(while IFS= read -r file; do
+  grep -hoE '\.\./[A-Za-z0-9_\-][A-Za-z0-9_\-/]*\.md' "$file"
+  grep -hoE '\./[A-Za-z0-9_\-][A-Za-z0-9_\-/]*\.md' "$file"
+done < <(active_docs) | sort -u)
 
 while IFS= read -r file; do
   dir=${file%/*}
   while IFS= read -r link; do
     target=${link#']('}; target=${target%')'}; target=${target%%#*}
-    case "$target" in http://*|https://*) continue ;; docs/*) resolved=$target ;; *) resolved=$dir/$target ;; esac
+    case "$target" in http://*|https://*) continue ;; $DOCS_PATH/*) resolved=$target ;; *) resolved=$dir/$target ;; esac
     [ -e "$resolved" ] || missing="$missing $file->$target"
-  done < <(grep -hoE '\]\([^)]+\.md(#[^)]*)?\)' "$file" 2>/dev/null || true)
+  done < <(grep -hoE '\]\([^)]+\.md(#[^)]*)?\)' "$file" 2>/dev/null | grep -v '^\.\./' | grep -v '^[a-z]/' || true)
 done < <(active_docs)
 
 for ref in AGENTS.md CONTEXT.md ORCHESTRATOR-ROADMAP.md; do
-  grep -q "$ref" docs/README.md && [ -e "$ref" ] || missing="$missing $ref"
+  grep -qE "(\.\./)?$ref" "$DOCS_PATH/README.md" && [ -e "$ROOT_PATH/$ref" ] || missing="$missing $ref"
 done
 [ -z "$missing" ] && pass DOC001 'canonical paths resolve' || fail DOC001 "missing:$missing"
 
@@ -45,20 +51,20 @@ while IFS= read -r file; do
   grep -qiE '^STATUS: ARCHIVED|^status: archived$' "$file" || bad="$bad $file:status"
   grep -qiE '^SUPERSEDED BY:|^superseded_by:' "$file" || bad="$bad $file:replacement"
   grep -qi '^DO NOT USE FOR IMPLEMENTATION' "$file" || bad="$bad $file:warning"
-done < <(find docs/archive -type f -name '*.md' 2>/dev/null | sort)
+done < <(find "$DOCS_PATH/archive" -type f -name '*.md' 2>/dev/null | sort)
 [ -z "$bad" ] && pass DOC003 'archives are marked' || fail DOC003 "archive:$bad"
 
 # DOC004: roadmap has stable IDs, GitHub links, and existing program source.
-duplicates=$(grep -oE '\[E[0-9]{2}\]' ORCHESTRATOR-ROADMAP.md | sort | uniq -d)
+duplicates=$(grep -oE '\[E[0-9]{2}\]' "$ROOT_PATH/ORCHESTRATOR-ROADMAP.md" | sort | uniq -d)
 if [ -z "$duplicates" ] \
-  && ! grep '^### ' ORCHESTRATOR-ROADMAP.md | grep -vqE 'https://github.com/[^/]+/[^/]+/issues/[0-9]+' \
-  && [ -f docs/programs/e14-commercial-workspace/MASTER.md ]; then
+  && ! grep '^### ' "$ROOT_PATH/ORCHESTRATOR-ROADMAP.md" | grep -vqE 'https://github.com/[^/]+/[^/]+/issues/[0-9]+' \
+  && [ -f "$DOCS_PATH/programs/e14-commercial-workspace/MASTER.md" ]; then
   pass DOC004 'roadmap links and sources resolve'
 else fail DOC004 'roadmap ID, link, or source invalid'; fi
 
 # DOC005: every active program has a coverage ledger.
 bad=""
-for dir in docs/programs/*; do
+for dir in "$DOCS_PATH/programs"/*; do
   [ -d "$dir" ] || continue
   [ -f "$dir/COVERAGE.md" ] || bad="$bad $dir/COVERAGE.md"
 done
@@ -70,20 +76,23 @@ while IFS= read -r file; do
   for heading in Purpose Scope Authority Inputs 'Required reading' Skills 'Execution phases' 'Current status' Completed Blocked Next 'Stop conditions' 'Definition of Done' 'Update triggers'; do
     grep -qiE "^## ${heading}$" "$file" || bad="$bad $file:$heading"
   done
-done < <(grep -rl '^type: playbook$' docs --include='*.md' 2>/dev/null | grep -v '^docs/archive/' | sort)
+done < <(grep -rl '^type: playbook$' "$DOCS_PATH" --include='*.md' 2>/dev/null | grep -v "^$DOCS_PATH/archive/" | sort)
 [ -z "$bad" ] && pass DOC006 'playbooks expose CURRENT/NEXT/BLOCKED' || fail DOC006 "state:$bad"
 
 # DOC007: explicit ADR links resolve.
 missing=""
-while IFS= read -r ref; do [ -e "$ref" ] || missing="$missing $ref"; done \
-  < <(while IFS= read -r file; do grep -hoE 'docs/architecture/adr/[A-Za-z0-9_./-]+\.md' "$file"; done < <(active_docs) | sort -u)
+while IFS= read -r file; do
+  grep -hoE "$DOCS_PATH/architecture/adr/[A-Za-z0-9_\-][A-Za-z0-9_\-/]*\.md" "$file"
+done < <(active_docs) | sort -u | while IFS= read -r ref; do
+  [ -e "$ref" ] || missing="$missing $ref"
+done
 [ -z "$missing" ] && pass DOC007 'ADR links resolve' || fail DOC007 "missing:$missing"
 
 # DOC008: mandatory canonical sources cannot be ignored or untracked.
 ignored=""
 while IFS= read -r file; do
-  git check-ignore -q "$file" 2>/dev/null && ignored="$ignored $file:ignored"
-  git ls-files --error-unmatch "$file" >/dev/null 2>&1 || ignored="$ignored $file:untracked"
+  git -C "$DOCS_PATH" check-ignore -q "$file" 2>/dev/null && ignored="$ignored $file:ignored"
+  git -C "$DOCS_PATH" ls-files --error-unmatch "$file" >/dev/null 2>&1 || ignored="$ignored $file:untracked"
 done < <(active_docs)
 [ -z "$ignored" ] && pass DOC008 'canonical sources are tracked' || fail DOC008 "source:$ignored"
 
@@ -98,27 +107,27 @@ while IFS= read -r line; do
   file=${line%%:*}
   sha=${line##*:}
   sha=$(printf '%s' "$sha" | tr -d ' ')
-  if ! git cat-file -e "${sha}^{commit}" 2>/dev/null; then bad="$bad $file:$sha"; continue; fi
-  git merge-base --is-ancestor "$sha" HEAD 2>/dev/null || { bad="$bad $file:not-ancestor"; continue; }
-  age=$(git rev-list --count "$sha"..HEAD)
+  if ! git -C "$DOCS_PATH" cat-file -e "${sha}^{commit}" 2>/dev/null; then bad="$bad $file:$sha"; continue; fi
+  git -C "$DOCS_PATH" merge-base --is-ancestor "$sha" HEAD 2>/dev/null || { bad="$bad $file:not-ancestor"; continue; }
+  age=$(git -C "$DOCS_PATH" rev-list --count "$sha"..HEAD)
   [ "$age" -le "$max_age" ] || bad="$bad $file:${age}-commits-old"
-done < <(grep -rH '^last_verified_commit:' docs --include='*.md' 2>/dev/null | grep -v '^docs/archive/')
+done < <(grep -rH '^last_verified_commit:' "$DOCS_PATH" --include='*.md' 2>/dev/null | grep -v "^$DOCS_PATH/archive/")
 [ -z "$bad" ] && pass DOC010 'verification commits resolve' || fail DOC010 "stale:$bad"
 
 # DOC011: no done program can retain blocked/not-started capability.
 bad=""
 while IFS= read -r dir; do
   program=$(basename "$dir")
-  grep -qiE "\[E[0-9]+\].*${program}|${program}" ORCHESTRATOR-ROADMAP.md || continue
-  if grep -qiE "${program}.*- .?done|\[E14\].*- .?done" ORCHESTRATOR-ROADMAP.md \
+  grep -qiE "\[E[0-9]+\].*${program}|${program}" "$ROOT_PATH/ORCHESTRATOR-ROADMAP.md" || continue
+  if grep -qiE "${program}.*- .?done|\[E14\].*- .?done" "$ROOT_PATH/ORCHESTRATOR-ROADMAP.md" \
     && grep -qiE 'BLOCKED|NOT_STARTED|NOT STARTED' "$dir/COVERAGE.md"; then bad="$bad $program"; fi
-done < <(find docs/programs -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+done < <(find "$DOCS_PATH/programs" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
 [ -z "$bad" ] && pass DOC011 'done programs have no blockers' || fail DOC011 "programs:$bad"
 
 # DOC012: README is the index and links every canonical area.
 bad=""
-for path in docs/DOCUMENTATION-GOVERNANCE.md docs/product/ docs/policies/ docs/architecture/ docs/modules/topweb-chat/README.md docs/operations/ docs/programs/e14-commercial-workspace/README.md; do
-  grep -q "$path" docs/README.md || bad="$bad $path"
+for path in "DOCUMENTATION-GOVERNANCE.md" "product/" "policies/" "architecture/" "modules/topweb-chat/README.md" "operations/" "programs/e14-commercial-workspace/README.md"; do
+  grep -qE "(\[|\(|\`|\s|^)($path|\./$path)(\]|\s|\)|\`|$)" "$DOCS_PATH/README.md" || bad="$bad $path"
 done
 [ -z "$bad" ] && pass DOC012 'README indexes canonical areas' || fail DOC012 "index:$bad"
 
