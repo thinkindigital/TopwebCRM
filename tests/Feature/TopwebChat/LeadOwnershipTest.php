@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Schema;
 use Webkul\Lead\Models\Lead;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
-use Webkul\TopwebChat\Observers\LeadOwnershipObserver;
 use Webkul\TopwebChat\Repositories\ConversationRepository;
 use Webkul\User\Models\Role;
 use Webkul\User\Models\User;
@@ -16,7 +15,7 @@ use Webkul\User\Models\User;
 beforeEach(function () {
     config()->set('app.debug', false);
 
-    foreach (['topweb_chat_messages', 'topweb_chat_internal_notes', 'topweb_chat_conversations', 'topweb_chat_instances', 'leads', 'lead_pipelines', 'lead_pipeline_stages', 'activities', 'lead_activities', 'users', 'roles', 'core_config', 'attributes'] as $table) {
+    foreach (['topweb_chat_messages', 'topweb_chat_internal_notes', 'topweb_chat_conversations', 'topweb_chat_instances', 'leads', 'lead_pipelines', 'lead_pipeline_stages', 'activities', 'lead_activities', 'topweb_chat_attendances', 'users', 'roles', 'core_config', 'attributes'] as $table) {
         Schema::dropIfExists($table);
     }
 
@@ -73,6 +72,8 @@ beforeEach(function () {
         $table->increments('id');
         $table->string('type')->nullable();
         $table->string('title')->nullable();
+        $table->text('comment')->nullable();
+        $table->json('additional')->nullable();
         $table->datetime('schedule_from')->nullable();
         $table->datetime('schedule_to')->nullable();
         $table->boolean('is_done')->default(false);
@@ -83,6 +84,13 @@ beforeEach(function () {
     Schema::create('lead_activities', function (Blueprint $table) {
         $table->unsignedInteger('activity_id');
         $table->unsignedInteger('lead_id');
+    });
+
+    Schema::create('topweb_chat_attendances', function (Blueprint $table) {
+        $table->id();
+        $table->unsignedBigInteger('conversation_id')->nullable();
+        $table->unsignedInteger('activity_id')->nullable();
+        $table->timestamps();
     });
 
     Schema::create('topweb_chat_instances', function (Blueprint $table) {
@@ -261,17 +269,9 @@ it('enforces zero divergence between projection and lead ownership', function ()
 it('syncs the projection atomically on lead transfer and revokes the ex-owner', function () {
     ['owner' => $owner, 'stranger' => $stranger, 'leadId' => $leadId, 'linked' => $linked] = ownershipContext();
 
-    // Isola o observer D04 do LogsActivity (que exige tabelas de auditoria).
-    $dispatcher = Lead::getEventDispatcher();
-    Lead::setEventDispatcher(new \Illuminate\Events\Dispatcher(app()));
-    LeadOwnershipObserver::register();
-
-    try {
-        $lead = Lead::query()->findOrFail($leadId);
-        $lead->update(['user_id' => $stranger->id]);
-    } finally {
-        Lead::setEventDispatcher($dispatcher);
-    }
+    // Caminho real: update via model dispara o observer D04 (e o LogsActivity).
+    $lead = Lead::query()->findOrFail($leadId);
+    $lead->update(['user_id' => $stranger->id]);
 
     expect($linked->fresh()->assigned_user_id)->toBe($stranger->id);
 
@@ -286,10 +286,13 @@ it('rejects assigning a linked conversation to a non-owner', function () {
     ['stranger' => $stranger, 'linked' => $linked] = ownershipContext();
     $this->actingAs($stranger, 'user');
 
+    // Negacao no assignment devolve 302 com erro (contrato V-07), sem mudar nada.
     $this->put(
         route('admin.topweb_chat.assignment.update', $linked),
         ['assigned_user_id' => $stranger->id]
-    )->assertForbidden();
+    )->assertRedirect()->assertSessionHas('error');
+
+    expect($linked->fresh()->assigned_user_id)->toBeNull();
 });
 
 it('lets admins assign linked conversations to the lead owner', function () {
