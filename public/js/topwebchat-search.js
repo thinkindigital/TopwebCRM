@@ -1,9 +1,16 @@
 /* V-06: busca segura do TopwebChat. Sem build; carregado via asset com defer. */
 (function () {
-    var root = document.querySelector('[data-topwebchat-search]');
-    if (! root) {
-        return;
-    }
+    function init() {
+        if (window.__topwebchatSearchInit) {
+            return;
+        }
+
+        var root = document.querySelector('[data-topwebchat-search]');
+        if (! root) {
+            return;
+        }
+
+        window.__topwebchatSearchInit = true;
 
     var input = root.querySelector('#topwebchat-search-input');
     var results = root.querySelector('#topwebchat-search-results');
@@ -111,4 +118,11 @@
             close();
         }
     });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();
