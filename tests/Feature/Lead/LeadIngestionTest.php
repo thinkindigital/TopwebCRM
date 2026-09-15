@@ -53,6 +53,7 @@ beforeEach(function () {
         $table->json('emails')->nullable();
         $table->json('contact_numbers')->nullable();
         $table->unsignedInteger('user_id')->nullable();
+        $table->string('unique_id')->nullable()->unique();
         $table->timestamps();
     });
 
