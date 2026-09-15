@@ -153,7 +153,6 @@
 
         {{ $conversations->links() }}
     </div>
-</x-admin::layouts>
 
 <script>
 (function () {
@@ -270,3 +269,4 @@
     });
 })();
 </script>
+</x-admin::layouts>
