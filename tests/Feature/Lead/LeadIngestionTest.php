@@ -83,11 +83,18 @@ beforeEach(function () {
     Schema::create('leads', function (Blueprint $table) {
         $table->increments('id');
         $table->string('title');
+        $table->text('description')->nullable();
+        $table->decimal('lead_value', 12, 4)->nullable();
+        $table->boolean('status')->nullable();
+        $table->text('lost_reason')->nullable();
+        $table->date('expected_close_date')->nullable();
+        $table->datetime('closed_at')->nullable();
         $table->unsignedInteger('person_id')->nullable();
         $table->unsignedInteger('user_id')->nullable();
         $table->unsignedInteger('lead_pipeline_id')->nullable();
         $table->unsignedInteger('lead_pipeline_stage_id')->nullable();
         $table->unsignedInteger('lead_source_id')->nullable();
+        $table->unsignedInteger('lead_type_id')->nullable();
         $table->timestamps();
     });
 
