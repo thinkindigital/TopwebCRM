@@ -4,6 +4,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Webkul\Lead\Models\Lead;
+use Webkul\Lead\Models\LeadDistributionPool;
+use Webkul\Lead\Models\LeadDistributionPoolUser;
 use Webkul\User\Models\User;
 
 beforeEach(function () {
@@ -96,7 +98,28 @@ beforeEach(function () {
         $table->string('pool_key');
         $table->json('candidate_user_ids');
         $table->string('result');
+        $table->string('reason')->nullable();
         $table->timestamps();
+    });
+
+    Schema::create('lead_distribution_pools', function (Blueprint $table) {
+        $table->id();
+        $table->string('pool_key')->unique();
+        $table->string('strategy');
+        $table->unsignedInteger('fallback_user_id')->nullable();
+        $table->json('constraints')->nullable();
+        $table->timestamps();
+    });
+
+    Schema::create('lead_distribution_pool_users', function (Blueprint $table) {
+        $table->id();
+        $table->unsignedBigInteger('pool_id');
+        $table->unsignedInteger('user_id');
+        $table->boolean('enabled')->default(false);
+        $table->string('region')->nullable();
+        $table->decimal('score', 10, 3)->default(0);
+        $table->timestamps();
+        $table->unique(['pool_id', 'user_id']);
     });
 });
 
@@ -184,4 +207,119 @@ it('uses an active fallback when the eligible pool is empty', function () {
 
     expect($selected->id)->toBe($fallback->id)
         ->and(DB::table('lead_distribution_decisions')->value('result'))->toBe('fallback');
+});
+
+it('initializes a custom pool exactly once before selecting the next user', function () {
+    ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
+
+    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+        Lead::query()->findOrFail($leadId),
+        [$first->id, $second->id],
+        null,
+        'custom-pool',
+    );
+
+    expect($selected->id)->toBe($first->id)
+        ->and(DB::table('lead_distribution_states')->where('pool_key', 'custom-pool')->count())->toBe(1);
+});
+
+it('excludes active users that are unavailable from the distribution pool', function () {
+    ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
+
+    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+        Lead::query()->findOrFail($leadId),
+        [$first->id, $second->id],
+        null,
+        'availability-pool',
+        null,
+        [$second->id],
+    );
+
+    expect($selected->id)->toBe($second->id)
+        ->and(DB::table('lead_distribution_decisions')->value('candidate_user_ids'))->toContain((string) $second->id)
+        ->and(DB::table('lead_distribution_decisions')->value('candidate_user_ids'))->not->toContain((string) $first->id);
+});
+
+it('selects the highest scored candidate and audits the score-based rule', function () {
+    ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
+
+    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+        Lead::query()->findOrFail($leadId),
+        [
+            ['user_id' => $first->id, 'score' => 10, 'region' => 'sul'],
+            ['user_id' => $second->id, 'score' => 20, 'region' => 'sul'],
+        ],
+    );
+
+    expect($selected->id)->toBe($second->id)
+        ->and(DB::table('lead_distribution_decisions')->value('strategy'))->toBe('score_round_robin');
+});
+
+it('uses round-robin to break equal score candidates', function () {
+    ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
+    $service = app(\Webkul\Lead\Services\LeadDistributionService::class);
+    $candidates = [
+        ['user_id' => $first->id, 'score' => 20, 'region' => 'sul'],
+        ['user_id' => $second->id, 'score' => 20, 'region' => 'sul'],
+    ];
+
+    $firstSelected = $service->assignRoundRobin(Lead::query()->findOrFail($leadId), $candidates, null, 'score-tie-pool');
+    $secondLeadId = DB::table('leads')->insertGetId([
+        'title' => 'Lead de desempate', 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    $secondSelected = $service->assignRoundRobin(Lead::query()->findOrFail($secondLeadId), $candidates, null, 'score-tie-pool');
+
+    expect($firstSelected->id)->toBe($first->id)
+        ->and($secondSelected->id)->toBe($second->id);
+});
+
+it('resolves a persisted pool before assigning a lead', function () {
+    ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
+    $pool = LeadDistributionPool::query()->create([
+        'pool_key' => 'persisted-pool',
+        'strategy' => 'score_round_robin',
+        'constraints' => ['regions' => ['sul']],
+    ]);
+    LeadDistributionPoolUser::query()->create([
+        'pool_id' => $pool->id, 'user_id' => $first->id, 'enabled' => true,
+        'region' => 'sul', 'score' => 10,
+    ]);
+    LeadDistributionPoolUser::query()->create([
+        'pool_id' => $pool->id, 'user_id' => $second->id, 'enabled' => false,
+        'region' => 'sul', 'score' => 20,
+    ]);
+
+    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assign(
+        Lead::query()->findOrFail($leadId),
+        'persisted-pool',
+        ['region' => 'sul'],
+    );
+
+    expect($selected->id)->toBe($first->id)
+        ->and(DB::table('lead_distribution_decisions')->value('strategy'))->toBe('score_round_robin')
+        ->and(DB::table('lead_distribution_decisions')->value('reason'))->toBe('configured_pool_members');
+});
+
+it('uses the configured fallback when pool constraints have no available member', function () {
+    ['first' => $first, 'leadId' => $leadId] = distributionContext();
+    $pool = LeadDistributionPool::query()->create([
+        'pool_key' => 'constrained-pool',
+        'strategy' => 'score_round_robin',
+        'fallback_user_id' => $first->id,
+        'constraints' => ['regions' => ['sul']],
+    ]);
+    LeadDistributionPoolUser::query()->create([
+        'pool_id' => $pool->id, 'user_id' => $first->id, 'enabled' => true,
+        'region' => 'sul', 'score' => 10,
+    ]);
+
+    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assign(
+        Lead::query()->findOrFail($leadId),
+        'constrained-pool',
+        ['region' => 'norte'],
+    );
+
+    expect($selected->id)->toBe($first->id)
+        ->and(DB::table('lead_distribution_decisions')->value('result'))->toBe('fallback')
+        ->and(DB::table('lead_distribution_decisions')->value('reason'))->toBe('pool_region_constraint_mismatch');
 });

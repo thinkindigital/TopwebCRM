@@ -42,7 +42,7 @@ Adicionar Evolution API somente apos contratos compartilhados e OpenWA estabiliz
 
 ### [**[E10] Propriedade e Distribuicao de Leads**](https://github.com/thinkindigital/TopwebCRM/issues/10) - `in_progress`
 
-Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. D04/E10-S01 entregue (#15 fechada; CI verde): autoridade por dono, fila A3 sem Lead, cascata na transferência. E10-S02 (#19) foi entregue com CI verde. E10-S03 (#20) tem a primeira fatia entregue; permanecem concorrência real, disponibilidade configurável e regras de score/geografia. V-06 destravada.
+Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. D04/E10-S01 entregue (#15 fechada; CI verde): autoridade por dono, fila A3 sem Lead, cascata na transferência. E10-S02 (#19) foi entregue com CI verde. E10-S03 (#20) tem o motor com pools persistidos, membership habilitado, fallback configurado, `AvailabilityResolver` runtime e constraints de região/score, com lock concorrente, desempate round-robin e auditoria sem PII. Essas regras foram validadas por smoke concorrente no MySQL dev e suíte Pest completa. Permanecem a superfície administrativa para manutenção dos pools, a origem futura de presença/capacidade e a integração de estratégias adicionais. V-06 destravada.
 
 ### [**[E11] Instalador Automatico TopwebCRM**](https://github.com/thinkindigital/TopwebCRM/issues/49) - `todo`
 
