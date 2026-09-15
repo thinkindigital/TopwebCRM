@@ -34,7 +34,7 @@ Registrar acoes sensiveis, configuracoes, mensagens e atribuicoes em trilha imut
 
 ### [**[E08] Melhorias de UX Operacional**](https://github.com/thinkindigital/TopwebCRM/issues/3) - `in_progress`
 
-Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronologica e rolavel, filas operacionais claras, Kanban e metricas confiaveis. Fronteira com E14: busca global/Kanban/dashboard ficam em E08; busca escopada ao chat (§13 + zero-oráculo) é V-06 da E14, bloqueada por E10.
+Entregar Atendimento WhatsApp em Activities, busca autorizada, timeline cronologica e rolavel, filas operacionais claras, Kanban e metricas confiaveis. Fronteira com E14: busca global/Kanban/dashboard ficam em E08; busca escopada ao chat (§13 + zero-oráculo) é V-06 da E14, entregue (#101).
 
 ### [**[E09] Multi-provider e Evolution API**](https://github.com/thinkindigital/TopwebCRM/issues/4) - `todo`
 
@@ -58,7 +58,7 @@ Operar o engine Baileys do OpenWA como alternativa ao `whatsapp-web.js` via feat
 
 ### [**[E14] TopwebChat Commercial Workspace**](https://github.com/thinkindigital/TopwebCRM/issues/91) - `in_progress`
 
-Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/programs/e14-commercial-workspace/MASTER.md`. Slices D-01, E-01–E-03, V-01–V-05, V-07, V-08 entregues (#92–#100, #102–#103); V-06 bloqueada por E10 (#101). Cobertura em `docs/programs/e14-commercial-workspace/COVERAGE.md`. E08 mantém Kanban/dashboard/busca global.
+Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/programs/e14-commercial-workspace/MASTER.md`. Slices D-01, E-01–E-03, V-01–V-08 entregues (#92–#103); D04/E10-S01 entregue (#15). Cobertura em `docs/programs/e14-commercial-workspace/COVERAGE.md` (PARTIAL + follow-ups obrigatórios). E08 mantém Kanban/dashboard/busca global.
 
 ## Marcos
 
@@ -72,7 +72,7 @@ Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Ac
 
 ## Ordem de execucao
 
-NEXT único: V-06 busca segura (#101, destravada por D04) — depois follow-ups do COVERAGE E14 (matriz viewport/dark/teclado, E2E V-02/V-04, ADR E-03). E14 segue PARTIAL.
+NEXT único: follow-ups do COVERAGE E14 (matriz viewport/dark/teclado, E2E V-02/V-04, ADR E-03, E2E logado V-06) — obrigatórios antes de declarar E14 concluída. E14 segue PARTIAL.
 
 1. Concluir E01 e restaurar baseline de testes.
 2. Executar E03 e E05 em slices verticais pequenos.
