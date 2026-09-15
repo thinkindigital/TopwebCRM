@@ -20,10 +20,12 @@ it('qualifies the default person id sorting when organizations are joined', func
 });
 
 it('scopes activities by the lead owner for individual users', function () {
-    auth()->guard('user')->setUser(new User([
-        'id' => 7,
+    $user = new User([
         'view_permission' => 'individual',
-    ]));
+    ]);
+    $user->id = 7;
+
+    auth()->guard('user')->setUser($user);
 
     $dataGrid = app(ActivityDataGrid::class);
     $query = $dataGrid->prepareQueryBuilder();
