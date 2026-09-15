@@ -1,37 +1,51 @@
-/* V-06: busca segura do TopwebChat. Sem build; carregado via asset com defer. */
+/* V-06: busca segura do TopwebChat. Sem build; carregado via asset com defer.
+   Listeners delegados no document: o shell admin (Vue) pode substituir nos
+   do cabecalho no mount; listeners no no morrem com a troca. */
 (function () {
-    function init() {
-        if (window.__topwebchatSearchInit) {
-            return;
-        }
-
-        var root = document.querySelector('[data-topwebchat-search]');
-        if (! root) {
-            return;
-        }
-
-        window.__topwebchatSearchInit = true;
-
-    var input = root.querySelector('#topwebchat-search-input');
-    var results = root.querySelector('#topwebchat-search-results');
     var timer = null;
     var activeIndex = -1;
 
+    function els() {
+        var root = document.querySelector('[data-topwebchat-search]');
+        if (! root) {
+            return null;
+        }
+
+        var input = root.querySelector('#topwebchat-search-input');
+        var results = root.querySelector('#topwebchat-search-results');
+
+        if (! input || ! results) {
+            return null;
+        }
+
+        return { root: root, input: input, results: results };
+    }
+
     function close() {
-        results.classList.add('hidden');
-        results.innerHTML = '';
-        input.setAttribute('aria-expanded', 'false');
+        var e = els();
+        if (! e) {
+            return;
+        }
+
+        e.results.classList.add('hidden');
+        e.results.innerHTML = '';
+        e.input.setAttribute('aria-expanded', 'false');
         activeIndex = -1;
     }
 
     function render(items, emptyText) {
-        results.innerHTML = '';
+        var e = els();
+        if (! e) {
+            return;
+        }
+
+        e.results.innerHTML = '';
 
         if (! items.length) {
             var empty = document.createElement('p');
             empty.className = 'p-4 text-sm text-gray-500';
             empty.textContent = emptyText;
-            results.appendChild(empty);
+            e.results.appendChild(empty);
         }
 
         items.forEach(function (item, index) {
@@ -53,37 +67,60 @@
                 link.appendChild(subtitle);
             }
 
-            results.appendChild(link);
+            e.results.appendChild(link);
         });
 
-        results.classList.remove('hidden');
-        input.setAttribute('aria-expanded', 'true');
+        e.results.classList.remove('hidden');
+        e.input.setAttribute('aria-expanded', 'true');
     }
 
     function search() {
-        var term = input.value.trim();
+        var e = els();
+        if (! e) {
+            return;
+        }
+
+        var term = e.input.value.trim();
 
         if (term.length < 2) {
             close();
             return;
         }
 
-        fetch(input.dataset.searchUrl + '?q=' + encodeURIComponent(term), {
+        fetch(e.input.dataset.searchUrl + '?q=' + encodeURIComponent(term), {
             headers: { Accept: 'application/json' },
         }).then(function (response) {
             return response.ok ? response.json() : { data: [] };
         }).then(function (payload) {
-            render(payload.data || [], input.dataset.searchEmpty);
+            render(payload.data || [], e.input.dataset.searchEmpty);
         }).catch(close);
     }
 
-    input.addEventListener('input', function () {
+    document.addEventListener('input', function (event) {
+        if (! event.target || event.target.id !== 'topwebchat-search-input') {
+            return;
+        }
+
         clearTimeout(timer);
         timer = setTimeout(search, 250);
     });
 
-    input.addEventListener('keydown', function (event) {
-        var options = results.querySelectorAll('[role="option"]');
+    document.addEventListener('keydown', function (event) {
+        if (! event.target || event.target.id !== 'topwebchat-search-input') {
+            var e = els();
+            if (event.key === 'Escape' && e) {
+                close();
+            }
+
+            return;
+        }
+
+        var e = els();
+        if (! e) {
+            return;
+        }
+
+        var options = e.results.querySelectorAll('[role="option"]');
 
         if (event.key === 'Escape') {
             close();
@@ -114,15 +151,11 @@
     });
 
     document.addEventListener('click', function (event) {
-        if (! root.contains(event.target)) {
-            close();
+        var e = els();
+        if (! e || e.root.contains(event.target)) {
+            return;
         }
-    });
-    }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+        close();
+    });
 })();
