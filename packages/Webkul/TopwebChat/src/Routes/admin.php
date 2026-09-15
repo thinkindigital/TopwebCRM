@@ -7,12 +7,15 @@ use Webkul\TopwebChat\Http\Controllers\ConversationLaunchController;
 use Webkul\TopwebChat\Http\Controllers\InternalNoteController;
 use Webkul\TopwebChat\Http\Controllers\LeadStageController;
 use Webkul\TopwebChat\Http\Controllers\MessageController;
+use Webkul\TopwebChat\Http\Controllers\SearchController;
 use Webkul\TopwebChat\Http\Controllers\SettingsController;
 
 Route::prefix('topweb-chat')->group(function () {
     Route::get('', [ConversationController::class, 'index'])->name('admin.topweb_chat.index');
     Route::post('start/person/{person}', [ConversationLaunchController::class, 'fromPerson'])->name('admin.topweb_chat.start.person');
     Route::post('start/lead/{lead}', [ConversationLaunchController::class, 'fromLead'])->name('admin.topweb_chat.start.lead');
+    // V-06: antes de conversations/{conversation} para nao ser capturada pelo binding.
+    Route::get('conversations/search', [SearchController::class, 'search'])->name('admin.topweb_chat.search');
     Route::get('conversations/{conversation}', [ConversationController::class, 'show'])->name('admin.topweb_chat.show');
     Route::get('conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('admin.topweb_chat.messages.index');
     Route::post('conversations/{conversation}/client-events', [ConversationController::class, 'clientEvent'])->name('admin.topweb_chat.client_events.store');

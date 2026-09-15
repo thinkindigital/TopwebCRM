@@ -39,6 +39,12 @@ return [
         'unassigned' => 'Unassigned',
         'all' => 'All',
     ],
+    'search' => [
+        'placeholder' => 'Search wallet (name or title)',
+        'label' => 'Search conversations',
+        'empty' => 'No results in your wallet.',
+        'hint' => 'At least 2 characters. Phone and email are not searchable.',
+    ],
     'conversations' => [
         'description' => 'WhatsApp support connected to CRM context.',
         'empty' => 'No conversations in this queue.',

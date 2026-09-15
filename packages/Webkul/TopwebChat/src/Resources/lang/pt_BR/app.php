@@ -39,6 +39,12 @@ return [
         'unassigned' => 'Sem atendente',
         'all' => 'Todos',
     ],
+    'search' => [
+        'placeholder' => 'Buscar na carteira (nome ou título)',
+        'label' => 'Buscar conversas',
+        'empty' => 'Nenhum resultado na sua carteira.',
+        'hint' => 'Mínimo 2 letras. Telefone e e-mail não são pesquisáveis.',
+    ],
     'conversations' => [
         'description' => 'Atendimento WhatsApp integrado ao contexto do CRM.',
         'empty' => 'Nenhuma conversa nesta fila.',

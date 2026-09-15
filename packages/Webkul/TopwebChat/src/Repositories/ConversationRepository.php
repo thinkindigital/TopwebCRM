@@ -3,6 +3,7 @@
 namespace Webkul\TopwebChat\Repositories;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Webkul\Core\Eloquent\Repository;
 use Webkul\User\Models\User;
 
@@ -41,5 +42,36 @@ class ConversationRepository extends Repository
             'unassigned' => $query->whereNull('lead_id')->whereNull('assigned_user_id'),
             default => $mine($query),
         };
+    }
+
+    /**
+     * V-06: escopo (carteira) -> busca (nome/titulo) -> protecao (serializacao).
+     * Telefone, e-mail e identificadores nunca sao pesquisaveis nem serializados.
+     */
+    public function search(User $user, string $term, int $limit = 10): Collection
+    {
+        $term = mb_substr(trim($term), 0, 60);
+
+        if (mb_strlen($term) < 2) {
+            return collect();
+        }
+
+        $query = $this->model
+            ->newQuery()
+            ->with(['person', 'lead'])
+            ->where('status', 'open')
+            ->latest('last_message_at')
+            ->limit(max(1, $limit));
+
+        if ($user->role?->permission_type !== 'all') {
+            $query->whereHas('lead', fn (Builder $query) => $query->where('user_id', $user->id));
+        }
+
+        $like = '%'.str_replace(['%', '_'], '', $term).'%';
+
+        return $query->where(function (Builder $query) use ($like) {
+            $query->whereHas('person', fn (Builder $query) => $query->where('name', 'like', $like))
+                ->orWhereHas('lead', fn (Builder $query) => $query->where('title', 'like', $like));
+        })->get();
     }
 }
