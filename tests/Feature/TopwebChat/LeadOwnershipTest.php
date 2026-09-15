@@ -14,6 +14,8 @@ use Webkul\User\Models\User;
 
 beforeEach(function () {
     config()->set('app.debug', false);
+    Cache::shouldReceive('has')->andReturnFalse();
+    Cache::shouldReceive('put')->andReturnTrue();
 
     foreach (['topweb_chat_messages', 'topweb_chat_internal_notes', 'topweb_chat_conversations', 'topweb_chat_instances', 'leads', 'lead_pipelines', 'lead_pipeline_stages', 'activities', 'lead_activities', 'topweb_chat_attendances', 'users', 'roles', 'core_config', 'attributes'] as $table) {
         Schema::dropIfExists($table);
@@ -212,6 +214,10 @@ function ownershipContext(): array
             'name' => 'Pipeline D04', 'rotten_days' => 0, 'is_default' => false,
             'created_at' => now(), 'updated_at' => now(),
         ]),
+        'lead_pipeline_stage_id' => DB::table('lead_pipeline_stages')->insertGetId([
+            'code' => 'e2e', 'name' => 'E2E Etapa', 'probability' => 0, 'sort_order' => 0,
+            'lead_pipeline_id' => DB::getPdo()->lastInsertId(),
+        ]),
         'created_at' => now(), 'updated_at' => now(),
     ]);
     $linked = Conversation::query()->create([
@@ -285,6 +291,7 @@ it('syncs the projection atomically on lead transfer and revokes the ex-owner', 
 it('rejects assigning a linked conversation to a non-owner', function () {
     ['stranger' => $stranger, 'linked' => $linked] = ownershipContext();
     $this->actingAs($stranger, 'user');
+    $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
 
     // Negacao no assignment devolve 302 com erro (contrato V-07), sem mudar nada.
     $this->put(
@@ -298,6 +305,7 @@ it('rejects assigning a linked conversation to a non-owner', function () {
 it('lets admins assign linked conversations to the lead owner', function () {
     ['admin' => $admin, 'owner' => $owner, 'linked' => $linked] = ownershipContext();
     $this->actingAs($admin, 'user');
+    $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
 
     $this->put(
         route('admin.topweb_chat.assignment.update', $linked),
@@ -327,10 +335,13 @@ it('preserves legacy self-claim on unassigned conversations without lead', funct
     ['stranger' => $stranger, 'noLead' => $noLead] = ownershipContext();
     $this->actingAs($stranger, 'user');
 
-    $this->put(
+    $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+
+    $response = $this->put(
         route('admin.topweb_chat.assignment.update', $noLead),
         ['assigned_user_id' => $stranger->id]
-    )->assertRedirect();
+    );
+    $response->assertRedirect();
 
     expect($noLead->fresh()->assigned_user_id)->toBe($stranger->id);
 });
