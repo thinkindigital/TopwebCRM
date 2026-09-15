@@ -12,7 +12,7 @@ use Webkul\User\Models\User;
 beforeEach(function () {
     config()->set('app.debug', false);
 
-    foreach (['lead_ingestions', 'persons', 'leads', 'lead_sources', 'lead_pipelines', 'lead_pipeline_stages', 'activities', 'lead_activities', 'attributes', 'attribute_values', 'users', 'roles', 'personal_access_tokens', 'core_config'] as $table) {
+    foreach (['lead_ingestions', 'persons', 'person_activities', 'leads', 'lead_sources', 'lead_pipelines', 'lead_pipeline_stages', 'activities', 'lead_activities', 'attributes', 'attribute_values', 'users', 'roles', 'personal_access_tokens', 'core_config'] as $table) {
         Schema::dropIfExists($table);
     }
 
@@ -107,6 +107,11 @@ beforeEach(function () {
     Schema::create('lead_activities', function (Blueprint $table) {
         $table->unsignedInteger('activity_id');
         $table->unsignedInteger('lead_id');
+    });
+
+    Schema::create('person_activities', function (Blueprint $table) {
+        $table->unsignedInteger('activity_id');
+        $table->unsignedInteger('person_id');
     });
 
     Schema::create('attributes', function (Blueprint $table) {
