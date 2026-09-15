@@ -58,6 +58,7 @@ class LeadIngestionService
                     'user_id' => $owner->id,
                     'person_id' => $person?->id,
                     'lead_source_id' => $source?->id,
+                    'entity_type' => 'leads',
                 ]);
 
                 $ingestion = LeadIngestion::query()->create([
