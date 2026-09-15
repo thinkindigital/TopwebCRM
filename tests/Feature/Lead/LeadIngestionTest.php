@@ -220,10 +220,9 @@ it('ingests a lead idempotently through an authenticated integration', function 
 it('rejects unauthenticated callers and tokens without scope', function () {
     ['owner' => $owner] = ingestionContext();
 
-    $this->withoutExceptionHandling();
-
-    $this->postJson('/api/v1/leads/ingest', ingestionPayload(['owner_id' => $owner->id]))
-        ->assertUnauthorized();
+    $response = $this->postJson('/api/v1/leads/ingest', ingestionPayload(['owner_id' => $owner->id]));
+    fwrite(STDERR, "\nUNAUTH_STATUS=".$response->getStatusCode()." BODY=".substr($response->getContent(), 0, 400)."\n");
+    $response->assertUnauthorized();
 
     ['user' => $user] = ingestionContext();
     Sanctum::actingAs($user, ['other:scope']);
