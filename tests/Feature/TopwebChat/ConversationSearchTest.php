@@ -5,7 +5,6 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Webkul\Lead\Models\Lead;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\User\Models\Role;
