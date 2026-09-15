@@ -56,9 +56,9 @@ Catalogo de ferramentas com resolvedor de dependencias estilo SetupOrion: traefi
 
 Operar o engine Baileys do OpenWA como alternativa ao `whatsapp-web.js` via feature flag `TOPWEB_CHAT_ENGINE`, com paridade de `MessagingProvider` e smoke parametrizado. Restam migração assistida, auto-detecção e testes de integração no CI.
 
-### [**[E14] TopwebChat Commercial Workspace**](https://github.com/thinkindigital/TopwebCRM/issues/91) - `in_progress`
+### [**[E14] TopwebChat Commercial Workspace**](https://github.com/thinkindigital/TopwebCRM/issues/91) - `done`
 
-Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/programs/e14-commercial-workspace/MASTER.md`. Slices D-01, E-01–E-03, V-01–V-08 entregues (#92–#103); D04/E10-S01 entregue (#15). Cobertura em `docs/programs/e14-commercial-workspace/COVERAGE.md` (PARTIAL + follow-ups obrigatórios). E08 mantém Kanban/dashboard/busca global.
+Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/programs/e14-commercial-workspace/MASTER.md`. Slices D-01, E-01–E-03, V-01–V-08 entregues (#92–#103); D04/E10-S01 entregue (#15). Cobertura em `docs/programs/e14-commercial-workspace/COVERAGE.md` (follow-ups executados; QA final aprovado). E08 mantém Kanban/dashboard/busca global.
 
 ## Marcos
 
@@ -72,7 +72,7 @@ Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Ac
 
 ## Ordem de execucao
 
-NEXT único: follow-ups do COVERAGE E14 (matriz viewport/dark/teclado, E2E V-02/V-04, ADR E-03, E2E logado V-06) — obrigatórios antes de declarar E14 concluída. E14 segue PARTIAL.
+NEXT único: E10 (#19 ingestão, #20 roleta) e E08 (busca global/Kanban); E14 done.
 
 1. Concluir E01 e restaurar baseline de testes.
 2. Executar E03 e E05 em slices verticais pequenos.
