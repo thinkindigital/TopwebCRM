@@ -10,7 +10,7 @@ Consolidar fontes de autoridade, glossario, ADRs, tracker e documentacao sem dup
 
 ### [**[E02] Visibilidade de Dados Sensiveis**](https://github.com/thinkindigital/TopwebCRM/issues/6) - `in_progress`
 
-Revalidar a protecao em UI, backend, APIs, busca, exportacao, arquivos e midias. Evidencias anteriores nao sao reproduziveis no checkout atual.
+Revalidar a protecao em UI, backend, APIs, busca, exportacao, arquivos e midias. Evidencias anteriores nao sao reproduziveis no checkout atual. O isolamento de Persons e Activities deve respeitar a carteira derivada de `Lead.user_id` e permanecer coberto por testes negativos.
 
 ### [**[E03] TopwebChat Core OpenWA**](https://github.com/thinkindigital/TopwebCRM/issues/7) - `in_progress`
 
@@ -42,7 +42,7 @@ Adicionar Evolution API somente apos contratos compartilhados e OpenWA estabiliz
 
 ### [**[E10] Propriedade e Distribuicao de Leads**](https://github.com/thinkindigital/TopwebCRM/issues/10) - `in_progress`
 
-Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. D04/E10-S01 entregue (#15 fechada; CI verde): autoridade por dono, fila A3 sem Lead, cascata na transferência. Restam #19 (ingestão) e #20 (roleta). V-06 destravada.
+Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. D04/E10-S01 entregue (#15 fechada; CI verde): autoridade por dono, fila A3 sem Lead, cascata na transferência. E10-S02 (#19) foi entregue com CI verde. E10-S03 (#20) tem a primeira fatia entregue; permanecem concorrência real, disponibilidade configurável e regras de score/geografia. V-06 destravada.
 
 ### [**[E11] Instalador Automatico TopwebCRM**](https://github.com/thinkindigital/TopwebCRM/issues/49) - `todo`
 
@@ -72,7 +72,7 @@ Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Ac
 
 ## Ordem de execucao
 
-NEXT único: E10 (#19 ingestão, #20 roleta) e E08 (busca global/Kanban); E14 done.
+NEXT único: E10 (#20 roleta restante) e E08 (busca global/Kanban); E02 mantém a validação transversal de escopo e dados sensíveis; E14 done.
 
 1. Concluir E01 e restaurar baseline de testes.
 2. Executar E03 e E05 em slices verticais pequenos.
