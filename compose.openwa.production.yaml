@@ -123,6 +123,20 @@ services:
         - traefik.http.routers.openwa.tls.certresolver=letsencryptresolver
         - traefik.http.routers.openwa.service=openwa
         - traefik.http.services.openwa.loadbalancer.server.port=2785
+        # Painel BullMQ no browser: a aba não envia X-API-Key, então o board
+        # responde 404. Este router dedicado injeta a chave ADMIN só no path
+        # do board (PathPrefix tem prioridade sobre a rota geral).
+        # DEMO: qualquer pessoa com a URL enxerga o board. Para cliente final,
+        # REMOVA este router ou troque por IPAllowList + chave dedicada.
+        # Valor via env de deploy (Portainer): OPENWA_BOARD_API_KEY (nunca commitar).
+        - traefik.http.middlewares.openwa-board-auth.headers.customrequestheaders.X-API-Key=${OPENWA_BOARD_API_KEY:-}
+        - traefik.http.routers.openwa-board.rule=Host(`${OPENWA_DOMAIN:-thinkinapi.agenciarenascimento.com.br}`) && PathPrefix(`/api/admin/queues`)
+        - traefik.http.routers.openwa-board.priority=100
+        - traefik.http.routers.openwa-board.entrypoints=websecure
+        - traefik.http.routers.openwa-board.tls=true
+        - traefik.http.routers.openwa-board.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.openwa-board.service=openwa
+        - traefik.http.routers.openwa-board.middlewares=openwa-board-auth
 
   openwa_db:
     image: postgres:16-alpine

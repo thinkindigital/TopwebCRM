@@ -87,7 +87,7 @@ class ConversationController
 
         $conversation->load([
             'person',
-            'lead',
+            'lead.pipeline',
             'assignedUser',
             'instance',
             'messages' => fn ($query) => $query
@@ -95,6 +95,14 @@ class ConversationController
                 ->orderByDesc('id')
                 ->limit(100),
             'internalNotes' => fn ($query) => $query->with('user')->latest()->limit(100),
+        ]);
+
+        \Log::debug('DEBUG_CONVERSATION', [
+            'conversation_id' => $conversation->id,
+            'lead_id' => $conversation->lead_id,
+            'lead' => $conversation->lead ? $conversation->lead->id : null,
+            'pipeline' => $conversation->lead?->pipeline ? $conversation->lead->pipeline->id : null,
+            'pipeline_stages' => $conversation->lead?->pipeline?->stages ? $conversation->lead->pipeline->stages->count() : null,
         ]);
 
         $conversation->setRelation(
