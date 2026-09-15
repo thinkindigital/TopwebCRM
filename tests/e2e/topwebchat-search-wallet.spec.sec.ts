@@ -68,6 +68,20 @@ test('contexto e próxima ação renderizam sem trocar de tela (V-02/V-04)', asy
   await expect(page.locator('body')).toContainText('Zeta Alfa Negocio');
 });
 
+test('envelope da próxima ação mostra decisão sem vazar texto livre (V-04)', async ({ page }) => {
+  await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  const id = await page.evaluate(async () => {
+    const r = await fetch('/admin/topweb-chat/conversations/search?q=Zeta%20Alfa', { headers: { Accept: 'application/json' } });
+    const body = await r.json();
+    return body.data[0].id;
+  });
+  await page.goto(`/admin/topweb-chat/conversations/${id}`);
+  await expect(page.locator('body')).toContainText('Call');
+  await expect(page.locator('body')).toContainText('E2E Carteira A');
+  await expect(page.locator('body')).not.toContainText('Segredo do envelope XYZ');
+  await expect(page.locator('body')).not.toContainText('Texto livre sigiloso ABC');
+});
+
 test.describe('dark mode', () => {
   test.use({ colorScheme: 'dark' });
 
