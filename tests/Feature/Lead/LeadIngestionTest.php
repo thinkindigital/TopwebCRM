@@ -176,6 +176,7 @@ function ingestionContext(): array
         'role_id' => $role->id, 'status' => true,
     ]);
     $sourceId = DB::table('lead_sources')->insertGetId(['name' => 'Meta Ads']);
+    DB::table('lead_sources')->insert([['name' => 'Google Ads'], ['name' => 'n8n']]);
 
     return compact('user', 'owner', 'sourceId');
 }
@@ -214,4 +215,75 @@ it('ingests a lead idempotently through an authenticated integration', function 
     expect(DB::table('leads')->count())->toBe(1)
         ->and(DB::table('persons')->count())->toBe(1)
         ->and(DB::table('lead_ingestions')->count())->toBe(1);
+});
+
+it('rejects unauthenticated callers and tokens without scope', function () {
+    ['owner' => $owner] = ingestionContext();
+
+    $this->postJson('/api/v1/leads/ingest', ingestionPayload(['owner_id' => $owner->id]))
+        ->assertUnauthorized();
+
+    ['user' => $user] = ingestionContext();
+    Sanctum::actingAs($user, ['other:scope']);
+
+    $this->postJson('/api/v1/leads/ingest', ingestionPayload(['owner_id' => $owner->id]))
+        ->assertForbidden();
+});
+
+it('rejects unknown or inactive owners without creating anything', function () {
+    ['user' => $user, 'owner' => $owner] = ingestionContext();
+    Sanctum::actingAs($user, ['leads:ingest']);
+
+    $this->postJson('/api/v1/leads/ingest', ingestionPayload(['owner_id' => 999999]))
+        ->assertUnprocessable();
+
+    $owner->update(['status' => false]);
+
+    $this->postJson('/api/v1/leads/ingest', ingestionPayload(['owner_id' => $owner->id]))
+        ->assertUnprocessable();
+
+    expect(DB::table('leads')->count())->toBe(0)
+        ->and(DB::table('persons')->count())->toBe(0)
+        ->and(DB::table('lead_ingestions')->count())->toBe(0);
+});
+
+it('validates the contract shape', function () {
+    ['user' => $user] = ingestionContext();
+    Sanctum::actingAs($user, ['leads:ingest']);
+
+    $this->postJson('/api/v1/leads/ingest', [])->assertUnprocessable();
+});
+
+it('accepts meta, google and n8n sources and never exposes PII', function () {
+    ['user' => $user, 'owner' => $owner] = ingestionContext();
+    Sanctum::actingAs($user, ['leads:ingest']);
+
+    foreach (['meta', 'google', 'n8n'] as $index => $source) {
+        $response = $this->postJson('/api/v1/leads/ingest', ingestionPayload([
+            'source' => $source,
+            'source_lead_id' => $source.'-0001',
+            'idempotency_key' => 'key-'.$source.'-0001',
+            'owner_id' => $owner->id,
+        ]))->assertCreated();
+
+        expect($response->json())->toBe([
+            'lead_id' => $response->json('lead_id'),
+            'person_id' => $response->json('person_id'),
+            'duplicate' => false,
+        ]);
+    }
+
+    expect(DB::table('leads')->count())->toBe(3);
+});
+
+it('rejects unknown sources', function () {
+    ['user' => $user, 'owner' => $owner] = ingestionContext();
+    Sanctum::actingAs($user, ['leads:ingest']);
+
+    $this->postJson('/api/v1/leads/ingest', ingestionPayload([
+        'source' => 'desconhecida',
+        'owner_id' => $owner->id,
+    ]))->assertUnprocessable();
+
+    expect(DB::table('leads')->count())->toBe(0);
 });

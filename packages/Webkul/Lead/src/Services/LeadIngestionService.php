@@ -49,6 +49,10 @@ class LeadIngestionService
 
         $source = $this->sources->findOneByField('name', $this->sourceName($data['source']));
 
+        if (! $source) {
+            throw new DomainException('Origem desconhecida.');
+        }
+
         try {
             return DB::transaction(function () use ($data, $owner, $source) {
                 $person = $this->findOrCreatePerson($data['person'] ?? [], (int) $owner->id);
@@ -57,7 +61,7 @@ class LeadIngestionService
                     'title' => $data['lead']['title'],
                     'user_id' => $owner->id,
                     'person_id' => $person?->id,
-                    'lead_source_id' => $source?->id,
+                    'lead_source_id' => $source->id,
                     'entity_type' => 'leads',
                 ]);
 
