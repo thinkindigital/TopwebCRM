@@ -18,7 +18,14 @@ class MessageService
         'image' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
         'audio' => ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/mp4', 'audio/aac'],
         'video' => ['video/mp4', 'video/quicktime', 'video/webm'],
-        'document' => ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        'document' => [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
     ];
 
     public function __construct(
@@ -226,6 +233,111 @@ class MessageService
         }
 
         return $message->fresh();
+    }
+
+    public static function validateBatchFile(UploadedFile $file): ?string
+    {
+        $maximumBytes = (int) config('topweb-chat.openwa.media_max_bytes', 52428800);
+
+        if ($file->getSize() === false || $file->getSize() > $maximumBytes) {
+            return 'too_large';
+        }
+
+        if (self::outboundMediaType((string) $file->getMimeType()) === null) {
+            return 'type_not_supported';
+        }
+
+        return null;
+    }
+
+    /**
+     * Enfileira um lote de anexos: uma Message por arquivo, cada uma com seu
+     * operation_key, mais no máximo uma Message de texto separada (nunca a
+     * mesma legenda duplicada). Falha parcial por item; canal indisponível
+     * rejeita o lote inteiro antes de persistir qualquer item novo.
+     *
+     * @param  array<int, array{file: UploadedFile, operation_key: string}>  $items
+     * @param  array{content: string, operation_key: string}|null  $text
+     * @return array{messages: array, rejected: array, text_message_id: ?int}
+     */
+    public function queueBatch(
+        Conversation $conversation,
+        User $user,
+        array $items,
+        ?array $text = null
+    ): array {
+        $instance = $conversation->instance()->first();
+
+        if (! $instance?->enabled || $instance->status !== 'ready') {
+            throw new DomainException(
+                trans('topweb_chat::app.messages.instance_not_connected')
+            );
+        }
+
+        $accepted = [];
+        $rejected = [];
+
+        foreach (array_values($items) as $index => $item) {
+            $error = self::validateBatchFile($item['file']);
+
+            if ($error !== null) {
+                $rejected[] = [
+                    'index' => $index,
+                    'operation_key' => $item['operation_key'],
+                    'error_code' => $error,
+                ];
+
+                continue;
+            }
+
+            $duplicate = Message::query()
+                ->where('conversation_id', $conversation->id)
+                ->where('operation_key', $item['operation_key'])
+                ->exists();
+
+            try {
+                $message = $this->queueMedia(
+                    $conversation,
+                    $user,
+                    $item['file'],
+                    null,
+                    $item['operation_key']
+                );
+            } catch (DomainException $exception) {
+                $rejected[] = [
+                    'index' => $index,
+                    'operation_key' => $item['operation_key'],
+                    'error_code' => 'rejected',
+                ];
+
+                continue;
+            }
+
+            $accepted[] = [
+                'index' => $index,
+                'operation_key' => $item['operation_key'],
+                'message_id' => $message->id,
+                'duplicate' => $duplicate,
+            ];
+        }
+
+        $textMessageId = null;
+
+        if ($text !== null) {
+            $textMessage = $this->queueText(
+                $conversation,
+                $user,
+                $text['content'],
+                $text['operation_key']
+            );
+            $textMessageId = $textMessage->id;
+        }
+
+        return [
+            'messages' => $accepted,
+            'rejected' => $rejected,
+            'text_message_id' => $textMessageId,
+        ];
     }
 
     public function retry(Message $message, Conversation $conversation, User $user): Message

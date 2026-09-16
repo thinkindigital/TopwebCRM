@@ -5,6 +5,7 @@
         id="topweb-chat-send-form"
         method="POST"
         action="{{ route('admin.topweb_chat.messages.store', $conversation) }}"
+        data-batch-url="{{ route('admin.topweb_chat.messages.batch', $conversation) }}"
         class="flex shrink-0 items-end gap-3 border-t border-gray-200 bg-white p-3 sm:p-4 dark:border-gray-800 dark:bg-gray-900 flex-shrink-0"
     >
         @csrf
@@ -31,7 +32,8 @@
                     type="file"
                     name="media"
                     class="hidden"
-                    accept="image/*,video/*"
+                    accept="image/*,video/*,audio/*"
+                    multiple
                     @disabled(! $canAttachSensitive)
                 >
 
@@ -48,6 +50,7 @@
                     name="document"
                     class="hidden"
                     accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
+                    multiple
                     @disabled(! $canAttachSensitive)
                 >
 

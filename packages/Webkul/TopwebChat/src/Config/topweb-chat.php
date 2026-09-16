@@ -2,6 +2,11 @@
 
 return [
     'workspace_style' => env('TOPWEB_CHAT_WORKSPACE_STYLE', 'R1K'),
+
+    'batch' => [
+        'max_files' => (int) env('TOPWEB_CHAT_BATCH_MAX_FILES', 10),
+        'max_bytes' => (int) env('TOPWEB_CHAT_BATCH_MAX_BYTES', 104857600),
+    ],
     'engine' => env('TOPWEB_CHAT_ENGINE', 'whatsapp-web.js'),
     'provider' => env('TOPWEB_CHAT_PROVIDER', 'openwa'),
     'base_url' => env('TOPWEB_CHAT_BASE_URL', 'http://openwa:2785'),
