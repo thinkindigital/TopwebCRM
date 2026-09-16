@@ -66,7 +66,7 @@
 
 <script src="{{ asset('js/topwebchat-search.js') }}" defer></script>
 <script>
-    window.addEventListener('load', () => {
+    const bindTopwebChatWorkspace = () => {
         const root = document.querySelector('[data-topwebchat-workspace]');
         if (!root) return;
         const open = root.querySelector('[data-context-open]');
@@ -80,5 +80,11 @@
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') setContext(false);
         });
-    }, { once: true });
+    };
+
+    if (document.readyState === 'complete') {
+        bindTopwebChatWorkspace();
+    } else {
+        window.addEventListener('load', bindTopwebChatWorkspace, { once: true });
+    }
 </script>
