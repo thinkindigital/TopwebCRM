@@ -309,6 +309,20 @@ it('answers note creation as JSON for inline editing', function () {
     expect($response->json('note_id'))->toEqual(InternalNote::query()->first()->id);
 });
 
+it('keeps notes working while the instance is not ready', function () {
+    ['agent' => $agent, 'conversation' => $conversation] = noteContext();
+    $conversation->instance->forceFill(['status' => 'disconnected'])->save();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($agent, 'user');
+
+    $this->post(
+        route('admin.topweb_chat.notes.store', $conversation),
+        ['content' => 'nota offline', '_token' => csrf_token()]
+    )->assertRedirect();
+
+    expect(InternalNote::query()->count())->toBe(1);
+});
+
 it('refuses note creation without the notes permission', function () {
     ['outsider' => $outsider, 'conversation' => $conversation] = noteContext();
     $mine = Conversation::query()->create([

@@ -266,6 +266,21 @@ it('answers stage updates as JSON for inline editing', function () {
         ->and($response->json('lead_pipeline_stage_id'))->toEqual($proposal->id);
 });
 
+it('keeps stage changes working while the instance is not ready', function () {
+    ['agent' => $agent, 'proposal' => $proposal, 'lead' => $lead, 'conversation' => $conversation] = stageContext();
+    Event::fake();
+    $conversation->instance->forceFill(['status' => 'disconnected'])->save();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($agent, 'user');
+
+    $this->put(
+        route('admin.topweb_chat.lead_stage.update', $conversation),
+        ['lead_pipeline_stage_id' => $proposal->id, '_token' => csrf_token()]
+    )->assertRedirect();
+
+    expect($lead->fresh()->lead_pipeline_stage_id)->toEqual($proposal->id);
+});
+
 it('lists stages of a pipeline for authorized wallets only', function () {
     ['agent' => $agent, 'pipeline' => $pipeline, 'conversation' => $conversation] = stageContext();
     $this->actingAs($agent, 'user');

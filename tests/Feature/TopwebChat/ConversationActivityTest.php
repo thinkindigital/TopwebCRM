@@ -410,6 +410,26 @@ it('answers activity mutations as JSON for inline editing', function () {
     )->assertOk()->assertJson(['activity_id' => $activity->id]);
 });
 
+it('keeps activity creation working while the instance is not ready', function () {
+    ['agent' => $agent, 'conversation' => $conversation] = activityContext();
+    Event::fake();
+    $conversation->instance->forceFill(['status' => 'disconnected'])->save();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($agent, 'user');
+
+    $this->post(
+        route('admin.topweb_chat.activities.store', $conversation),
+        [
+            'type' => 'call',
+            'schedule_from' => now()->addDay()->format('Y-m-d H:i'),
+            'schedule_to' => now()->addDay()->addHour()->format('Y-m-d H:i'),
+            '_token' => csrf_token(),
+        ]
+    )->assertRedirect();
+
+    expect(Activity::query()->count())->toBe(1);
+});
+
 it('refuses creation on a lead outside the wallet', function () {
     ['conversation' => $conversation] = activityContext();
     $outsiderRole = Role::query()->create([

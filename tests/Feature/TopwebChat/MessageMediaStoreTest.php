@@ -178,6 +178,20 @@ it('stores outbound media with the same authorization as text', function () {
         ->and($response->json('message.status'))->toBe('queued');
 });
 
+it('refuses text outbound while the instance is not ready', function () {
+    [$user, $conversation] = mediaStoreContext();
+    $conversation->instance->forceFill(['status' => 'disconnected'])->save();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($user, 'user');
+
+    $this->postJson(
+        route('admin.topweb_chat.messages.store', $conversation),
+        ['content' => 'olá?', 'operation_key' => (string) Str::uuid(), '_token' => csrf_token()]
+    )->assertStatus(409);
+
+    expect(Message::query()->count())->toBe(0);
+});
+
 it('refuses outbound media without the sensitive-data grant', function () {
     [$admin, $conversation] = mediaStoreContext();
     $plain = User::query()->create([
