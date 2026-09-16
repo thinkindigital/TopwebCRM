@@ -230,7 +230,13 @@ class ConversationController
 
     private function workspaceStyle(): string
     {
-        $style = strtoupper((string) config('topweb-chat.workspace_style', 'R1K'));
+        // S7: configuração administrativa persistida > ENV > R1K.
+        // Persistido ausente ou inválido equivale a ausente (cai no ENV).
+        $style = strtoupper((string) (core()->getConfigData('topwebchat.appearance.workspace_style') ?? ''));
+
+        if (! in_array($style, ['R1', 'R1K'], true)) {
+            $style = strtoupper((string) config('topweb-chat.workspace_style', 'R1K'));
+        }
 
         return in_array($style, ['R1', 'R1K'], true) ? $style : 'R1K';
     }

@@ -36,6 +36,20 @@ return [
     'actions' => [
         'send_whatsapp' => 'Send WhatsApp',
     ],
+    'configuration' => [
+        'title' => 'TopwebChat',
+        'info' => 'Conversations, commercial workspace and appearance.',
+        'appearance' => [
+            'title' => 'Appearance',
+            'info' => 'Commercial workspace visual style.',
+            'workspace-style' => [
+                'title' => 'Visual style',
+                'info' => 'Conversational uses the approved fixed green; System integrated derives the TopwebCRM brand color. Both follow the global light/dark theme.',
+                'conversational' => 'Conversational',
+                'integrated' => 'System integrated',
+            ],
+        ],
+    ],
     'channel' => [
         'connected' => 'Connected',
         'unavailable' => 'Channel unavailable',

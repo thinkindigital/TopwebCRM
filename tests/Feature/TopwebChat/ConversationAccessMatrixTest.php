@@ -349,6 +349,32 @@ it('disables attachment controls without the sensitive-data grant', function () 
     expect($menu)->not->toContain('disabled');
 });
 
+it('prefers the persisted appearance over the environment', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    DB::table('core_config')->insert([
+        'code' => 'topwebchat.appearance.workspace_style', 'value' => 'R1',
+    ]);
+    config()->set('topweb-chat.workspace_style', 'R1K');
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->assertSee('data-workspace-style="R1"', false);
+});
+
+it('ignores invalid persisted styles and keeps the fallback chain', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    DB::table('core_config')->insert([
+        'code' => 'topwebchat.appearance.workspace_style', 'value' => 'R9',
+    ]);
+    config()->set('topweb-chat.workspace_style', 'R1');
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->assertSee('data-workspace-style="R1"', false);
+});
+
 it('falls back to R1K and ignores prototype query parameters', function () {
     ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
 

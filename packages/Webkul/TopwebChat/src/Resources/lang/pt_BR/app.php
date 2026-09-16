@@ -36,6 +36,20 @@ return [
     'actions' => [
         'send_whatsapp' => 'Enviar WhatsApp',
     ],
+    'configuration' => [
+        'title' => 'TopwebChat',
+        'info' => 'Conversas, workspace comercial e aparência.',
+        'appearance' => [
+            'title' => 'Aparência',
+            'info' => 'Estilo visual do workspace comercial.',
+            'workspace-style' => [
+                'title' => 'Estilo visual',
+                'info' => 'Conversacional usa o verde fixo aprovado; Integrado ao sistema deriva a cor da marca do TopwebCRM. Ambos seguem o tema claro/escuro global.',
+                'conversational' => 'Conversacional',
+                'integrated' => 'Integrado ao sistema',
+            ],
+        ],
+    ],
     'channel' => [
         'connected' => 'Conectado',
         'unavailable' => 'Canal indisponível',
