@@ -67,8 +67,10 @@
 
         <div class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             @php
-                $isAdmin = auth()->guard('user')->user()->role?->permission_type === 'all';
+                $user = auth()->guard('user')->user();
+                $isAdmin = $user->role?->permission_type === 'all';
                 $blindQueue = $queue === 'unassigned' && ! $isAdmin;
+                $canClaimBlindQueue = bouncer()->hasPermission('topweb_chat.inbox.view');
             @endphp
             @forelse ($conversations as $conversation)
                 @if ($blindQueue)
@@ -81,15 +83,14 @@
                             <p class="text-sm text-gray-500">{{ $conversation->last_message_at?->diffForHumans() }}</p>
                         </div>
 
-                        @if (bouncer()->hasPermission('topweb_chat.inbox.assign'))
+                        @if ($canClaimBlindQueue)
                             <form
                                 method="POST"
-                                action="{{ route('admin.topweb_chat.assignment.update', $conversation) }}"
+                                action="{{ route('admin.topweb_chat.assignment.claim', $conversation) }}"
                                 class="md:text-right"
                             >
                                 @csrf
                                 @method('PUT')
-                                <input type="hidden" name="assigned_user_id" value="{{ auth()->guard('user')->user()->id }}">
                                 <button type="submit" class="primary-button">
                                     @lang('topweb_chat::app.assignment.claim')
                                 </button>

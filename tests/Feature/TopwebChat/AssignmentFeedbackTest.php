@@ -119,6 +119,34 @@ function claimContext(): array
     return compact('alice', 'bruno', 'conversation');
 }
 
+it('lets a non-sensitive agent self-claim from the blind queue without generic assign permission', function () {
+    $agentRole = Role::query()->create([
+        'name' => 'Agente fila', 'permission_type' => 'custom',
+        'permissions' => ['topweb_chat', 'topweb_chat.inbox', 'topweb_chat.inbox.view', 'dashboard'],
+    ]);
+    $agent = User::query()->create([
+        'name' => 'Agente fila', 'email' => 'fila@example.com',
+        'role_id' => $agentRole->id, 'status' => true,
+        'can_view_sensitive_data' => false,
+    ]);
+    $instance = Instance::query()->create([
+        'name' => 'Blind claim', 'provider' => 'openwa', 'status' => 'ready', 'enabled' => true,
+    ]);
+    $conversation = Conversation::query()->create([
+        'instance_id' => $instance->id,
+        'remote_jid' => '5511888888888@s.whatsapp.net',
+        'remote_jid_key' => hash('sha256', '5511888888888@s.whatsapp.net'),
+    ]);
+
+    $this->actingAs($agent, 'user');
+
+    $this->put(route('admin.topweb_chat.assignment.claim', $conversation))
+        ->assertRedirect();
+
+    expect((bool) $agent->can_view_sensitive_data)->toBeFalse()
+        ->and($conversation->fresh()->assigned_user_id)->toBe($agent->id);
+});
+
 it('tells who won when a claim loses the race', function () {
     ['bruno' => $bruno, 'conversation' => $conversation] = claimContext();
     $this->actingAs($bruno, 'user');

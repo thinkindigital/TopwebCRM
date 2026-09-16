@@ -23,6 +23,7 @@ Route::prefix('topweb-chat')->group(function () {
     Route::get('conversations/{conversation}/messages/{message}/media', [ConversationController::class, 'media'])->name('admin.topweb_chat.messages.media');
     Route::post('conversations/{conversation}/messages/{message}/retry', [MessageController::class, 'retry'])->name('admin.topweb_chat.messages.retry');
     Route::post('conversations/{conversation}/notes', [InternalNoteController::class, 'store'])->name('admin.topweb_chat.notes.store');
+    Route::put('conversations/{conversation}/claim', [AssignmentController::class, 'claim'])->name('admin.topweb_chat.assignment.claim');
     Route::put('conversations/{conversation}/assignment', [AssignmentController::class, 'update'])->name('admin.topweb_chat.assignment.update');
     Route::put('conversations/{conversation}/lead-stage', [LeadStageController::class, 'update'])->name('admin.topweb_chat.lead_stage.update');
 
