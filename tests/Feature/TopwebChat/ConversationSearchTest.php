@@ -219,6 +219,16 @@ it('never searches by phone, email or remote identifier', function () {
         ->assertOk()->assertJsonCount(0, 'data');
 });
 
+it('searches the whole authorized wallet, including non-open conversations', function () {
+    ['owner' => $owner, 'mine' => $mine] = searchContext();
+    $mine->update(['status' => 'closed']);
+    $this->actingAs($owner, 'user');
+
+    $this->getJson(route('admin.topweb_chat.search', ['q' => 'Alfa']))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $mine->id);
+});
+
 it('returns empty result for short queries and guests', function () {
     ['owner' => $owner] = searchContext();
     $this->actingAs($owner, 'user');

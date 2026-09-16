@@ -1,13 +1,14 @@
 import { expect, test } from '@playwright/test';
+import { e2eFixture, requiredEnv } from './fixture';
 
 // Funcional — timeline T1.1 (âncora) + T1.2 (diff) + locale.
-// Requer env: E2E_BASE_URL, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, E2E_CONVERSATION_ID.
+// Requer env: E2E_BASE_URL, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD e fixture E2E.
 
 const loginAsAdmin = async (page) => {
   await page.goto('/admin/login');
-  await page.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL ?? '');
-  await page.locator('input[name="password"]').fill(process.env.E2E_ADMIN_PASSWORD ?? '');
-  await page.locator('form button.primary-button').click();
+  await page.locator('input[name="email"]').fill(requiredEnv('E2E_ADMIN_EMAIL'));
+  await page.locator('input[name="password"]').fill(requiredEnv('E2E_ADMIN_PASSWORD'));
+  await page.locator('button.primary-button').click();
   await expect(page).not.toHaveURL(/login/);
 };
 
@@ -20,7 +21,7 @@ test('timeline ancora no fundo sem RangeError de locale', async ({ page }) => {
   });
 
   await loginAsAdmin(page);
-  await page.goto(`/admin/topweb-chat/conversations/${process.env.E2E_CONVERSATION_ID}`);
+  await page.goto(`/admin/topweb-chat/conversations/${e2eFixture().operational_conversation_id}`);
 
   const timeline = page.locator('#topweb-chat-timeline');
   await expect(timeline).toBeVisible();
@@ -35,7 +36,7 @@ test('timeline ancora no fundo sem RangeError de locale', async ({ page }) => {
 
 test('scroll preservado ao ler histórico durante o polling', async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto(`/admin/topweb-chat/conversations/${process.env.E2E_CONVERSATION_ID}`);
+  await page.goto(`/admin/topweb-chat/conversations/${e2eFixture().operational_conversation_id}`);
 
   const timeline = page.locator('#topweb-chat-timeline');
   await expect(timeline).toBeVisible();

@@ -59,8 +59,9 @@ class ConversationRepository extends Repository
         $query = $this->model
             ->newQuery()
             ->with(['person', 'lead'])
-            ->where('status', 'open')
             ->latest('last_message_at')
+            ->latest('id')
+            ->whereNotNull('lead_id')
             ->limit(max(1, $limit));
 
         if ($user->role?->permission_type !== 'all') {

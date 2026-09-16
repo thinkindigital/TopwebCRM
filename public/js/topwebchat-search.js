@@ -21,7 +21,7 @@
         return { root: root, input: input, results: results };
     }
 
-    function close() {
+    function close(restoreFocus) {
         var e = els();
         if (! e) {
             return;
@@ -30,7 +30,11 @@
         e.results.classList.add('hidden');
         e.results.innerHTML = '';
         e.input.setAttribute('aria-expanded', 'false');
+        e.input.removeAttribute('aria-activedescendant');
         activeIndex = -1;
+        if (restoreFocus) {
+            e.input.focus();
+        }
     }
 
     function render(items, emptyText) {
@@ -40,6 +44,8 @@
         }
 
         e.results.innerHTML = '';
+        activeIndex = -1;
+        e.input.removeAttribute('aria-activedescendant');
 
         if (! items.length) {
             var empty = document.createElement('p');
@@ -52,6 +58,8 @@
             var link = document.createElement('a');
             link.href = item.url;
             link.setAttribute('role', 'option');
+            link.id = 'topwebchat-search-option-' + index;
+            link.setAttribute('aria-selected', 'false');
             link.dataset.index = index;
             link.className = 'block border-b border-gray-100 p-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950';
 
@@ -106,24 +114,15 @@
     });
 
     document.addEventListener('keydown', function (event) {
-        if (! event.target || event.target.id !== 'topwebchat-search-input') {
-            var e = els();
-            if (event.key === 'Escape' && e) {
-                close();
-            }
-
-            return;
-        }
-
         var e = els();
-        if (! e) {
+        if (! e || (event.target !== e.input && ! e.root.contains(event.target))) {
             return;
         }
 
         var options = e.results.querySelectorAll('[role="option"]');
 
         if (event.key === 'Escape') {
-            close();
+            close(true);
             return;
         }
 
@@ -134,11 +133,13 @@
                 : Math.max(activeIndex - 1, 0);
 
             options.forEach(function (option, index) {
-                option.classList.toggle('bg-gray-100', index === activeIndex);
+                var selected = index === activeIndex;
+                option.classList.toggle('bg-gray-100', selected);
+                option.setAttribute('aria-selected', selected ? 'true' : 'false');
             });
 
             if (options[activeIndex]) {
-                options[activeIndex].focus();
+                e.input.setAttribute('aria-activedescendant', options[activeIndex].id);
             }
 
             return;

@@ -10,6 +10,7 @@ use Webkul\Core\ViewRenderEventManager;
 use Webkul\TopwebChat\Console\Commands\CloseStaleAttendances;
 use Webkul\TopwebChat\Console\Commands\ImportRealEstateDemo;
 use Webkul\TopwebChat\Console\Commands\ProjectLeadMedia;
+use Webkul\TopwebChat\Console\Commands\PrepareE2eFixtures;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Console\Commands\RetryFailedMessages;
 use Webkul\TopwebChat\Console\Commands\SeedRealEstateDemo;
@@ -42,6 +43,7 @@ class TopwebChatServiceProvider extends ServiceProvider
                 CloseStaleAttendances::class,
                 ImportRealEstateDemo::class,
                 ProjectLeadMedia::class,
+                PrepareE2eFixtures::class,
                 ReconcileTopwebChat::class,
                 RetryFailedMessages::class,
                 SeedRealEstateDemo::class,

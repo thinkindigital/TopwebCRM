@@ -135,6 +135,10 @@ class ConversationController
     private function contextData(Conversation $conversation, User $user): array
     {
         $isAdministrator = $this->access->isAdministrator($user);
+        $canTransferLead = $conversation->lead
+            && bouncer()->hasPermission('topweb_chat.inbox.assign')
+            && bouncer()->hasPermission('leads.edit')
+            && $this->access->canAccessLead($user, $conversation->lead);
 
         return [
             'conversation' => $conversation,
@@ -160,7 +164,8 @@ class ConversationController
             'leadPipelines' => $conversation->lead
                 ? Pipeline::query()->orderBy('name')->get(['id', 'name'])
                 : collect(),
-            'assignableUsers' => $isAdministrator
+            'canTransferLead' => $canTransferLead,
+            'assignableUsers' => ($isAdministrator || $canTransferLead)
                 ? User::query()->where('status', 1)->orderBy('name')->get()
                 : collect(),
             'canViewSensitiveMedia' => $this->sensitiveData->canView($user),

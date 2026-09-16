@@ -197,7 +197,7 @@ return [
     ],
     'assignment' => [
         'title' => 'Assignee',
-        'save' => 'Save assignee',
+        'save' => 'Transfer owner',
         'claim' => 'Claim conversation',
         'release' => 'Leave unassigned',
         'release_confirm' => 'This conversation will return to the unassigned queue as a non-identifiable item. Continue?',

@@ -98,6 +98,7 @@
                     <button
                         type="button"
                         class="underline"
+                        data-requires-channel
                         data-retry-url="{{ route('admin.topweb_chat.messages.retry', [$conversation, $message]) }}"
                     >
                         @lang('topweb_chat::app.messages.retry')

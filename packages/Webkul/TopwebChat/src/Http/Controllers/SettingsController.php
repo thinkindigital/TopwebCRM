@@ -2,6 +2,7 @@
 
 namespace Webkul\TopwebChat\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -61,6 +62,25 @@ class SettingsController
             'openWaSessions' => $openWaSessions,
             'openWaUnavailable' => $openWaUnavailable,
         ]);
+    }
+
+    public function buildInfo(Request $request): View|JsonResponse
+    {
+        $this->authorizeAdministrator();
+
+        $build = [
+            'application_commit_sha' => (string) config('build.commit_sha', 'unknown'),
+            'build_timestamp' => (string) config('build.timestamp', 'unknown'),
+            'branch' => (string) config('build.branch', 'unknown'),
+            'image_tag' => (string) config('build.image_tag', 'unknown'),
+            'image_revision' => (string) config('build.image_revision', 'unknown'),
+        ];
+
+        if ($request->expectsJson()) {
+            return response()->json($build);
+        }
+
+        return view('topweb_chat::settings.build-info', ['build' => $build]);
     }
 
     public function storeInstance(Request $request): RedirectResponse

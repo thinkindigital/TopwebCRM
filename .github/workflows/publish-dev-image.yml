@@ -56,6 +56,7 @@ jobs:
           fi
           echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
           echo "image_tag=sha-$release_sha" >> "$GITHUB_OUTPUT"
+          echo "build_timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Checkout release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -114,6 +115,10 @@ jobs:
         shell: bash
         env:
           IMAGE_TAG: dev
+          IMAGE_REVISION: ${{ steps.release.outputs.image_tag }}
+          BUILD_SHA: ${{ steps.release.outputs.sha }}
+          BUILD_TIMESTAMP: ${{ steps.release.outputs.build_timestamp }}
+          BUILD_BRANCH: dev
         run: |
           set -euo pipefail
 
@@ -154,19 +159,25 @@ jobs:
           stack_file="$(jq -er '.StackFileContent' <<<"$stack_file_json")"
 
           stack_env="$(
-            jq -c --arg image_tag "$IMAGE_TAG" '
-              .Env
-              | map(
-                  if .name == "TOPWEBCRM_IMAGE_TAG"
-                  then .value = $image_tag
-                  else .
-                  end
-                )
-              | if any(.name == "TOPWEBCRM_IMAGE_TAG")
-                then .
-                else . + [{name: "TOPWEBCRM_IMAGE_TAG", value: $image_tag}]
-                end
-            ' <<<"$stack_json"
+            jq -c \
+              --arg image_tag "$IMAGE_TAG" \
+              --arg image_revision "$IMAGE_REVISION" \
+              --arg build_sha "$BUILD_SHA" \
+              --arg build_timestamp "$BUILD_TIMESTAMP" \
+              --arg build_branch "$BUILD_BRANCH" \
+              '
+                def setenv($name; $value):
+                  if any(.name == $name)
+                  then map(if .name == $name then .value = $value else . end)
+                  else . + [{name: $name, value: $value}]
+                  end;
+                .Env
+                | setenv("TOPWEBCRM_IMAGE_TAG"; $image_tag)
+                | setenv("TOPWEBCRM_IMAGE_REVISION"; $image_revision)
+                | setenv("TOPWEBCRM_BUILD_SHA"; $build_sha)
+                | setenv("TOPWEBCRM_BUILD_TIMESTAMP"; $build_timestamp)
+                | setenv("TOPWEBCRM_BUILD_BRANCH"; $build_branch)
+              ' <<<"$stack_json"
           )"
 
           payload="$(

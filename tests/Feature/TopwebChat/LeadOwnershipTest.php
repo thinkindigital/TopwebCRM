@@ -3,6 +3,7 @@
 // D04 (#15): Lead.user_id como autoridade operacional da conversa vinculada.
 // RED: estes testes falham no CURRENT (autoridade por assigned_user_id).
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Webkul\Lead\Models\Lead;
@@ -288,16 +289,37 @@ it('syncs the projection atomically on lead transfer and revokes the ex-owner', 
     $this->get(route('admin.topweb_chat.show', $linked))->assertOk();
 });
 
-it('rejects assigning a linked conversation to a non-owner', function () {
-    ['stranger' => $stranger, 'linked' => $linked] = ownershipContext();
-    $this->actingAs($stranger, 'user');
-    $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+it('transfers the Lead owner from chat and reconciles every linked conversation', function () {
+    ['admin' => $admin, 'owner' => $owner, 'stranger' => $stranger, 'leadId' => $leadId, 'linked' => $linked, 'divergent' => $divergent] = ownershipContext();
+    $this->actingAs($admin, 'user');
+    $this->withoutMiddleware(ValidateCsrfToken::class);
 
-    // Negacao no assignment devolve 302 com erro (contrato V-07), sem mudar nada.
     $this->put(
         route('admin.topweb_chat.assignment.update', $linked),
         ['assigned_user_id' => $stranger->id]
-    )->assertRedirect()->assertSessionHas('error');
+    )->assertRedirect();
+
+    expect(Lead::query()->findOrFail($leadId)->user_id)->toBe($stranger->id)
+        ->and($linked->fresh()->assigned_user_id)->toBe($stranger->id)
+        ->and($divergent->fresh()->assigned_user_id)->toBe($stranger->id);
+
+    $this->actingAs($owner, 'user');
+    $this->get(route('admin.topweb_chat.show', $linked))->assertForbidden();
+
+    $this->actingAs($stranger, 'user');
+    $this->get(route('admin.topweb_chat.show', $linked))->assertOk();
+});
+
+it('rejects assigning a linked conversation to a non-owner', function () {
+    ['stranger' => $stranger, 'linked' => $linked] = ownershipContext();
+    $this->actingAs($stranger, 'user');
+    $this->withoutMiddleware(ValidateCsrfToken::class);
+
+    // Transferência real de Lead exige a autorização de edição do Lead.
+    $this->put(
+        route('admin.topweb_chat.assignment.update', $linked),
+        ['assigned_user_id' => $stranger->id]
+    )->assertForbidden();
 
     expect($linked->fresh()->assigned_user_id)->toBeNull();
 });
@@ -305,7 +327,7 @@ it('rejects assigning a linked conversation to a non-owner', function () {
 it('lets admins assign linked conversations to the lead owner', function () {
     ['admin' => $admin, 'owner' => $owner, 'linked' => $linked] = ownershipContext();
     $this->actingAs($admin, 'user');
-    $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+    $this->withoutMiddleware(ValidateCsrfToken::class);
 
     $this->put(
         route('admin.topweb_chat.assignment.update', $linked),
@@ -335,7 +357,7 @@ it('preserves legacy self-claim on unassigned conversations without lead', funct
     ['stranger' => $stranger, 'noLead' => $noLead] = ownershipContext();
     $this->actingAs($stranger, 'user');
 
-    $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+    $this->withoutMiddleware(ValidateCsrfToken::class);
 
     $response = $this->put(
         route('admin.topweb_chat.assignment.update', $noLead),

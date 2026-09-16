@@ -8,10 +8,14 @@ use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Services\ConversationAccessService;
+use Webkul\TopwebChat\Services\LeadOwnershipService;
 
 class AssignmentController
 {
-    public function __construct(protected ConversationAccessService $access) {}
+    public function __construct(
+        protected ConversationAccessService $access,
+        protected LeadOwnershipService $leadOwnership
+    ) {}
 
     public function update(Request $request, Conversation $conversation): RedirectResponse
     {
@@ -21,6 +25,17 @@ class AssignmentController
         $data = $request->validate([
             'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
+
+        if ($conversation->lead_id !== null) {
+            abort_unless($data['assigned_user_id'] !== null, 422);
+            $this->leadOwnership->transfer(
+                $conversation,
+                $user,
+                (int) $data['assigned_user_id']
+            );
+
+            return back()->with('success', trans('topweb_chat::app.assignment.updated'));
+        }
 
         try {
             DB::transaction(function () use ($conversation, $data, $user) {

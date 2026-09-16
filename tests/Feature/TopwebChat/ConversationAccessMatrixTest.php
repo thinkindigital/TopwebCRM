@@ -290,7 +290,7 @@ it('serves the context as an authorized server fragment', function () {
 
     $this->get(route('admin.topweb_chat.context.show', $owned).'?fragment=context')
         ->assertOk()
-        ->assertSee('grid content-start gap-4', false)
+        ->assertSee('twp-context-stack', false)
         ->assertDontSee('data-topwebchat-workspace', false);
 
     $this->actingAs($stranger, 'user');

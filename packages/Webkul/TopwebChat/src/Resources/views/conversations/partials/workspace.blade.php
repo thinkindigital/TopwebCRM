@@ -57,15 +57,19 @@
         >
             @if ($selectedConversation)
                 <button type="button" class="twp-context-close" data-context-close aria-label="@lang('topweb_chat::app.conversations.back')">×</button>
-                @include('topweb_chat::conversations.partials.crm-context', [
+                <div data-context-content>
+                    @include('topweb_chat::conversations.partials.crm-context', [
                     'conversation' => $conversation,
                     'pipelineStages' => $pipelineStages,
+                    'leadPipelines' => $leadPipelines,
                     'assignableUsers' => $assignableUsers,
-                    'nextAction' => $nextAction,
-                    'recentActions' => $recentActions,
-                    'isAdmin' => $isAdmin,
-                    'canReleaseConversation' => $canReleaseConversation,
-                ])
+                        'nextAction' => $nextAction,
+                        'recentActions' => $recentActions,
+                        'isAdmin' => $isAdmin,
+                        'canReleaseConversation' => $canReleaseConversation,
+                        'canTransferLead' => $canTransferLead,
+                    ])
+                </div>
             @endif
         </aside>
     </div>
@@ -145,7 +149,9 @@
 
                 if (!response.ok) throw new Error(`context_refresh_failed:${response.status}`);
 
-                container.innerHTML = await response.text();
+                const content = container.querySelector('[data-context-content]');
+                if (!content) throw new Error('context_content_missing');
+                content.innerHTML = await response.text();
             } catch (error) {
                 console.error('TopwebChat context refresh failed.', error);
             }
@@ -202,8 +208,8 @@
             const stageSelect = form.querySelector('[data-stage-select]');
             const errorBox = form.querySelector('[data-stage-error]');
             const previous = {
-                pipeline: pipelineSelect.value,
-                stage: stageSelect.value,
+                pipeline: form.dataset.confirmedPipeline,
+                stage: form.dataset.confirmedStage,
             };
 
             const showError = () => {
@@ -231,6 +237,8 @@
                 const body = await response.json();
                 pipelineSelect.value = String(body.lead_pipeline_id);
                 stageSelect.value = String(body.lead_pipeline_stage_id);
+                form.dataset.confirmedPipeline = String(body.lead_pipeline_id);
+                form.dataset.confirmedStage = String(body.lead_pipeline_stage_id);
                 await refreshContext();
             } catch (error) {
                 showError();
@@ -247,8 +255,11 @@
             const errorBox = form?.querySelector('[data-stage-error]');
             if (!form || !stageSelect) return;
 
-            const previousPipeline = pipelineSelect.dataset.current ?? pipelineSelect.value;
-            pipelineSelect.dataset.current = pipelineSelect.value;
+            const previous = {
+                pipeline: form.dataset.confirmedPipeline,
+                stage: form.dataset.confirmedStage,
+                stageOptions: stageSelect.innerHTML,
+            };
 
             try {
                 const url = form.dataset.stagesUrlTemplate.replace('__PIPELINE__', pipelineSelect.value);
@@ -268,9 +279,14 @@
                         return option;
                     })
                 );
+                if (stageSelect.options.length > 0) {
+                    stageSelect.value = stageSelect.options[0].value;
+                }
                 if (errorBox) errorBox.classList.add('hidden');
             } catch (error) {
-                pipelineSelect.value = previousPipeline;
+                pipelineSelect.value = previous.pipeline;
+                stageSelect.innerHTML = previous.stageOptions;
+                stageSelect.value = previous.stage;
                 if (errorBox) errorBox.classList.remove('hidden');
                 console.error('TopwebChat stages load failed.', error);
             }

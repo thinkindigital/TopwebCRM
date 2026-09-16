@@ -10,6 +10,7 @@ use Webkul\Lead\Models\Pipeline;
 use Webkul\Lead\Models\Stage;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
+use Webkul\TopwebChat\Services\LeadStageService;
 use Webkul\User\Models\Role;
 use Webkul\User\Models\User;
 
@@ -326,6 +327,22 @@ it('rejects stages from another pipeline and keeps the previous value', function
         route('admin.topweb_chat.lead_stage.update', $conversation),
         ['lead_pipeline_stage_id' => $alien->id, '_token' => csrf_token()]
     )->assertNotFound();
+
+    expect($lead->fresh()->lead_pipeline_stage_id)->toEqual($qualification->id);
+});
+
+it('rolls back pipeline changes when a post-update event fails', function () {
+    ['agent' => $agent, 'proposal' => $proposal, 'qualification' => $qualification, 'lead' => $lead, 'conversation' => $conversation] = stageContext();
+    Event::listen('topweb_chat.lead.stage_changed', function () {
+        throw new RuntimeException('simulated stage refresh failure');
+    });
+    $this->actingAs($agent, 'user');
+
+    expect(fn () => app(LeadStageService::class)->move(
+        $conversation,
+        $agent,
+        $proposal->id
+    ))->toThrow(RuntimeException::class);
 
     expect($lead->fresh()->lead_pipeline_stage_id)->toEqual($qualification->id);
 });

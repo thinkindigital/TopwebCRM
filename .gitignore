@@ -14,3 +14,4 @@
 /storage/framework/cache/
 /storage/framework/sessions/
 /storage/framework/views/
+.playwright-e2e-fixtures.json

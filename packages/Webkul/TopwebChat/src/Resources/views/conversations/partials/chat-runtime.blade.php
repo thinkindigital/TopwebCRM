@@ -171,8 +171,9 @@
                         connectionBadge?.classList.toggle('bg-amber-50', !connected);
                         connectionBadge?.classList.toggle('text-amber-700', !connected);
                         connectionWarning?.classList.toggle('hidden', connected);
-                        form?.querySelector('textarea')?.toggleAttribute('disabled', !connected);
-                        form?.querySelector('button')?.toggleAttribute('disabled', !connected);
+                        form?.querySelectorAll('[data-requires-channel]').forEach((control) => {
+                            control.toggleAttribute('disabled', !connected);
+                        });
                     } finally {
                         refreshing = false;
                     }
@@ -466,10 +467,9 @@
                             window.alert(@json(trans('topweb_chat::app.messages.send_failed')));
                         }
                     } finally {
-                        submit?.toggleAttribute(
-                            'disabled',
-                            instanceStatus?.textContent !== 'ready'
-                        );
+                        const channelReady = document.getElementById('topweb-chat-poll-meta')
+                            ?.dataset.instanceStatus === 'ready';
+                        submit?.toggleAttribute('disabled', ! channelReady);
                     }
                 });
 

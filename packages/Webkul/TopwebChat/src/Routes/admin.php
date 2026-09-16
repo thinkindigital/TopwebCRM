@@ -40,6 +40,7 @@ Route::prefix('topweb-chat')->group(function () {
 
     Route::prefix('settings')->group(function () {
         Route::get('', [SettingsController::class, 'index'])->name('admin.topweb_chat.settings.index');
+        Route::get('build-info', [SettingsController::class, 'buildInfo'])->name('admin.topweb_chat.settings.build_info');
         Route::post('instances', [SettingsController::class, 'storeInstance'])->name('admin.topweb_chat.settings.instances.store');
         Route::delete('instances/{instance}', [SettingsController::class, 'destroyInstance'])->name('admin.topweb_chat.settings.instances.destroy');
         Route::post('instances/{instance}/webhook', [SettingsController::class, 'configureWebhook'])->name('admin.topweb_chat.settings.instances.webhook');

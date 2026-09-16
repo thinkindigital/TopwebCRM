@@ -21,11 +21,19 @@ class LeadOwnershipObserver
             return;
         }
 
-        // D04: a projecao acompanha a autoridade na mesma escrita.
-        DB::transaction(function () use ($lead) {
+        $sync = function () use ($lead): void {
             Conversation::query()
                 ->where('lead_id', $lead->id)
+                ->lockForUpdate()
                 ->update(['assigned_user_id' => $lead->user_id]);
-        });
+        };
+
+        // D04: a projeção acompanha a autoridade na mesma escrita. Reuse the
+        // caller's transaction when Lead ownership is changed from the chat.
+        if (DB::transactionLevel() > 0) {
+            $sync();
+        } else {
+            DB::transaction($sync);
+        }
     }
 }

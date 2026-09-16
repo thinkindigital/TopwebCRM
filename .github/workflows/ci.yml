@@ -55,6 +55,9 @@ jobs:
           ini-values: error_reporting=E_ALL
           tools: composer:v2
 
+      - name: Validate SetupThinkin installer
+        run: bash -n SetupThinkin.sh
+
       - name: Prepare Application Environment
         run: |
           cp .env.example .env

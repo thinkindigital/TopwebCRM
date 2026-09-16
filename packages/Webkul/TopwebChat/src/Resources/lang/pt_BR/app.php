@@ -59,9 +59,9 @@ return [
         'sync_degraded' => 'Sincronização temporariamente indisponível — histórico local preservado.',
     ],
     'queues' => [
-        'mine' => 'Meus atendimentos',
-        'unassigned' => 'Sem atendente',
-        'all' => 'Todos',
+        'mine' => 'Minhas',
+        'unassigned' => 'Em espera',
+        'all' => 'Todas',
     ],
     'search' => [
         'placeholder' => 'Buscar na carteira (nome ou título)',
@@ -197,7 +197,7 @@ return [
     ],
     'assignment' => [
         'title' => 'Responsável',
-        'save' => 'Salvar responsável',
+        'save' => 'Transferir responsável',
         'claim' => 'Assumir atendimento',
         'release' => 'Deixar sem atendente',
         'release_confirm' => 'Esta conversa voltará à fila sem atendente como item não identificável. Continuar?',
