@@ -2,6 +2,7 @@
 
 namespace Webkul\TopwebChat\Http\Controllers;
 
+use App\Services\SensitiveDataService;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,8 @@ class MessageController
 {
     public function __construct(
         protected MessageService $messages,
-        protected ConversationAccessService $access
+        protected ConversationAccessService $access,
+        protected SensitiveDataService $sensitiveData
     ) {}
 
     public function store(
@@ -26,6 +28,14 @@ class MessageController
 
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
+
+        // S1: upload exige concessão individual; texto continua permitido.
+        if (
+            ($request->hasFile('media') || $request->hasFile('document'))
+            && ! $this->sensitiveData->canView($user)
+        ) {
+            abort(403);
+        }
 
         $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 52428800) / 1024));
 
@@ -119,6 +129,11 @@ class MessageController
 
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
+
+        // S1: retry de mídia exige a mesma concessão do upload.
+        if ($message->hasMedia() && ! $this->sensitiveData->canView($user)) {
+            abort(403);
+        }
 
         try {
             $message = $this->messages->retry($message, $conversation, $user);

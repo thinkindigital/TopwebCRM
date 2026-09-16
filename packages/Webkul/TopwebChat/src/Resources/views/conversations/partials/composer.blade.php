@@ -24,7 +24,7 @@
                     type="button"
                     class="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
                     aria-label="@lang('topweb_chat::app.messages.attach_image')"
-                    @disabled($conversation->instance?->status !== 'ready')
+                    @disabled($conversation->instance?->status !== 'ready' || ! $canAttachSensitive)
                 >@lang('topweb_chat::app.messages.attach_image')</button>
                 <input
                     id="topweb-chat-media-input"
@@ -32,6 +32,7 @@
                     name="media"
                     class="hidden"
                     accept="image/*,video/*"
+                    @disabled(! $canAttachSensitive)
                 >
 
                 <button
@@ -39,7 +40,7 @@
                     type="button"
                     class="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
                     aria-label="@lang('topweb_chat::app.messages.attach_document')"
-                    @disabled($conversation->instance?->status !== 'ready')
+                    @disabled($conversation->instance?->status !== 'ready' || ! $canAttachSensitive)
                 >@lang('topweb_chat::app.messages.attach_document')</button>
                 <input
                     id="topweb-chat-document-input"
@@ -47,6 +48,7 @@
                     name="document"
                     class="hidden"
                     accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
+                    @disabled(! $canAttachSensitive)
                 >
 
                 @if ($canAttachSensitive)

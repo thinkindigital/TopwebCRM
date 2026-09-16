@@ -217,6 +217,23 @@ it('renders the configured official workspace style', function (string $style) {
         ->assertDontSee('data-prototype-root', false);
 })->with(['R1', 'R1K']);
 
+it('disables attachment controls without the sensitive-data grant', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    $this->actingAs($admin, 'user');
+
+    $response = $this->get(route('admin.topweb_chat.show', $owned))->assertOk();
+    $response->assertSee('id="topweb-chat-attach-menu"', false);
+
+    $menu = substr($response->getContent(), strpos($response->getContent(), 'id="topweb-chat-attach-menu"'), 3000);
+    expect($menu)->toContain('disabled');
+
+    $admin->forceFill(['can_view_sensitive_data' => true])->save();
+
+    $response = $this->get(route('admin.topweb_chat.show', $owned))->assertOk();
+    $menu = substr($response->getContent(), strpos($response->getContent(), 'id="topweb-chat-attach-menu"'), 3000);
+    expect($menu)->not->toContain('disabled');
+});
+
 it('falls back to R1K and ignores prototype query parameters', function () {
     ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
 
