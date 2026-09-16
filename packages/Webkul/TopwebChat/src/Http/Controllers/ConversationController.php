@@ -78,12 +78,14 @@ class ConversationController
         ]);
     }
 
-    public function show(Conversation $conversation): View
+    public function show(Request $request, Conversation $conversation): View
     {
         abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
 
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
+        $prototypeVariant = $request->string('variant')->toString();
+        $isPrototype = in_array($prototypeVariant, ['R1', 'R1K'], true);
 
         $conversation->load([
             'person',
@@ -110,7 +112,7 @@ class ConversationController
             $conversation->messages->reverse()->values()
         );
 
-        if ($conversation->instance?->enabled) {
+        if ($conversation->instance?->enabled && ! $isPrototype) {
             try {
                 Bus::chain([
                     new SyncConversationHistory($conversation->id, true),
@@ -131,7 +133,7 @@ class ConversationController
             }
         }
 
-        return view('topweb_chat::conversations.show', [
+        $viewData = [
             'conversation' => $conversation,
             'historyUnavailable' => Cache::has(
                 "topweb-chat:history-unavailable:{$conversation->instance_id}"
@@ -162,7 +164,40 @@ class ConversationController
                 $user,
                 $this->access->isAdministrator($user)
             ),
-        ]);
+        ];
+
+        if ($isPrototype) {
+            $queue = $request->string('queue', 'mine')->toString();
+
+            if (! in_array($queue, ['mine', 'unassigned', 'all'], true)) {
+                $queue = 'mine';
+            }
+
+            if (! $this->access->isAdministrator($user) && $queue === 'all') {
+                $queue = 'mine';
+            }
+
+            return view('topweb_chat::conversations.show-prototype-r1', $viewData + [
+                'queue' => $queue,
+                'queueConversations' => $this->conversationRepository
+                    ->accessibleQuery($user, $queue)
+                    ->limit(30)
+                    ->get(),
+                'queueCounts' => [
+                    'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
+                    'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
+                    'all' => $this->access->isAdministrator($user)
+                        ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
+                        : 0,
+                ],
+                'prototypeScenario' => $request->string('scenario', 'linked')->toString(),
+                'prototypePane' => $request->string('pane', 'conversation')->toString(),
+                'prototypeContextOpen' => $request->boolean('context'),
+                'prototypeVisualVariant' => $prototypeVariant,
+            ]);
+        }
+
+        return view('topweb_chat::conversations.show', $viewData);
     }
 
     public function messages(Request $request, Conversation $conversation): Response

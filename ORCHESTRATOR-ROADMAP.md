@@ -60,6 +60,8 @@ Operar o engine Baileys do OpenWA como alternativa ao `whatsapp-web.js` via feat
 
 Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/programs/e14-commercial-workspace/MASTER.md`. Slices D-01, E-01–E-03, V-01–V-08 entregues (#92–#103); D04/E10-S01 entregue (#15). Cobertura em `docs/programs/e14-commercial-workspace/COVERAGE.md` (follow-ups executados; QA final aprovado). E08 mantém Kanban/dashboard/busca global.
 
+Follow-up de promoção visual em execução exclusiva: [#107](https://github.com/thinkindigital/TopwebCRM/issues/107). R1 e R1K foram aprovados como estilos configuráveis de um único workspace; o baseline HITL está versionado, mas a UI oficial ainda não foi promovida.
+
 ## Marcos
 
 | Marco | Epics | Saida verificavel |
@@ -72,7 +74,7 @@ Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Ac
 
 ## Ordem de execucao
 
-NEXT único: E10 (#20 roleta restante) e E08 (busca global/Kanban); E02 mantém a validação transversal de escopo e dados sensíveis; E14 done.
+NEXT único: #107, promoção R1/R1K para o workspace oficial. E08, E10, E11 e os demais trabalhos ficam pausados até seu encerramento.
 
 1. Concluir E01 e restaurar baseline de testes.
 2. Executar E03 e E05 em slices verticais pequenos.
