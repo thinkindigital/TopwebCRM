@@ -16,8 +16,8 @@
 
     <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section
-            class="relative flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-            style="height: clamp(30rem, calc(100dvh - 10rem), 48rem); min-height: 0; display: flex; flex-direction: column;"
+            class="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+            style="height: clamp(36rem, calc(100dvh - 10rem), 52rem); min-height: 0;"
         >
             @include('topweb_chat::conversations.partials.conversation-header', [
                 'conversation' => $conversation,
@@ -53,19 +53,20 @@
                 'conversation' => $conversation,
                 'canAttachSensitive' => $sensitiveData->canView(),
             ])
+        </section>
 
-            @include('topweb_chat::conversations.partials.crm-context', [
-                'conversation' => $conversation,
-                'pipelineStages' => $pipelineStages,
-                'assignableUsers' => $assignableUsers,
-                'nextAction' => $nextAction,
-                'recentActions' => $recentActions,
-                'isAdmin' => $isAdmin,
-                'canReleaseConversation' => $canReleaseConversation,
-            ])
+        @include('topweb_chat::conversations.partials.crm-context', [
+            'conversation' => $conversation,
+            'pipelineStages' => $pipelineStages,
+            'assignableUsers' => $assignableUsers,
+            'nextAction' => $nextAction,
+            'recentActions' => $recentActions,
+            'isAdmin' => $isAdmin,
+            'canReleaseConversation' => $canReleaseConversation,
+        ])
     </div>
 
     @include('topweb_chat::conversations.partials.chat-runtime', [
-                'conversation' => $conversation,
-            ])
+        'conversation' => $conversation,
+    ])
 </x-admin::layouts>
