@@ -317,6 +317,32 @@ it('rejects the whole batch when the instance is not ready', function () {
     expect(Storage::disk('private')->allFiles())->toBeEmpty();
 });
 
+it('refuses batch uploads without the send permission', function () {
+    [$admin, $conversation] = batchContext();
+    $role = Role::query()->create([
+        'name' => 'Sem envio', 'permission_type' => 'custom',
+        'permissions' => ['topweb_chat', 'topweb_chat.inbox', 'topweb_chat.inbox.view', 'dashboard'],
+    ]);
+    $plain = User::query()->create([
+        'name' => 'Sem envio', 'email' => 'semenvio@example.com',
+        'role_id' => $role->id, 'status' => true, 'can_view_sensitive_data' => true,
+    ]);
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($plain, 'user');
+
+    $this->postJson(
+        route('admin.topweb_chat.messages.batch', $conversation),
+        [
+            'attachments' => [
+                ['file' => UploadedFile::fake()->image('a.jpg'), 'operation_key' => (string) Str::uuid()],
+            ],
+            '_token' => csrf_token(),
+        ]
+    )->assertForbidden();
+
+    expect(Message::query()->count())->toBe(0);
+});
+
 it('refuses batch uploads without the sensitive-data grant', function () {
     [$admin, $conversation] = batchContext();
     $plain = User::query()->create([

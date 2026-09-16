@@ -12,8 +12,21 @@ async function loginAs(page: any, email: string, password: string) {
   await expect(page).not.toHaveURL(/login/);
 }
 
+// Fixtures Zeta vivem só no banco de dev e são mutáveis; sem elas, a
+// cobertura equivalente está em topwebchat-operational.spec.func.ts.
+async function requireZetaFixture(page: any) {
+  const found = await page.evaluate(async () => {
+    const r = await fetch('/admin/topweb-chat/conversations/search?q=Zeta%20Alfa', { headers: { Accept: 'application/json' } });
+    const body = await r.json().catch(() => ({}));
+    return (body?.data?.length ?? 0) > 0;
+  });
+
+  test.skip(!found, 'fixtures Zeta ausentes no DEV (drift de dados)');
+}
+
 test('inbox: filas, contadores e campo visíveis e operáveis por teclado', async ({ page }) => {
   await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  await requireZetaFixture(page);
   await page.goto('/admin/topweb-chat');
 
   await expect(page.locator('#topwebchat-search-input')).toBeVisible();
@@ -33,6 +46,7 @@ test('inbox: filas, contadores e campo visíveis e operáveis por teclado', asyn
 
 test('conversa: timeline, composer e contexto renderizam', async ({ page }) => {
   await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  await requireZetaFixture(page);
   await page.goto('/admin/topweb-chat');
   await page.locator('#topwebchat-search-input').fill('Zeta Alfa');
   await page.locator('#topwebchat-search-results [role="option"]').first().waitFor();
@@ -56,6 +70,7 @@ test.describe('dark mode', () => {
 
   test('inbox e conversa legíveis no escuro', async ({ page }) => {
     await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  await requireZetaFixture(page);
     await page.goto('/admin/topweb-chat');
     await expect(page.locator('#topwebchat-search-input')).toBeVisible();
     await page.locator('#topwebchat-search-input').fill('Zeta Alfa');
