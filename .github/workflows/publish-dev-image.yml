@@ -1,18 +1,13 @@
 name: Publish dev image
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - TopwebChat | Root E2E
+    types:
+      - completed
     branches:
       - dev
-    paths:
-      - composer.json
-      - composer.lock
-      - package.json
-      - package-lock.json
-      - packages/**
-      - public/**
-      - docker/php/**
-      - .github/workflows/publish-dev-image.yml
   workflow_dispatch:
 
 concurrency:
@@ -26,7 +21,8 @@ jobs:
   publish:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'push'
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -45,7 +41,7 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          WORKFLOW_RUN_SHA: ${{ github.sha }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
           DISPATCH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -54,9 +50,11 @@ jobs:
           else
             release_sha="$WORKFLOW_RUN_SHA"
           fi
-          echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
-          echo "image_tag=sha-$release_sha" >> "$GITHUB_OUTPUT"
-          echo "build_timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+           {
+             echo "sha=$release_sha"
+             echo "image_tag=sha-$release_sha"
+             echo "build_timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+           } >> "$GITHUB_OUTPUT"
 
       - name: Checkout release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

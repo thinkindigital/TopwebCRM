@@ -60,7 +60,9 @@ return [
     ],
     'queues' => [
         'mine' => 'Minhas',
-        'unassigned' => 'Em espera',
+        'unassigned' => 'Sem atendente',
+        'waiting' => 'Aguardando cliente',
+        'blind_waiting' => 'Aguardando',
         'all' => 'Todas',
     ],
     'search' => [
@@ -203,6 +205,15 @@ return [
         'release_confirm' => 'Esta conversa voltará à fila sem atendente como item não identificável. Continuar?',
         'updated' => 'Responsável atualizado.',
         'taken' => 'Conversa já assumida por :name.',
+    ],
+    'inbound' => [
+        'lead_title' => 'Nova oportunidade de WhatsApp para :name',
+        'association_help' => 'Esta conversa aguarda uma oportunidade comercial.',
+        'link_existing' => 'Vincular Lead existente',
+        'link_action' => 'Vincular Lead',
+        'create_action' => 'Criar novo Lead',
+        'linked' => 'Lead vinculado.',
+        'created' => 'Lead criado e vinculado.',
     ],
     'settings' => [
         'title' => 'Configurações do Topweb Chat',

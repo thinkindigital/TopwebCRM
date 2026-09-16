@@ -106,10 +106,22 @@ class PrepareE2eFixtures extends Command
                 'permissions' => [],
             ]
         );
+        $claimRole = Role::query()->updateOrCreate(
+            ['name' => self::PREFIX.'Blind Claim Agent'],
+            [
+                'permission_type' => 'custom',
+                'permissions' => [
+                    'topweb_chat',
+                    'topweb_chat.inbox',
+                    'topweb_chat.inbox.view',
+                ],
+            ]
+        );
 
         $walletA = $this->fixtureUser('E2E_FIXTURE_WALLET_A_EMAIL', 'topwebchat-e2e-wallet-a@example.test', 'Wallet A', $role, $password);
         $walletB = $this->fixtureUser('E2E_FIXTURE_WALLET_B_EMAIL', 'topwebchat-e2e-wallet-b@example.test', 'Wallet B', $role, $password);
         $this->fixtureUser('E2E_FIXTURE_ADMIN_EMAIL', 'topwebchat-e2e-admin@example.test', 'E2E Admin', $adminRole, $password);
+        $claimUser = $this->fixtureUser('E2E_FIXTURE_CLAIM_EMAIL', 'topwebchat-e2e-claim@example.test', 'Blind Claim Agent', $claimRole, $password);
 
         $pipelineA = $this->pipeline(self::PREFIX.'Pipeline A');
         $pipelineB = $this->pipeline(self::PREFIX.'Pipeline B');
@@ -159,6 +171,18 @@ class PrepareE2eFixtures extends Command
         $openA = $this->conversation($instance, $personA, $leadA, 'e2e-wallet-a-open', 'open');
         $closedA = $this->conversation($instance, $personA, $leadA, 'e2e-wallet-a-closed', 'closed');
         $conversationB = $this->conversation($instance, $personB, $leadB, 'e2e-wallet-b', 'open');
+        $blindConversation = Conversation::query()->updateOrCreate(
+            ['remote_jid_key' => hash('sha256', 'e2e-blind-claim')],
+            [
+                'instance_id' => $instance->id,
+                'person_id' => $personA->id,
+                'lead_id' => null,
+                'assigned_user_id' => null,
+                'remote_jid' => 'e2e-blind-claim@s.whatsapp.net',
+                'status' => 'open',
+                'last_message_at' => now()->subMinutes(3),
+            ]
+        );
 
         foreach ([$openA, $closedA, $conversationB] as $conversation) {
             Message::query()->updateOrCreate(
@@ -198,6 +222,8 @@ class PrepareE2eFixtures extends Command
                 'conversation_id' => $conversationB->id,
             ],
             'operational_conversation_id' => $openA->id,
+            'blind_conversation_id' => $blindConversation->id,
+            'claim_user_email' => $claimUser->email,
             'pipeline_ids' => [$pipelineA->id, $pipelineB->id],
             'stage_ids' => [$stageA1->id, $stageB1->id],
         ];
@@ -278,6 +304,7 @@ class PrepareE2eFixtures extends Command
                     hash('sha256', 'e2e-wallet-a-open'),
                     hash('sha256', 'e2e-wallet-a-closed'),
                     hash('sha256', 'e2e-wallet-b'),
+                    hash('sha256', 'e2e-blind-claim'),
                 ])->pluck('id');
 
             DB::table('topweb_chat_messages')->whereIn('conversation_id', $conversationIds)->delete();
@@ -299,8 +326,10 @@ class PrepareE2eFixtures extends Command
                 (string) env('E2E_FIXTURE_WALLET_B_EMAIL', 'topwebchat-e2e-wallet-b@example.test'),
             ])->pluck('id');
             User::query()->whereIn('id', $users)->delete();
+            User::query()->where('email', (string) env('E2E_FIXTURE_CLAIM_EMAIL', 'topwebchat-e2e-claim@example.test'))->delete();
             Role::query()->where('name', self::PREFIX.'Agent')->delete();
             Role::query()->where('name', self::PREFIX.'Admin')->delete();
+            Role::query()->where('name', self::PREFIX.'Blind Claim Agent')->delete();
         });
     }
 }

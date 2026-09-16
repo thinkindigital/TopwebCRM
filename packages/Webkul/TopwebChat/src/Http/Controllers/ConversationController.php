@@ -21,6 +21,7 @@ use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Repositories\ConversationRepository;
 use Webkul\TopwebChat\Services\ConversationAccessService;
+use Webkul\TopwebChat\Services\InboundLeadAssociationService;
 use Webkul\TopwebChat\Services\MessageService;
 use Webkul\TopwebChat\Services\NextActionService;
 use Webkul\User\Models\User;
@@ -33,7 +34,8 @@ class ConversationController
         protected MessageService $messages,
         protected SensitiveDataService $sensitiveData,
         protected SensitiveFileService $sensitiveFiles,
-        protected NextActionService $nextActions
+        protected NextActionService $nextActions,
+        protected InboundLeadAssociationService $inboundLeadAssociation
     ) {}
 
     public function index(Request $request): View
@@ -165,6 +167,13 @@ class ConversationController
                 ? Pipeline::query()->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'canTransferLead' => $canTransferLead,
+            'leadCandidates' => $conversation->lead
+                ? collect()
+                : ($conversation->person
+                    ? $this->inboundLeadAssociation->operationalLeads($conversation->person)
+                        ->filter(fn ($lead) => $lead->user_id === null
+                            || $this->access->canAccessLead($user, $lead))
+                    : collect()),
             'assignableUsers' => ($isAdministrator || $canTransferLead)
                 ? User::query()->where('status', 1)->orderBy('name')->get()
                 : collect(),
@@ -189,7 +198,7 @@ class ConversationController
     {
         $queue = $request->string('queue', 'mine')->toString();
 
-        if (! in_array($queue, ['mine', 'unassigned', 'all'], true)) {
+        if (! in_array($queue, ['mine', 'unassigned', 'waiting', 'all'], true)) {
             $queue = 'mine';
         }
 
@@ -205,7 +214,7 @@ class ConversationController
                 'queueAvailable' => false,
                 'queueConversations' => collect(),
                 'nextActionFlags' => [],
-                'queueCounts' => ['mine' => 0, 'unassigned' => 0, 'all' => 0],
+                'queueCounts' => ['mine' => 0, 'unassigned' => 0, 'waiting' => 0, 'all' => 0],
                 'workspaceStyle' => $this->workspaceStyle(),
             ];
         }
@@ -225,6 +234,7 @@ class ConversationController
             'queueCounts' => [
                 'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
                 'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
+                'waiting' => $this->conversationRepository->accessibleQuery($user, 'waiting')->count(),
                 'all' => $isAdministrator
                     ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
                     : 0,

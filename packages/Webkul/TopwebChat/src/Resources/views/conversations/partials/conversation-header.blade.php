@@ -53,9 +53,12 @@
             data-label-connected="@lang('topweb_chat::app.channel.connected')"
             data-label-unavailable="@lang('topweb_chat::app.channel.unavailable')"
             data-label-unknown="@lang('topweb_chat::app.channel.unknown')"
+            data-title-connected="@lang('topweb_chat::app.channel.connected')"
+            data-title-unavailable="@lang('topweb_chat::app.channel.unavailable')"
+            data-title-unknown="@lang('topweb_chat::app.channel.unknown')"
         >
             <span class="h-2 w-2 rounded-full bg-current"></span>
-            <span id="topweb-chat-instance-status" title="{{ $channelStatus }}">{{ $channelLabel }}</span>
+            <span id="topweb-chat-instance-status" title="{{ $channelLabel }}">{{ $channelLabel }}</span>
         </span>
     </div>
 </header>

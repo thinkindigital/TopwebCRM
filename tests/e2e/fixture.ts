@@ -16,6 +16,8 @@ export type E2eFixture = {
     conversation_id: number;
   };
   operational_conversation_id: number;
+  blind_conversation_id: number;
+  claim_user_email: string;
   pipeline_ids: number[];
   stage_ids: number[];
 };
@@ -38,6 +40,8 @@ export function e2eFixture(): E2eFixture {
     || !value.wallet_b?.email
     || !value.wallet_b?.conversation_id
     || !value.operational_conversation_id
+    || !value.blind_conversation_id
+    || !value.claim_user_email
     || !Array.isArray(value.pipeline_ids)
     || value.pipeline_ids.length < 2
     || !Array.isArray(value.stage_ids)

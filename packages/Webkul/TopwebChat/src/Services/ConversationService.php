@@ -18,7 +18,8 @@ class ConversationService
         protected RemoteIdentityService $remoteIdentity,
         protected ContactResolverService $contactResolver,
         protected ConversationAccessService $access,
-        protected MessagingProvider $provider
+        protected MessagingProvider $provider,
+        protected ?InboundLeadAssociationService $inboundLeadAssociation = null
     ) {}
 
     public function launchForPerson(
@@ -71,50 +72,81 @@ class ConversationService
         string $remoteId,
         ?string $displayName = null
     ): Conversation {
-        $conversation = $this->find($instance, $remoteId);
+        return DB::transaction(function () use ($instance, $remoteId, $displayName) {
+            $conversation = $this->findForUpdate($instance, $remoteId);
 
-        if ($conversation) {
-            if ($conversation->status !== 'open') {
-                $conversation->update([
-                    'status' => 'open',
-                    'closed_at' => null,
-                ]);
+            if ($conversation) {
+                if ($conversation->status !== 'open') {
+                    $conversation->update([
+                        'status' => 'open',
+                        'closed_at' => null,
+                    ]);
+                }
+
+                if ($this->inboundLeadAssociation && ! $conversation->lead_id) {
+                    $lead = $this->inboundLeadAssociation->associate($conversation->person);
+
+                    if ($lead) {
+                        $conversation->update(['lead_id' => $lead->id]);
+                    }
+                }
+
+                return $conversation;
             }
 
-            return $conversation;
-        }
+            $remoteId = $this->resolvePrivacyIdentity($instance, $remoteId);
+            $conversation = $this->findForUpdate($instance, $remoteId);
 
-        $remoteId = $this->resolvePrivacyIdentity($instance, $remoteId);
-        $conversation = $this->find($instance, $remoteId);
+            if ($conversation) {
+                if ($conversation->status !== 'open') {
+                    $conversation->update([
+                        'status' => 'open',
+                        'closed_at' => null,
+                    ]);
+                }
 
-        if ($conversation) {
-            if ($conversation->status !== 'open') {
-                $conversation->update([
-                    'status' => 'open',
-                    'closed_at' => null,
-                ]);
+                if ($this->inboundLeadAssociation && ! $conversation->lead_id) {
+                    $lead = $this->inboundLeadAssociation->associate($conversation->person);
+
+                    if ($lead) {
+                        $conversation->update(['lead_id' => $lead->id]);
+                    }
+                }
+
+                return $conversation;
             }
 
-            return $conversation;
-        }
+            $person = $this->contactResolver->resolve($remoteId, $displayName);
+            $lead = $this->inboundLeadAssociation?->associate($person);
 
-        $person = $this->contactResolver->resolve($remoteId, $displayName);
-
-        return Conversation::query()->create([
-            'instance_id' => $instance->id,
-            'person_id' => $person->id,
-            'remote_jid' => $remoteId,
-            'remote_jid_key' => $this->remoteIdentity->key($remoteId),
-            'status' => 'open',
-        ]);
+            return Conversation::query()->create([
+                'instance_id' => $instance->id,
+                'person_id' => $person->id,
+                'lead_id' => $lead?->id,
+                'remote_jid' => $remoteId,
+                'remote_jid_key' => $this->remoteIdentity->key($remoteId),
+                'status' => 'open',
+            ]);
+        });
     }
 
     public function find(Instance $instance, string $remoteId): ?Conversation
     {
+        return $this->conversationQuery($instance, $remoteId)->first();
+    }
+
+    private function findForUpdate(Instance $instance, string $remoteId): ?Conversation
+    {
+        return $this->conversationQuery($instance, $remoteId)
+            ->lockForUpdate()
+            ->first();
+    }
+
+    private function conversationQuery(Instance $instance, string $remoteId)
+    {
         return Conversation::query()
             ->where('instance_id', $instance->id)
-            ->where('remote_jid_key', $this->remoteIdentity->key($remoteId))
-            ->first();
+            ->where('remote_jid_key', $this->remoteIdentity->key($remoteId));
     }
 
     private function resolvePrivacyIdentity(Instance $instance, string $remoteId): string

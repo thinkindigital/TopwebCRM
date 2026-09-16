@@ -3,6 +3,10 @@
 return [
     'workspace_style' => env('TOPWEB_CHAT_WORKSPACE_STYLE', 'R1K'),
 
+    'inbound' => [
+        'auto_create_lead' => filter_var(env('TOPWEB_CHAT_INBOUND_AUTO_CREATE_LEAD', true), FILTER_VALIDATE_BOOL),
+    ],
+
     'batch' => [
         'max_files' => (int) env('TOPWEB_CHAT_BATCH_MAX_FILES', 10),
         'max_bytes' => (int) env('TOPWEB_CHAT_BATCH_MAX_BYTES', 104857600),

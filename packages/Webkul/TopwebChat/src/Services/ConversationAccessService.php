@@ -24,7 +24,8 @@ class ConversationAccessService
         // D04: onde ha Lead, o dono e a unica autoridade operacional.
         if ($conversation->lead_id !== null && $lead = $conversation->lead) {
             return $lead->user_id !== null
-                && (int) $lead->user_id === (int) $user->id;
+                ? (int) $lead->user_id === (int) $user->id
+                : (int) $conversation->assigned_user_id === (int) $user->id;
         }
 
         // Sem Lead, vale o legado (fila A3 cega na listagem).
@@ -43,7 +44,12 @@ class ConversationAccessService
     {
         // D04: com Lead, a projecao deve espelhar a autoridade.
         if ($conversation->lead_id !== null && $lead = $conversation->lead) {
-            if ($lead->user_id === null || (int) $targetUserId !== (int) $lead->user_id) {
+            if ($lead->user_id === null) {
+                return $conversation->assigned_user_id === null
+                    && (int) $targetUserId === (int) $user->id;
+            }
+
+            if ((int) $targetUserId !== (int) $lead->user_id) {
                 return false;
             }
 

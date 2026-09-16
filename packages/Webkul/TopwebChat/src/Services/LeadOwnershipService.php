@@ -77,4 +77,50 @@ class LeadOwnershipService
             return $lead->fresh();
         });
     }
+
+    public function claim(Conversation $conversation, User $actor): Lead
+    {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
+
+        return DB::transaction(function () use ($conversation, $actor) {
+            $lead = Lead::query()
+                ->lockForUpdate()
+                ->findOrFail($conversation->lead_id);
+
+            $lockedConversation = Conversation::query()
+                ->lockForUpdate()
+                ->findOrFail($conversation->id);
+
+            abort_unless(
+                $lead->user_id === null
+                && $lockedConversation->assigned_user_id === null
+                && $this->access->canAssign($actor, $lockedConversation, (int) $actor->id),
+                403
+            );
+
+            Conversation::query()
+                ->where('lead_id', $lead->id)
+                ->lockForUpdate()
+                ->get();
+
+            $lead->forceFill(['user_id' => $actor->id])->save();
+
+            Conversation::query()
+                ->where('lead_id', $lead->id)
+                ->update(['assigned_user_id' => $actor->id]);
+
+            Log::info('TopwebChat Lead claimed from blind queue.', [
+                'conversation_id' => $conversation->id,
+                'lead_id' => $lead->id,
+                'actor_user_id' => $actor->id,
+            ]);
+
+            Event::dispatch('topweb_chat.lead.owner_claimed', [
+                'lead_id' => $lead->id,
+                'actor_user_id' => $actor->id,
+            ]);
+
+            return $lead->fresh();
+        });
+    }
 }

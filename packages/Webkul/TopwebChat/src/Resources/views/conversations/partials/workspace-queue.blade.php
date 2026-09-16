@@ -3,7 +3,7 @@
     <h1 class="twp-title">@lang('topweb_chat::app.menu.title')</h1>
 
     @if ($queueAvailable)
-        <nav class="twp-tabs {{ $isAdmin ? 'twp-tabs-three' : 'twp-tabs-two' }}" aria-label="@lang('topweb_chat::app.menu.title')">
+        <nav class="twp-tabs {{ $isAdmin ? 'twp-tabs-four' : 'twp-tabs-three' }}" aria-label="@lang('topweb_chat::app.menu.title')">
             <a href="{{ route('admin.topweb_chat.index', ['queue' => 'mine']) }}" class="twp-tab" @if ($queue === 'mine') aria-current="page" @endif>
                 <span>@lang('topweb_chat::app.queues.mine')</span>
                 <strong class="topweb-chat-queue-count">{{ $queueCounts['mine'] ?? 0 }}</strong>
@@ -11,6 +11,10 @@
             <a href="{{ route('admin.topweb_chat.index', ['queue' => 'unassigned']) }}" class="twp-tab" @if ($queue === 'unassigned') aria-current="page" @endif>
                 <span>@lang('topweb_chat::app.queues.unassigned')</span>
                 <strong class="topweb-chat-queue-count">{{ $queueCounts['unassigned'] ?? 0 }}</strong>
+            </a>
+            <a href="{{ route('admin.topweb_chat.index', ['queue' => 'waiting']) }}" class="twp-tab" @if ($queue === 'waiting') aria-current="page" @endif>
+                <span>@lang('topweb_chat::app.queues.waiting')</span>
+                <strong class="topweb-chat-queue-count">{{ $queueCounts['waiting'] ?? 0 }}</strong>
             </a>
             @if ($isAdmin)
                 <a href="{{ route('admin.topweb_chat.index', ['queue' => 'all']) }}" class="twp-tab" @if ($queue === 'all') aria-current="page" @endif>
@@ -49,16 +53,15 @@
         @endphp
         @forelse ($queueConversations as $queueConversation)
             @if ($blindQueue)
-                <div class="twp-row topweb-chat-blind-item">
+                <div class="twp-row topweb-chat-blind-item" data-blind-conversation-id="{{ $queueConversation->id }}">
                     <div class="twp-row-top">
-                        <p class="twp-row-name">@lang('topweb_chat::app.queues.unassigned')</p>
+                        <p class="twp-row-name">@lang('topweb_chat::app.queues.blind_waiting')</p>
                         <span class="twp-time">{{ $queueConversation->last_message_at?->diffForHumans() }}</span>
                     </div>
-                    @if (bouncer()->hasPermission('topweb_chat.inbox.assign'))
-                        <form method="POST" action="{{ route('admin.topweb_chat.assignment.update', $queueConversation) }}" class="twp-claim">
+                    @if (bouncer()->hasPermission('topweb_chat.inbox.view'))
+                        <form method="POST" action="{{ route('admin.topweb_chat.assignment.claim', $queueConversation) }}" class="twp-claim">
                             @csrf
                             @method('PUT')
-                            <input type="hidden" name="assigned_user_id" value="{{ $user->id }}">
                             <button type="submit" class="primary-button">@lang('topweb_chat::app.assignment.claim')</button>
                         </form>
                     @endif

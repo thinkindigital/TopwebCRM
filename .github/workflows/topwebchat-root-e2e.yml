@@ -1,0 +1,129 @@
+name: TopwebChat | Root E2E
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - packages/**
+      - tests/e2e/**
+      - .github/workflows/topwebchat-root-e2e.yml
+      - composer.json
+      - composer.lock
+      - package.json
+      - package-lock.json
+      - public/**
+      - docker/php/**
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - packages/**
+      - tests/e2e/**
+      - .github/workflows/topwebchat-root-e2e.yml
+      - composer.json
+      - composer.lock
+      - package.json
+      - package-lock.json
+      - public/**
+      - docker/php/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: topwebchat-root-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: krayin
+        ports:
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    env:
+      E2E_BASE_URL: http://127.0.0.1:8000
+      E2E_EXPECTED_BUILD_SHA: ${{ github.sha }}
+      E2E_ADMIN_EMAIL: topwebchat-e2e-admin@example.test
+      E2E_USER_EMAIL: topwebchat-e2e-claim@example.test
+      E2E_FIXTURE_FILE: ${{ github.workspace }}/.playwright-e2e-fixtures.json
+      E2E_FIXTURE_SETUP_COMMAND: cd ../../.. && php artisan topweb-chat:e2e-fixtures --install --json
+      E2E_FIXTURE_CLEANUP_COMMAND: cd ../../.. && php artisan topweb-chat:e2e-fixtures --cleanup --json
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate ephemeral fixture password
+        shell: bash
+        run: |
+          password="$(openssl rand -base64 32)"
+          {
+            echo "E2E_FIXTURE_PASSWORD=$password"
+            echo "E2E_ADMIN_PASSWORD=$password"
+            echo "E2E_USER_PASSWORD=$password"
+          } >> "$GITHUB_ENV"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, fileinfo, gd, intl, mbstring, openssl, pdo, pdo_mysql, tokenizer, zip
+          ini-values: error_reporting=E_ALL
+          tools: composer:v2
+
+      - name: Prepare Laravel runtime
+        run: |
+          cp .env.example .env
+          mkdir -p storage/app/private storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          sed -i "s|^\(APP_ENV=\s*\).*$|\1testing|" .env
+          sed -i "s|^\(DB_HOST=\s*\).*$|\1127.0.0.1|" .env
+          sed -i "s|^\(DB_PORT=\s*\).*$|\1${{ job.services.mysql.ports['3306'] }}|" .env
+          sed -i "s|^\(DB_DATABASE=\s*\).*$|\1krayin|" .env
+          sed -i "s|^\(DB_USERNAME=\s*\).*$|\1root|" .env
+          sed -i "s|^\(DB_PASSWORD=\s*\).*$|\1root|" .env
+          sed -i "s|^\(APP_URL=\s*\).*$|\1http://127.0.0.1:8000|" .env
+          sed -i "s|^\(CACHE_DRIVER=\s*\).*$|\1file|" .env
+          sed -i "s|^\(CACHE_STORE=\s*\).*$|\1file|" .env
+          sed -i "s|^\(QUEUE_CONNECTION=\s*\).*$|\1sync|" .env
+          sed -i "s|^\(SESSION_DRIVER=\s*\).*$|\1file|" .env
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install application
+        run: php artisan krayin-crm:install --skip-env-check --skip-admin-creation
+
+      - name: Install Admin dependencies and browsers
+        working-directory: packages/Webkul/Admin
+        run: |
+          npm ci
+          npm run build
+          npx playwright install --with-deps
+
+      - name: Start Laravel server
+        run: |
+          php artisan serve --host=0.0.0.0 --port=8000 > server.log 2>&1 &
+          timeout 30 bash -c 'until curl -fsS http://127.0.0.1:8000/admin/login | grep -q '\''name="email"'\''; do sleep 1; done'
+
+      - name: Run root TopwebChat E2E
+        working-directory: packages/Webkul/Admin
+        run: npx playwright test --reporter=list --config=../../../tests/e2e/playwright.config.ts
+
+      - name: Upload root E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: topwebchat-root-e2e-${{ github.run_id }}
+          path: |
+            ${{ github.workspace }}/test-results
+            ${{ github.workspace }}/.playwright-e2e-fixtures.json
+          retention-days: 7

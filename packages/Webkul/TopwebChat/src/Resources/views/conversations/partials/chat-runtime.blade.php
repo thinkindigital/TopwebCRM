@@ -163,7 +163,9 @@
                             instanceStatus.textContent = connected
                                 ? (badge?.dataset.labelConnected ?? instanceStatus.textContent)
                                 : (badge?.dataset.labelUnavailable ?? instanceStatus.textContent);
-                            instanceStatus.title = connected ? 'ready' : 'unavailable';
+                            instanceStatus.title = connected
+                                ? (badge?.dataset.titleConnected ?? instanceStatus.textContent)
+                                : (badge?.dataset.titleUnavailable ?? instanceStatus.textContent);
                         }
 
                         connectionBadge?.classList.toggle('bg-emerald-50', connected);

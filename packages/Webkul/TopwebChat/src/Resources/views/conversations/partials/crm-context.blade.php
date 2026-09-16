@@ -78,6 +78,30 @@
                     <div><dt>@lang('topweb_chat::app.crm.instance')</dt><dd>{{ $conversation->instance?->name }}</dd></div>
                 @endif
             </dl>
+            @if (bouncer()->hasPermission('leads.edit') && $conversation->person)
+                <div class="twp-lead-association">
+                    <p class="twp-context-meta">@lang('topweb_chat::app.inbound.association_help')</p>
+                    @if ($leadCandidates->isNotEmpty())
+                        <form method="POST" action="{{ route('admin.topweb_chat.lead.link', $conversation) }}" class="twp-overlay-form">
+                            @csrf
+                            @method('PUT')
+                            <label class="twp-field-label" for="topweb-chat-lead-link">@lang('topweb_chat::app.inbound.link_existing')</label>
+                            <select id="topweb-chat-lead-link" name="lead_id" class="custom-select" required>
+                                @foreach ($leadCandidates as $candidate)
+                                    <option value="{{ $candidate->id }}">{{ $candidate->title }}</option>
+                                @endforeach
+                            </select>
+                            <button class="secondary-button">@lang('topweb_chat::app.inbound.link_action')</button>
+                        </form>
+                    @endif
+                    @if ($leadCandidates->isEmpty())
+                        <form method="POST" action="{{ route('admin.topweb_chat.lead.create', $conversation) }}">
+                            @csrf
+                            <button class="primary-button">@lang('topweb_chat::app.inbound.create_action')</button>
+                        </form>
+                    @endif
+                </div>
+            @endif
         </section>
     @endif
 

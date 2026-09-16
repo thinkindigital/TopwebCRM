@@ -61,6 +61,8 @@ return [
     'queues' => [
         'mine' => 'My conversations',
         'unassigned' => 'Unassigned',
+        'waiting' => 'Waiting for customer',
+        'blind_waiting' => 'Waiting',
         'all' => 'All',
     ],
     'search' => [
@@ -203,6 +205,15 @@ return [
         'release_confirm' => 'This conversation will return to the unassigned queue as a non-identifiable item. Continue?',
         'updated' => 'Assignee updated.',
         'taken' => 'Conversation already taken by :name.',
+    ],
+    'inbound' => [
+        'lead_title' => 'WhatsApp opportunity for :name',
+        'association_help' => 'This conversation is waiting for a commercial Lead.',
+        'link_existing' => 'Link existing Lead',
+        'link_action' => 'Link Lead',
+        'create_action' => 'Create new Lead',
+        'linked' => 'Lead linked.',
+        'created' => 'Lead created and linked.',
     ],
     'settings' => [
         'title' => 'Topweb Chat settings',
