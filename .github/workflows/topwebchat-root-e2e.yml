@@ -102,15 +102,13 @@ jobs:
       - name: Install application
         run: php artisan krayin-crm:install --skip-env-check --skip-admin-creation
 
-      - name: Install root Playwright runner
-        run: npm install --no-save --no-package-lock --ignore-scripts @playwright/test@1.50.1
-
       - name: Install Admin dependencies and browsers
         working-directory: packages/Webkul/Admin
         run: |
           npm ci
           npm run build
           npx playwright install --with-deps
+          ln -s "$GITHUB_WORKSPACE/packages/Webkul/Admin/node_modules" "$GITHUB_WORKSPACE/node_modules"
 
       - name: Start Laravel server
         run: |
