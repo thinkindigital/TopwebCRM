@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Webkul\TopwebChat\Http\Controllers\AssignmentController;
+use Webkul\TopwebChat\Http\Controllers\ConversationActivityController;
 use Webkul\TopwebChat\Http\Controllers\ConversationController;
 use Webkul\TopwebChat\Http\Controllers\ConversationLaunchController;
 use Webkul\TopwebChat\Http\Controllers\InternalNoteController;
@@ -23,6 +24,9 @@ Route::prefix('topweb-chat')->group(function () {
     Route::get('conversations/{conversation}/messages/{message}/media', [ConversationController::class, 'media'])->name('admin.topweb_chat.messages.media');
     Route::post('conversations/{conversation}/messages/{message}/retry', [MessageController::class, 'retry'])->name('admin.topweb_chat.messages.retry');
     Route::post('conversations/{conversation}/notes', [InternalNoteController::class, 'store'])->name('admin.topweb_chat.notes.store');
+    Route::post('conversations/{conversation}/activities', [ConversationActivityController::class, 'store'])->name('admin.topweb_chat.activities.store');
+    Route::put('conversations/{conversation}/activities/{activity}', [ConversationActivityController::class, 'update'])->name('admin.topweb_chat.activities.update');
+    Route::post('conversations/{conversation}/activities/{activity}/complete', [ConversationActivityController::class, 'complete'])->name('admin.topweb_chat.activities.complete');
     Route::delete('conversations/{conversation}/notes/{note}', [InternalNoteController::class, 'destroy'])->name('admin.topweb_chat.notes.destroy');
     Route::put('conversations/{conversation}/assignment', [AssignmentController::class, 'update'])->name('admin.topweb_chat.assignment.update');
     Route::put('conversations/{conversation}/lead-stage', [LeadStageController::class, 'update'])->name('admin.topweb_chat.lead_stage.update');

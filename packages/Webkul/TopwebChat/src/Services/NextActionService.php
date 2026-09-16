@@ -12,16 +12,16 @@ use Webkul\User\Models\User;
  *
  * Regra final (§20a da spec): candidatas = do Lead autorizado AND is_done=false
  * AND ACTIONABLE AND sem vínculo com topweb_chat_attendances AND não
- * sistêmicas/automáticas. RECORD (inclui note) e SYSTEM nunca são candidatas.
- * A elegibilidade vive aqui, centralizada — futura casa: domínio Activity
- * (ActivityActionabilityPolicy). Exibição: SAFE ENVELOPE (§12), nunca strings
- * livres sem concessão.
+ * sistêmicas/automáticas. RECORD (inclui note), SYSTEM e tipos desconhecidos
+ * nunca são candidatas. A elegibilidade vive na ActivityActionabilityPolicy;
+ * este service só aplica estrutura (Lead, conclusão, vínculo Attendance).
+ * Exibição: SAFE ENVELOPE (§12), nunca strings livres sem concessão.
  */
 class NextActionService
 {
-    public const SYSTEM_TYPES = ['system'];
+    public const SYSTEM_TYPES = ActivityActionabilityPolicy::SYSTEM_TYPES;
 
-    public const RECORD_TYPES = ['note'];
+    public const RECORD_TYPES = ActivityActionabilityPolicy::RECORD_TYPES;
 
     public const ACTIONABLE_KINDS = [
         'call' => 'CALL',
@@ -34,14 +34,7 @@ class NextActionService
 
     public static function isActionable(Activity $activity): bool
     {
-        if ($activity->is_done) {
-            return false;
-        }
-
-        $type = mb_strtolower((string) $activity->type);
-
-        return ! in_array($type, self::SYSTEM_TYPES, true)
-            && ! in_array($type, self::RECORD_TYPES, true);
+        return ActivityActionabilityPolicy::isActionable($activity);
     }
 
     public static function kindOf(Activity $activity): string
@@ -60,7 +53,6 @@ class NextActionService
             ->join('lead_activities', 'lead_activities.activity_id', '=', 'activities.id')
             ->where('lead_activities.lead_id', $leadId)
             ->where('activities.is_done', false)
-            ->whereNotIn('activities.type', array_merge(self::SYSTEM_TYPES, self::RECORD_TYPES))
             ->whereNotIn('activities.id', fn ($query) => $query
                 ->select('activity_id')->from('topweb_chat_attendances'))
             ->orderByRaw(
@@ -72,7 +64,9 @@ class NextActionService
             )
             ->select('activities.*')
             ->with('user')
-            ->get();
+            ->get()
+            ->filter(fn (Activity $activity) => ActivityActionabilityPolicy::isActionable($activity))
+            ->values();
     }
 
     public function nextForLead(?int $leadId): ?Activity
@@ -123,17 +117,19 @@ class NextActionService
             ->join('lead_activities', 'lead_activities.activity_id', '=', 'activities.id')
             ->whereIn('lead_activities.lead_id', $leadIds)
             ->where('activities.is_done', false)
-            ->whereNotIn('activities.type', array_merge(self::SYSTEM_TYPES, self::RECORD_TYPES))
             ->whereNotIn('activities.id', fn ($query) => $query
                 ->select('activity_id')->from('topweb_chat_attendances'))
             ->whereNotNull('activities.schedule_from')
-            ->selectRaw('lead_activities.lead_id, DATE(activities.schedule_from) as day')
-            ->get();
+            ->select('activities.*', 'lead_activities.lead_id')
+            ->get()
+            ->filter(fn (Activity $activity) => ActivityActionabilityPolicy::isActionable($activity));
 
         foreach ($rows as $row) {
-            if ($row->day < $today) {
+            $day = Carbon::parse($row->schedule_from)->toDateString();
+
+            if ($day < $today) {
                 $flags[$row->lead_id]['overdue'] = true;
-            } elseif ($row->day === $today) {
+            } elseif ($day === $today) {
                 $flags[$row->lead_id]['today'] = true;
             }
         }
@@ -170,6 +166,7 @@ class NextActionService
         $ownerId = $activity->user_id;
 
         return [
+            'id' => $activity->id,
             'kind' => self::kindOf($activity),
             'when' => $when,
             'status' => $status,

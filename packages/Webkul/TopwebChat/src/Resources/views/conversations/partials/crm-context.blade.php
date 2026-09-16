@@ -22,6 +22,30 @@
                         @if ($nextAction['owner'])
                             <p class="text-xs text-gray-500">{{ $nextAction['owner'] }}</p>
                         @endif
+                        @if ($conversation->lead && bouncer()->hasPermission('topweb_chat.inbox.activities'))
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <form method="POST" action="{{ route('admin.topweb_chat.activities.complete', [$conversation, $nextAction['id']]) }}">
+                                    @csrf
+                                    <button class="secondary-button">@lang('topweb_chat::app.activities.complete_action')</button>
+                                </form>
+                                <details>
+                                    <summary class="secondary-button cursor-pointer">@lang('topweb_chat::app.activities.reschedule_action')</summary>
+                                    <form method="POST" action="{{ route('admin.topweb_chat.activities.update', [$conversation, $nextAction['id']]) }}" class="mt-2 grid gap-2">
+                                        @csrf
+                                        @method('PUT')
+                                        <label class="text-xs font-medium text-gray-700 dark:text-gray-200">
+                                            @lang('topweb_chat::app.activities.schedule_from')
+                                            <input type="datetime-local" name="schedule_from" required class="mt-1 w-full rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-800 dark:bg-gray-950">
+                                        </label>
+                                        <label class="text-xs font-medium text-gray-700 dark:text-gray-200">
+                                            @lang('topweb_chat::app.activities.schedule_to')
+                                            <input type="datetime-local" name="schedule_to" required class="mt-1 w-full rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-800 dark:bg-gray-950">
+                                        </label>
+                                        <button class="secondary-button">@lang('topweb_chat::app.activities.save')</button>
+                                    </form>
+                                </details>
+                            </div>
+                        @endif
                     @else
                         <p class="mt-1 text-gray-500">@lang('topweb_chat::app.next_action.none')</p>
                     @endif
@@ -29,6 +53,41 @@
                         <a href="{{ route('admin.leads.view', $conversation->lead) }}" class="mt-1 inline-block text-xs font-medium text-brandColor hover:underline">
                             @lang('topweb_chat::app.next_action.manage')
                         </a>
+                    @endif
+                    @if ($conversation->lead && bouncer()->hasPermission('topweb_chat.inbox.activities'))
+                        <details class="mt-2" data-activity-create>
+                            <summary class="primary-button cursor-pointer">@lang('topweb_chat::app.activities.create_action')</summary>
+                            <form method="POST" action="{{ route('admin.topweb_chat.activities.store', $conversation) }}" class="mt-2 grid gap-2">
+                                @csrf
+                                <label class="text-xs font-medium text-gray-700 dark:text-gray-200">
+                                    @lang('topweb_chat::app.activities.type')
+                                    <select name="type" required class="custom-select mt-1 w-full">
+                                        @foreach (\Webkul\TopwebChat\Services\ActivityActionabilityPolicy::ACTIONABLE_TYPES as $actionableType)
+                                            <option value="{{ $actionableType }}">{{ trans('topweb_chat::app.next_action.kind_'.\Webkul\TopwebChat\Services\NextActionService::kindOf(new \Webkul\Activity\Models\Activity(['type' => $actionableType]))) }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <label class="text-xs font-medium text-gray-700 dark:text-gray-200">
+                                    @lang('topweb_chat::app.activities.schedule_from')
+                                    <input type="datetime-local" name="schedule_from" required class="mt-1 w-full rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-800 dark:bg-gray-950">
+                                </label>
+                                <label class="text-xs font-medium text-gray-700 dark:text-gray-200">
+                                    @lang('topweb_chat::app.activities.schedule_to')
+                                    <input type="datetime-local" name="schedule_to" required class="mt-1 w-full rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-800 dark:bg-gray-950">
+                                </label>
+                                @if ($isAdmin ?? false)
+                                    <label class="text-xs font-medium text-gray-700 dark:text-gray-200">
+                                        @lang('topweb_chat::app.assignment.title')
+                                        <select name="user_id" class="custom-select mt-1 w-full">
+                                            @foreach ($assignableUsers as $assignableUser)
+                                                <option value="{{ $assignableUser->id }}">{{ $assignableUser->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                @endif
+                                <button class="primary-button">@lang('topweb_chat::app.activities.create_action')</button>
+                            </form>
+                        </details>
                     @endif
                 </div>
 

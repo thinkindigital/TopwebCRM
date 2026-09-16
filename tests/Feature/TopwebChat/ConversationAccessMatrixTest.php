@@ -234,6 +234,17 @@ it('shows the same note in the timeline and in the side history', function () {
     expect($html)->toContain('data-note-delete');
 });
 
+it('exposes the activity creation entry in the context', function () {
+    $partial = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
+    );
+
+    expect($partial)->toContain('data-activity-create')
+        ->and($partial)->toContain("route('admin.topweb_chat.activities.store'")
+        ->and($partial)->toContain("route('admin.topweb_chat.activities.complete'")
+        ->and($partial)->toContain("route('admin.topweb_chat.activities.update'");
+});
+
 it('disables attachment controls without the sensitive-data grant', function () {
     ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
     $this->actingAs($admin, 'user');
