@@ -13,7 +13,7 @@ return [
         'icon' => 'icon-setting',
         'sort' => 1,
     ], [
-        'key' => 'topwebchat.appearance.workspace_style',
+        'key' => 'topwebchat.appearance.style',
         'name' => 'topweb_chat::app.configuration.appearance.workspace-style.title',
         'info' => 'topweb_chat::app.configuration.appearance.workspace-style.info',
         'sort' => 1,
