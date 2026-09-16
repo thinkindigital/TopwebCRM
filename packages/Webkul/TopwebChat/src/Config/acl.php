@@ -32,6 +32,11 @@ return [
         'route' => 'admin.topweb_chat.notes.store',
         'sort' => 4,
     ], [
+        'key' => 'topweb_chat.inbox.notes.delete',
+        'name' => 'topweb_chat::app.acl.notes_delete',
+        'route' => 'admin.topweb_chat.notes.destroy',
+        'sort' => 5,
+    ], [
         'key' => 'topweb_chat.inbox.assign',
         'name' => 'topweb_chat::app.acl.assign',
         'route' => 'admin.topweb_chat.assignment.update',

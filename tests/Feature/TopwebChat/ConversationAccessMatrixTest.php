@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
+use Webkul\TopwebChat\Models\InternalNote;
 use Webkul\User\Models\Role;
 use Webkul\User\Models\User;
 
@@ -216,6 +217,22 @@ it('renders the configured official workspace style', function (string $style) {
         ->assertSee('data-workspace-region="context"', false)
         ->assertDontSee('data-prototype-root', false);
 })->with(['R1', 'R1K']);
+
+it('shows the same note in the timeline and in the side history', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    InternalNote::query()->create([
+        'conversation_id' => $owned->id, 'user_id' => $admin->id,
+        'content' => 'nota-dupla-projecao',
+    ]);
+    $this->actingAs($admin, 'user');
+
+    $html = $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->getContent();
+
+    expect(substr_count($html, 'nota-dupla-projecao'))->toBeGreaterThanOrEqual(2);
+    expect($html)->toContain('data-note-delete');
+});
 
 it('disables attachment controls without the sensitive-data grant', function () {
     ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();

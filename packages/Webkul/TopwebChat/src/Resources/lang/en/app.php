@@ -27,6 +27,7 @@ return [
         'create' => 'Start WhatsApp conversations',
         'send' => 'Send WhatsApp messages',
         'notes' => 'Create internal notes',
+        'notes_delete' => 'Delete internal notes',
         'assign' => 'Claim or assign conversation',
         'stage' => 'Move linked lead stage',
         'settings' => 'Manage integration and access',
@@ -134,6 +135,9 @@ return [
         'description' => 'Visible only inside TopwebCRM.',
         'add' => 'Add note',
         'created' => 'Internal note added.',
+        'delete' => 'Delete note',
+        'deleted' => 'Internal note deleted.',
+        'delete_confirm' => 'Delete this internal note? This cannot be undone.',
     ],
     'next_action' => [
         'title' => 'Next action',

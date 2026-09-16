@@ -27,6 +27,7 @@ return [
         'create' => 'Iniciar conversas no WhatsApp',
         'send' => 'Enviar mensagens no WhatsApp',
         'notes' => 'Criar notas internas',
+        'notes_delete' => 'Excluir notas internas',
         'assign' => 'Assumir ou atribuir conversa',
         'stage' => 'Alterar etapa do lead vinculado',
         'settings' => 'Administrar integração e acessos',
@@ -134,6 +135,9 @@ return [
         'description' => 'Visíveis somente dentro do TopwebCRM.',
         'add' => 'Adicionar nota',
         'created' => 'Nota interna adicionada.',
+        'delete' => 'Excluir nota',
+        'deleted' => 'Nota interna excluída.',
+        'delete_confirm' => 'Excluir esta nota interna? Esta ação não pode ser desfeita.',
     ],
     'next_action' => [
         'title' => 'Próxima ação',

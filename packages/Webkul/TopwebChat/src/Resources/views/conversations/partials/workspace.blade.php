@@ -88,5 +88,35 @@
             const root = document.querySelector('[data-topwebchat-workspace]');
             if (event.key === 'Escape' && root) setContext(root, false);
         });
+
+        document.addEventListener('click', async (event) => {
+            const button = event.target.closest('[data-note-delete]');
+            if (!button) return;
+
+            if (!window.confirm(button.dataset.confirmMessage || '')) return;
+
+            button.setAttribute('disabled', 'true');
+
+            try {
+                const token = document.querySelector('[data-topwebchat-workspace] input[name="_token"]')?.value ?? '';
+                const response = await fetch(button.dataset.deleteUrl, {
+                    method: 'DELETE',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': token,
+                    },
+                });
+
+                if (!response.ok) throw new Error(`note_delete_failed:${response.status}`);
+
+                document.querySelectorAll(`[data-note-id="${button.dataset.noteId}"]`)
+                    .forEach((element) => element.remove());
+            } catch (error) {
+                button.removeAttribute('disabled');
+                console.error('TopwebChat note delete failed.', error);
+            }
+        });
     }
 </script>

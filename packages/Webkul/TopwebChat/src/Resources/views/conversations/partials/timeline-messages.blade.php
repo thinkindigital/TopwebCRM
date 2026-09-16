@@ -1,23 +1,49 @@
 {{-- E-03: representação canônica da timeline (única fonte visual).
      Interface: $conversation (com messages ordenadas), $canViewSensitiveMedia,
-     $canViewNotes. JS não reconstrói markup. --}}
+     $canViewNotes. JS não reconstrói markup.
+     S2: eventos unificados (message + internal note) ordenados por occurred_at. --}}
 @php
     $previousDate = null;
     $today = \Illuminate\Support\Carbon::today();
     $yesterday = \Illuminate\Support\Carbon::yesterday();
     $showNotes = $canViewNotes ?? false;
+    $timelineEvents = $conversation->messages
+        ->map(fn ($message) => [
+            'occurred_at' => $message->sent_at ?? $message->created_at,
+            'kind' => 'message',
+            'model' => $message,
+        ])
+        ->concat(
+            $showNotes
+                ? $conversation->internalNotes->map(fn ($note) => [
+                    'occurred_at' => $note->created_at,
+                    'kind' => 'note',
+                    'model' => $note,
+                ])
+                : collect()
+        )
+        ->sortBy(fn ($event) => $event['occurred_at']);
 @endphp
-@forelse ($conversation->messages as $message)
+@forelse ($timelineEvents as $event)
     @php
-        $messageAt = $message->sent_at ?? $message->created_at;
-        $messageDate = $messageAt?->toDateString();
+        $eventAt = $event['occurred_at'];
+        $eventDate = $eventAt?->toDateString();
     @endphp
-    @if ($messageDate && $messageDate !== $previousDate)
-        @php($previousDate = $messageDate)
+    @if ($eventDate && $eventDate !== $previousDate)
+        @php($previousDate = $eventDate)
         <div class="my-2 flex justify-center topweb-chat-date-separator">
-            <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-300">{{ $messageDate === $today->toDateString() ? 'Hoje' : ($messageDate === $yesterday->toDateString() ? 'Ontem' : $messageAt->format('d/m/Y')) }}</span>
+            <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-300">{{ $eventDate === $today->toDateString() ? 'Hoje' : ($eventDate === $yesterday->toDateString() ? 'Ontem' : $eventAt->format('d/m/Y')) }}</span>
         </div>
     @endif
+    @if ($event['kind'] === 'note')
+        @php($note = $event['model'])
+        <div class="topweb-chat-internal-note mx-6 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" data-note-id="{{ $note->id }}">
+            <p class="font-bold">Nota interna — visível só para a equipe</p>
+            <p class="whitespace-pre-wrap break-words">{{ $note->content }}</p>
+            <p class="opacity-70">{{ $note->user?->name }} · {{ $note->created_at?->format('d/m/Y H:i') }}</p>
+        </div>
+    @else
+    @php($message = $event['model'])
     <article
         class="twp-message {{ $message->direction === 'outgoing' ? 'twp-message-outgoing flex justify-end' : 'flex justify-start' }}"
         data-message-id="{{ $message->id }}"
@@ -80,17 +106,9 @@
             </div>
         </div>
     </article>
+    @endif
 @empty
     <p class="py-10 text-center text-gray-600 dark:text-gray-300">@lang('topweb_chat::app.messages.empty')</p>
 @endforelse
-@if ($showNotes)
-    @foreach (($conversation->internalNotes ?? collect()) as $note)
-        <div class="topweb-chat-internal-note mx-6 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-            <p class="font-bold">Nota interna — visível só para a equipe</p>
-            <p class="whitespace-pre-wrap break-words">{{ $note->content }}</p>
-            <p class="opacity-70">{{ $note->user?->name }} · {{ $note->created_at?->format('d/m/Y H:i') }}</p>
-        </div>
-    @endforeach
-@endif
 <div id="topweb-chat-anchor" style="height: 1px;" aria-hidden="true"></div>
 <div id="topweb-chat-poll-meta" class="hidden" data-instance-status="{{ $conversation->instance?->status ?? 'unknown' }}" data-last-id="{{ $conversation->messages->last()?->id ?? 0 }}"></div>

@@ -150,11 +150,23 @@
 
                     <div class="mt-4 grid max-h-72 gap-3 overflow-y-auto">
                         @foreach ($conversation->internalNotes as $note)
-                            <article class="rounded-lg bg-amber-50 p-3 text-sm text-gray-800 dark:bg-gray-950 dark:text-gray-200">
+                            <article class="rounded-lg bg-amber-50 p-3 text-sm text-gray-800 dark:bg-gray-950 dark:text-gray-200" data-note-id="{{ $note->id }}">
                                 <p class="whitespace-pre-wrap break-words">{{ $note->content }}</p>
                                 <p class="mt-2 text-xs text-gray-500">
                                     {{ $note->user?->name }} · {{ $note->created_at?->format('d/m/Y H:i') }}
                                 </p>
+                                @if (bouncer()->hasPermission('topweb_chat.inbox.notes.delete'))
+                                    <button
+                                        type="button"
+                                        class="mt-2 text-xs font-medium text-red-700 underline dark:text-red-400"
+                                        data-note-delete
+                                        data-note-id="{{ $note->id }}"
+                                        data-delete-url="{{ route('admin.topweb_chat.notes.destroy', [$conversation, $note]) }}"
+                                        data-confirm-message="{{ trans('topweb_chat::app.notes.delete_confirm') }}"
+                                    >
+                                        @lang('topweb_chat::app.notes.delete')
+                                    </button>
+                                @endif
                             </article>
                         @endforeach
                     </div>
