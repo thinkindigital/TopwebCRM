@@ -42,6 +42,13 @@ test('conversa: timeline, composer e contexto renderizam', async ({ page }) => {
   await expect(page.locator('#topweb-chat-send-form')).toBeVisible();
   await expect(page.locator('#topweb-chat-send-form textarea')).toBeVisible();
   await expect(page.locator('body')).toContainText('Zeta Alfa Negocio');
+
+  const context = page.locator('[data-workspace-region="context"]');
+  await expect(context).toBeHidden();
+  await page.locator('[data-context-open]').click();
+  await expect(context).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(context).toBeHidden();
 });
 
 test.describe('dark mode', () => {

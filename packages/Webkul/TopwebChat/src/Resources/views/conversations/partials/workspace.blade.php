@@ -66,25 +66,27 @@
 
 <script src="{{ asset('js/topwebchat-search.js') }}" defer></script>
 <script>
-    const bindTopwebChatWorkspace = () => {
-        const root = document.querySelector('[data-topwebchat-workspace]');
-        if (!root) return;
-        const open = root.querySelector('[data-context-open]');
-        const close = root.querySelectorAll('[data-context-close]');
-        const setContext = (visible) => {
-            root.classList.toggle('is-context-open', visible);
-            open?.setAttribute('aria-expanded', visible ? 'true' : 'false');
-        };
-        open?.addEventListener('click', () => setContext(true));
-        close.forEach((element) => element.addEventListener('click', () => setContext(false)));
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') setContext(false);
-        });
-    };
+    if (!document.documentElement.dataset.topwebchatWorkspaceBound) {
+        document.documentElement.dataset.topwebchatWorkspaceBound = 'true';
 
-    if (document.readyState === 'complete') {
-        bindTopwebChatWorkspace();
-    } else {
-        window.addEventListener('load', bindTopwebChatWorkspace, { once: true });
+        const setContext = (root, visible) => {
+            root.classList.toggle('is-context-open', visible);
+            root.querySelector('[data-context-open]')?.setAttribute('aria-expanded', visible ? 'true' : 'false');
+        };
+
+        document.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-context-open], [data-context-close]');
+            const root = trigger?.closest('[data-topwebchat-workspace]')
+                ?? document.querySelector('[data-topwebchat-workspace]');
+
+            if (!trigger || !root) return;
+
+            setContext(root, trigger.hasAttribute('data-context-open'));
+        });
+
+        document.addEventListener('keydown', (event) => {
+            const root = document.querySelector('[data-topwebchat-workspace]');
+            if (event.key === 'Escape' && root) setContext(root, false);
+        });
     }
 </script>
