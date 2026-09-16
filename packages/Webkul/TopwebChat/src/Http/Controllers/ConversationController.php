@@ -40,41 +40,9 @@ class ConversationController
         abort_unless(bouncer()->hasPermission('topweb_chat.inbox'), 403);
 
         $user = auth()->guard('user')->user();
-        $queue = $request->string('queue', 'mine')->toString();
 
-        if (! in_array($queue, ['mine', 'unassigned', 'all'], true)) {
-            $queue = 'mine';
-        }
-
-        if (! $this->access->isAdministrator($user) && $queue === 'all') {
-            $queue = 'mine';
-        }
-
-        // V-01: contadores honestos, derivados do mesmo escopo autorizado.
-        $isAdministrator = $this->access->isAdministrator($user);
-
-        $conversations = $this->conversationRepository
-            ->accessibleQuery($user, $queue)
-            ->paginate(30)
-            ->withQueryString();
-
-        // V-04: um dot por linha, sem conteúdo — uma query para a página toda.
-        $nextActionFlags = $this->nextActions->flagsForLeadIds(
-            $conversations->getCollection()->pluck('lead_id')->filter()->all()
-        );
-
-        return view('topweb_chat::conversations.index', [
-            'queue' => $queue,
-            'conversations' => $conversations,
+        return view('topweb_chat::conversations.index', $this->queueData($request, $user) + [
             'selectedConversation' => null,
-            'nextActionFlags' => $nextActionFlags,
-            'queueCounts' => [
-                'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
-                'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
-                'all' => $isAdministrator
-                    ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
-                    : 0,
-            ],
         ]);
     }
 
@@ -84,8 +52,6 @@ class ConversationController
 
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
-        $prototypeVariant = $request->string('variant')->toString();
-        $isPrototype = in_array($prototypeVariant, ['R1', 'R1K'], true);
 
         $conversation->load([
             'person',
@@ -112,7 +78,7 @@ class ConversationController
             $conversation->messages->reverse()->values()
         );
 
-        if ($conversation->instance?->enabled && ! $isPrototype) {
+        if ($conversation->instance?->enabled) {
             try {
                 Bus::chain([
                     new SyncConversationHistory($conversation->id, true),
@@ -164,40 +130,71 @@ class ConversationController
                 $user,
                 $this->access->isAdministrator($user)
             ),
+            'workspaceStyle' => $this->workspaceStyle(),
         ];
 
-        if ($isPrototype) {
-            $queue = $request->string('queue', 'mine')->toString();
+        return view('topweb_chat::conversations.show', $viewData + $this->queueData(
+            $request,
+            $user,
+            bouncer()->hasPermission('topweb_chat.inbox')
+        ) + [
+            'selectedConversation' => $conversation,
+        ]);
+    }
 
-            if (! in_array($queue, ['mine', 'unassigned', 'all'], true)) {
-                $queue = 'mine';
-            }
+    private function queueData(Request $request, User $user, bool $queueAvailable = true): array
+    {
+        $queue = $request->string('queue', 'mine')->toString();
 
-            if (! $this->access->isAdministrator($user) && $queue === 'all') {
-                $queue = 'mine';
-            }
-
-            return view('topweb_chat::conversations.show-prototype-r1', $viewData + [
-                'queue' => $queue,
-                'queueConversations' => $this->conversationRepository
-                    ->accessibleQuery($user, $queue)
-                    ->limit(30)
-                    ->get(),
-                'queueCounts' => [
-                    'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
-                    'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
-                    'all' => $this->access->isAdministrator($user)
-                        ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
-                        : 0,
-                ],
-                'prototypeScenario' => $request->string('scenario', 'linked')->toString(),
-                'prototypePane' => $request->string('pane', 'conversation')->toString(),
-                'prototypeContextOpen' => $request->boolean('context'),
-                'prototypeVisualVariant' => $prototypeVariant,
-            ]);
+        if (! in_array($queue, ['mine', 'unassigned', 'all'], true)) {
+            $queue = 'mine';
         }
 
-        return view('topweb_chat::conversations.show', $viewData);
+        $isAdministrator = $this->access->isAdministrator($user);
+
+        if (! $isAdministrator && $queue === 'all') {
+            $queue = 'mine';
+        }
+
+        if (! $queueAvailable) {
+            return [
+                'queue' => $queue,
+                'queueAvailable' => false,
+                'queueConversations' => collect(),
+                'nextActionFlags' => [],
+                'queueCounts' => ['mine' => 0, 'unassigned' => 0, 'all' => 0],
+                'workspaceStyle' => $this->workspaceStyle(),
+            ];
+        }
+
+        $conversations = $this->conversationRepository
+            ->accessibleQuery($user, $queue)
+            ->paginate(30)
+            ->withQueryString();
+
+        return [
+            'queue' => $queue,
+            'queueAvailable' => true,
+            'queueConversations' => $conversations,
+            'nextActionFlags' => $this->nextActions->flagsForLeadIds(
+                $conversations->getCollection()->pluck('lead_id')->filter()->all()
+            ),
+            'queueCounts' => [
+                'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
+                'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
+                'all' => $isAdministrator
+                    ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
+                    : 0,
+            ],
+            'workspaceStyle' => $this->workspaceStyle(),
+        ];
+    }
+
+    private function workspaceStyle(): string
+    {
+        $style = strtoupper((string) config('topweb-chat.workspace_style', 'R1K'));
+
+        return in_array($style, ['R1', 'R1K'], true) ? $style : 'R1K';
     }
 
     public function messages(Request $request, Conversation $conversation): Response

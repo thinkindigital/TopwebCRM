@@ -19,10 +19,10 @@
         </div>
     @endif
     <article
-        class="flex {{ $message->direction === 'outgoing' ? 'justify-end' : 'justify-start' }}"
+        class="twp-message {{ $message->direction === 'outgoing' ? 'twp-message-outgoing flex justify-end' : 'flex justify-start' }}"
         data-message-id="{{ $message->id }}"
     >
-        <div class="max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm sm:max-w-[72%] {{ $message->direction === 'outgoing' ? 'rounded-br-md bg-brandColor text-white' : 'rounded-bl-md border border-gray-100 bg-white text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-white' }}">
+        <div class="twp-message-bubble max-w-[85%] rounded-2xl border px-4 py-2.5 shadow-sm sm:max-w-[72%] {{ $message->direction === 'outgoing' ? 'rounded-br-md' : 'rounded-bl-md' }}">
             @if ($message->hasMedia())
                 @php($mediaMime = (string) data_get($message->metadata, 'media_mime'))
 

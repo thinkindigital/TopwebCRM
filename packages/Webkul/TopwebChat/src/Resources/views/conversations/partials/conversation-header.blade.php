@@ -21,6 +21,15 @@
     </div>
 
     <div class="flex flex-wrap items-center justify-end gap-2 text-xs">
+        <button
+            type="button"
+            class="twp-context-toggle"
+            data-context-open
+            aria-controls="topweb-chat-context"
+            aria-expanded="false"
+        >
+            @lang('topweb_chat::app.crm.title')
+        </button>
         <span
             id="topweb-chat-sync-status"
             class="rounded-full bg-gray-100 px-3 py-1.5 font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"

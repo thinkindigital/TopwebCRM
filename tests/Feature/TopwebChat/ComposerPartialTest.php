@@ -3,8 +3,8 @@
 // E-02 C3: composer extraído em partial sem mudar comportamento.
 
 it('renders the composer through a dedicated partial', function () {
-    $show = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    $workspace = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/workspace.blade.php')
     );
     $partial = base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php');
 
@@ -14,6 +14,6 @@ it('renders the composer through a dedicated partial', function () {
         ->and($markup)->toContain('topweb-chat-attach-menu')
         ->and($markup)->toContain('name="operation_key"');
 
-    expect($show)->toContain('conversations.partials.composer');
-    expect($show)->not->toContain('id="topweb-chat-send-form"');
+    expect($workspace)->toContain('conversations.partials.composer');
+    expect($workspace)->not->toContain('id="topweb-chat-send-form"');
 });

@@ -200,3 +200,36 @@ it('documents unassigned conversation access for common users', function () {
     $this->actingAs($stranger, 'user');
     $this->get(route('admin.topweb_chat.show', $unassigned))->assertOk();
 });
+
+it('renders the configured official workspace style', function (string $style) {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+
+    config()->set('topweb-chat.workspace_style', $style);
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->assertSee('data-topwebchat-workspace', false)
+        ->assertSee('data-workspace-style="'.$style.'"', false)
+        ->assertSee('data-workspace-region="queue"', false)
+        ->assertSee('data-workspace-region="conversation"', false)
+        ->assertSee('data-workspace-region="context"', false)
+        ->assertDontSee('data-prototype-root', false);
+})->with(['R1', 'R1K']);
+
+it('falls back to R1K and ignores prototype query parameters', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+
+    config()->set('topweb-chat.workspace_style', 'unsupported');
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.show', [
+        'conversation' => $owned,
+        'variant' => 'R1',
+        'scenario' => 'offline',
+    ]))
+        ->assertOk()
+        ->assertSee('data-workspace-style="R1K"', false)
+        ->assertDontSee('data-prototype-root', false)
+        ->assertDontSee('PROTOTYPE', false);
+});

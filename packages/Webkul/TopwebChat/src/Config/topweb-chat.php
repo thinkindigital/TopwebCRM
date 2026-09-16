@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'workspace_style' => env('TOPWEB_CHAT_WORKSPACE_STYLE', 'R1K'),
     'engine' => env('TOPWEB_CHAT_ENGINE', 'whatsapp-web.js'),
     'provider' => env('TOPWEB_CHAT_PROVIDER', 'openwa'),
     'base_url' => env('TOPWEB_CHAT_BASE_URL', 'http://openwa:2785'),

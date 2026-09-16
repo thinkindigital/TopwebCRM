@@ -48,7 +48,7 @@ it('allows retry only when the provider was never called', function () {
 
 it('keeps the composer outside the scrollable chronological timeline', function () {
     $view = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/workspace.blade.php')
     );
     $controller = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Http/Controllers/ConversationController.php')
@@ -72,8 +72,8 @@ it('keeps the composer outside the scrollable chronological timeline', function 
 
     expect($view)->toContain(
         'min-h-0 flex-1 flex-col justify-start',
-        'height: clamp(30rem, calc(100dvh - 10rem), 48rem)',
-        'style="min-height: 0; flex: 1 1 auto; overflow-y: auto;"'
+        'conversations.partials.composer',
+        'conversations.partials.timeline-messages'
     );
     expect($runtime)->toContain(
         'timeline.scrollHeight - timeline.scrollTop - timeline.clientHeight < 100',
