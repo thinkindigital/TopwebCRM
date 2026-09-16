@@ -12,6 +12,9 @@ export default defineConfig({
   globalSetup: './global-setup.ts',
   globalTeardown: './global-teardown.ts',
   fullyParallel: false,
+  // All projects share one isolated database fixture; serialize them to avoid
+  // cross-project mutations such as claims and owner transfers.
+  workers: 1,
   retries: 0,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:8000',

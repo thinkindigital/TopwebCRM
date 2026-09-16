@@ -52,6 +52,11 @@ jobs:
     env:
       E2E_BASE_URL: http://127.0.0.1:8000
       E2E_EXPECTED_BUILD_SHA: ${{ github.sha }}
+      TOPWEBCRM_BUILD_SHA: ${{ github.sha }}
+      TOPWEBCRM_BUILD_BRANCH: dev
+      TOPWEBCRM_BUILD_TIMESTAMP: ${{ github.run_id }}
+      TOPWEBCRM_IMAGE_TAG: dev
+      TOPWEBCRM_IMAGE_REVISION: ${{ github.sha }}
       E2E_ADMIN_EMAIL: topwebchat-e2e-admin@example.test
       E2E_USER_EMAIL: topwebchat-e2e-claim@example.test
       E2E_FIXTURE_FILE: ${{ github.workspace }}/.playwright-e2e-fixtures.json

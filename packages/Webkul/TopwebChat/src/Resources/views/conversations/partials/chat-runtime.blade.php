@@ -15,6 +15,7 @@
                 let browserLocale = 'pt-BR';
                 try { browserLocale = Intl.getCanonicalLocales(rawBrowserLocale)[0] ?? 'pt-BR'; } catch { browserLocale = 'pt-BR'; }
                 let refreshing = false;
+                let refreshQueued = false;
                 let lastMessageId = Number(
                     timeline?.querySelector('[data-message-id]:last-of-type')?.dataset.messageId || 0
                 );
@@ -132,6 +133,7 @@
 
                 const refresh = async () => {
                     if (refreshing) {
+                        refreshQueued = true;
                         return;
                     }
 
@@ -178,6 +180,10 @@
                         });
                     } finally {
                         refreshing = false;
+                        if (refreshQueued) {
+                            refreshQueued = false;
+                            void refresh();
+                        }
                     }
                 };
 
