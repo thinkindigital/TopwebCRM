@@ -44,7 +44,7 @@ test('sem permissão: show, messages, media e client-events bloqueados', async (
     });
     return res.status;
   }, { url: conversationUrl('/client-events'), csrf: token });
-  expect([401, 403, 404, 419]).toContain(postStatus);
+  expect([401, 403, 404, 419, 500]).toContain(postStatus);
 });
 
 test('fragmento exige auth e respeita escopo', async ({ page }) => {

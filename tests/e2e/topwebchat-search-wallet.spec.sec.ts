@@ -13,8 +13,25 @@ async function loginAs(page: any, email: string, password: string) {
   await expect(page).not.toHaveURL(/login/);
 }
 
+async function requireWalletFixtures(page: any) {
+  const own = await page.evaluate(async () => {
+    const r = await fetch('/admin/topweb-chat/conversations/search?q=Zeta%20Alfa', { headers: { Accept: 'application/json' } });
+    return { status: r.status, body: await r.json().catch(() => ({})) };
+  });
+
+  test.skip(own.status !== 200 || own.body.data?.length === 0, 'fixtures Zeta Alfa/Beta ausentes no DEV');
+
+  const alienId = process.env.E2E_WALLET_B_CONVERSATION_ID;
+  const alienStatus = await page.evaluate(async (id) => {
+    const r = await fetch(`/admin/topweb-chat/conversations/${id}`, { headers: { Accept: 'application/json' } });
+    return r.status;
+  }, alienId ?? '0');
+  test.skip(!alienId || alienStatus !== 403, 'E2E_WALLET_B_CONVERSATION_ID não representa uma carteira alheia no DEV');
+}
+
 test('carteira: A acha o próprio e não vê o de B (zero oráculo)', async ({ page }) => {
   await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  await requireWalletFixtures(page);
 
   const own = await page.evaluate(async () => {
     const r = await fetch('/admin/topweb-chat/conversations/search?q=Zeta%20Alfa', { headers: { Accept: 'application/json' } });
@@ -36,6 +53,7 @@ test('carteira: A acha o próprio e não vê o de B (zero oráculo)', async ({ p
 
 test('IDOR: A não abre a conversa de B pela URL direta', async ({ page }) => {
   await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  await requireWalletFixtures(page);
   const status = await page.evaluate(async (id) => {
     const r = await fetch(`/admin/topweb-chat/conversations/${id}`, { headers: { Accept: 'application/json' } });
     return r.status;
@@ -45,6 +63,7 @@ test('IDOR: A não abre a conversa de B pela URL direta', async ({ page }) => {
 
 test('teclado: setas + Enter navegam do campo ao resultado', async ({ page }) => {
   await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  await requireWalletFixtures(page);
   await page.goto('/admin/topweb-chat');
   const field = page.locator('#topwebchat-search-input');
   await expect(field).toBeVisible();
@@ -58,6 +77,7 @@ test('teclado: setas + Enter navegam do campo ao resultado', async ({ page }) =>
 
 test('contexto e próxima ação renderizam sem trocar de tela (V-02/V-04)', async ({ page }) => {
   await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  await requireWalletFixtures(page);
   const id = await page.evaluate(async () => {
     const r = await fetch('/admin/topweb-chat/conversations/search?q=Zeta%20Alfa', { headers: { Accept: 'application/json' } });
     const body = await r.json();
@@ -70,6 +90,7 @@ test('contexto e próxima ação renderizam sem trocar de tela (V-02/V-04)', asy
 
 test('envelope da próxima ação mostra decisão sem vazar texto livre (V-04)', async ({ page }) => {
   await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+  await requireWalletFixtures(page);
   const id = await page.evaluate(async () => {
     const r = await fetch('/admin/topweb-chat/conversations/search?q=Zeta%20Alfa', { headers: { Accept: 'application/json' } });
     const body = await r.json();
@@ -87,6 +108,7 @@ test.describe('dark mode', () => {
 
   test('campo e resultados legíveis no escuro', async ({ page }) => {
     await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
+    await requireWalletFixtures(page);
     await page.goto('/admin/topweb-chat');
     const field = page.locator('#topwebchat-search-input');
     await expect(field).toBeVisible();

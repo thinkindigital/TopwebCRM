@@ -59,8 +59,10 @@
   `operation_key`.
 - Nota interna nasce no contexto e usa `Adicionar nota`; nunca compartilha
   silenciosamente o modo ou o botao `Enviar` do WhatsApp.
-- Attachment tray tem altura limitada e estado por item. A implementacao deve
-  refletir a capacidade real do backend; UX de batch nao autoriza contrato novo.
+- Attachment tray tem altura limitada (scroll interno a partir de 4 itens) e
+  estado por item (Pronto/Enviando/Enviado/Falhou); 1 arquivo usa o card e o
+  contrato de caption atuais, 2+ usam o contrato batch. Remocao individual
+  nunca afeta os demais itens.
 - Contexto segue Negociacao -> Proxima acao -> Atividade recente -> Notas
   internas.
 - Icones SVG; emoji so como conteudo. Alvos 44 px; foco visivel; AA;

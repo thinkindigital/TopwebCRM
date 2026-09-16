@@ -70,7 +70,7 @@ test.describe('dark mode', () => {
 
   test('inbox e conversa legíveis no escuro', async ({ page }) => {
     await loginAs(page, process.env.E2E_WALLET_A_EMAIL ?? '', process.env.E2E_WALLET_A_PASSWORD ?? '');
-  await requireZetaFixture(page);
+    await requireZetaFixture(page);
     await page.goto('/admin/topweb-chat');
     await expect(page.locator('#topwebchat-search-input')).toBeVisible();
     await page.locator('#topwebchat-search-input').fill('Zeta Alfa');
