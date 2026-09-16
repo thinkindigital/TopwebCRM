@@ -122,7 +122,11 @@ jobs:
 
       - name: Run root TopwebChat E2E
         working-directory: packages/Webkul/Admin
-        run: npx playwright test --reporter=list --config=../../../tests/e2e/playwright.config.ts
+        run: |
+          for project in desktop mobile wide notebook; do
+            echo "Running TopwebChat E2E project: $project"
+            npx playwright test --project="$project" --reporter=list --config=../../../tests/e2e/playwright.config.ts
+          done
 
       - name: Upload root E2E evidence
         if: always()

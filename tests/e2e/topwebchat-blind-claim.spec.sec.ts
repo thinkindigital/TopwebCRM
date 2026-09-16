@@ -31,14 +31,14 @@ test('agente sem concessão sensível e sem assignment assume item cego para si'
     const token = await admin.locator('input[name="_token"]').first().inputValue();
     const response = await admin.evaluate(async ({ id, csrf }) => {
       const result = await fetch(`/admin/topweb-chat/conversations/${id}/assignment`, {
-        method: 'PUT',
+        method: 'POST',
         credentials: 'same-origin',
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/x-www-form-urlencoded',
           'X-CSRF-TOKEN': csrf,
         },
-        body: new URLSearchParams({ assigned_user_id: '' }),
+        body: new URLSearchParams({ _method: 'PUT', assigned_user_id: '' }),
       });
 
       return result.status;
