@@ -202,5 +202,28 @@ jobs:
           )"
 
           jq -e --argjson stack_id "$stack_id" '
-            .Id == $stack_id and .Status == 1
+            .Id == $stack_id and (.Status == 1 or .Status == 3)
           ' <<<"$update_json" >/dev/null
+
+          for attempt in $(seq 1 30); do
+            current_stack_json="$(
+              curl --fail --silent --show-error \
+                --header "$auth_header" \
+                "$PORTAINER_URL/api/stacks/$stack_id?endpointId=$PORTAINER_ENDPOINT_ID"
+            )"
+
+            if jq -e --argjson stack_id "$stack_id" '
+              .Id == $stack_id and .Status == 1
+            ' <<<"$current_stack_json" >/dev/null; then
+              echo "Portainer stack $PORTAINER_STACK_NAME is active after redeploy."
+              break
+            fi
+
+            if [ "$attempt" -eq 30 ]; then
+              echo "::error::Portainer stack did not become active after redeploy."
+              jq '{Id, Status, Message}' <<<"$current_stack_json"
+              exit 1
+            fi
+
+            sleep 2
+          done
