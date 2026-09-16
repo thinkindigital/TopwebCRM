@@ -118,5 +118,88 @@
                 console.error('TopwebChat note delete failed.', error);
             }
         });
+
+        document.addEventListener('submit', async (event) => {
+            const form = event.target.closest('[data-stage-form]');
+            if (!form) return;
+
+            event.preventDefault();
+
+            const pipelineSelect = form.querySelector('[data-pipeline-select]');
+            const stageSelect = form.querySelector('[data-stage-select]');
+            const errorBox = form.querySelector('[data-stage-error]');
+            const previous = {
+                pipeline: pipelineSelect.value,
+                stage: stageSelect.value,
+            };
+
+            const showError = () => {
+                pipelineSelect.value = previous.pipeline;
+                stageSelect.value = previous.stage;
+                if (errorBox) errorBox.classList.remove('hidden');
+            };
+
+            if (errorBox) errorBox.classList.add('hidden');
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': form.querySelector('input[name="_token"]')?.value ?? '',
+                    },
+                    body: new FormData(form),
+                });
+
+                if (!response.ok) throw new Error(`stage_update_failed:${response.status}`);
+
+                const body = await response.json();
+                pipelineSelect.value = String(body.lead_pipeline_id);
+                stageSelect.value = String(body.lead_pipeline_stage_id);
+            } catch (error) {
+                showError();
+                console.error('TopwebChat stage update failed.', error);
+            }
+        });
+
+        document.addEventListener('change', async (event) => {
+            const pipelineSelect = event.target.closest('[data-pipeline-select]');
+            if (!pipelineSelect) return;
+
+            const form = pipelineSelect.closest('[data-stage-form]');
+            const stageSelect = form?.querySelector('[data-stage-select]');
+            const errorBox = form?.querySelector('[data-stage-error]');
+            if (!form || !stageSelect) return;
+
+            const previousPipeline = pipelineSelect.dataset.current ?? pipelineSelect.value;
+            pipelineSelect.dataset.current = pipelineSelect.value;
+
+            try {
+                const url = form.dataset.stagesUrlTemplate.replace('__PIPELINE__', pipelineSelect.value);
+                const response = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (!response.ok) throw new Error(`stages_load_failed:${response.status}`);
+
+                const body = await response.json();
+                stageSelect.replaceChildren(
+                    ...(body.data ?? []).map((stage) => {
+                        const option = document.createElement('option');
+                        option.value = String(stage.id);
+                        option.textContent = stage.name;
+                        return option;
+                    })
+                );
+                if (errorBox) errorBox.classList.add('hidden');
+            } catch (error) {
+                pipelineSelect.value = previousPipeline;
+                if (errorBox) errorBox.classList.remove('hidden');
+                console.error('TopwebChat stages load failed.', error);
+            }
+        });
     }
 </script>

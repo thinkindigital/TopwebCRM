@@ -127,6 +127,7 @@ return [
         'not_linked' => 'Not linked',
     ],
     'leads' => [
+        'pipeline' => 'Pipeline',
         'stage' => 'Pipeline stage',
         'update_stage' => 'Update stage',
         'stage_updated' => 'Lead stage updated.',

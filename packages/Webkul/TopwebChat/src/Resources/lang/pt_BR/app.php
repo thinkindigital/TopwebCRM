@@ -127,6 +127,7 @@ return [
         'not_linked' => 'Não vinculado',
     ],
     'leads' => [
+        'pipeline' => 'Funil',
         'stage' => 'Etapa do funil',
         'update_stage' => 'Atualizar etapa',
         'stage_updated' => 'Etapa do lead atualizada.',

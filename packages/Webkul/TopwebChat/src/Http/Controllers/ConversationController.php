@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 use Webkul\Contact\Models\Person;
+use Webkul\Lead\Models\Pipeline;
 use Webkul\TopwebChat\Jobs\MarkConversationRead;
 use Webkul\TopwebChat\Jobs\SyncConversationHistory;
 use Webkul\TopwebChat\Models\Conversation;
@@ -104,6 +105,9 @@ class ConversationController
             ),
             'pipelineStages' => $conversation->lead
                 ? $conversation->lead->pipeline->stages
+                : collect(),
+            'leadPipelines' => $conversation->lead
+                ? Pipeline::query()->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'assignableUsers' => $this->access->isAdministrator($user)
                 ? User::query()->where('status', 1)->orderBy('name')->get()

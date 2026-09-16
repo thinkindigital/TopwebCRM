@@ -113,21 +113,37 @@
                         method="POST"
                         action="{{ route('admin.topweb_chat.lead_stage.update', $conversation) }}"
                         class="mt-4 grid gap-3"
+                        data-stage-form
+                        data-stages-url-template="{{ route('admin.topweb_chat.lead_stage.stages', [$conversation, '__PIPELINE__']) }}"
                     >
                         @csrf
                         @method('PUT')
+
+                        <label class="text-sm font-medium text-gray-800 dark:text-white" for="lead_pipeline_id">
+                            @lang('topweb_chat::app.leads.pipeline')
+                        </label>
+
+                        <select id="lead_pipeline_id" name="lead_pipeline_id" class="custom-select" data-pipeline-select required>
+                            @foreach ($leadPipelines as $availablePipeline)
+                                <option value="{{ $availablePipeline->id }}" @selected($conversation->lead->lead_pipeline_id === $availablePipeline->id)>
+                                    {{ $availablePipeline->name }}
+                                </option>
+                            @endforeach
+                        </select>
 
                         <label class="text-sm font-medium text-gray-800 dark:text-white" for="lead_pipeline_stage_id">
                             @lang('topweb_chat::app.leads.stage')
                         </label>
 
-                        <select id="lead_pipeline_stage_id" name="lead_pipeline_stage_id" class="custom-select" required>
+                        <select id="lead_pipeline_stage_id" name="lead_pipeline_stage_id" class="custom-select" data-stage-select required>
                             @foreach ($pipelineStages as $stage)
                                 <option value="{{ $stage->id }}" @selected($conversation->lead->lead_pipeline_stage_id === $stage->id)>
                                     {{ $stage->name }}
                                 </option>
                             @endforeach
                         </select>
+
+                        <p class="hidden text-xs text-red-700 dark:text-red-400" data-stage-error></p>
 
                         <button class="secondary-button">@lang('topweb_chat::app.leads.update_stage')</button>
                     </form>

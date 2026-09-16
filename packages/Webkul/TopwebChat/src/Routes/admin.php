@@ -30,6 +30,7 @@ Route::prefix('topweb-chat')->group(function () {
     Route::delete('conversations/{conversation}/notes/{note}', [InternalNoteController::class, 'destroy'])->name('admin.topweb_chat.notes.destroy');
     Route::put('conversations/{conversation}/assignment', [AssignmentController::class, 'update'])->name('admin.topweb_chat.assignment.update');
     Route::put('conversations/{conversation}/lead-stage', [LeadStageController::class, 'update'])->name('admin.topweb_chat.lead_stage.update');
+    Route::get('conversations/{conversation}/lead-pipelines/{pipeline}/stages', [LeadStageController::class, 'stages'])->name('admin.topweb_chat.lead_stage.stages');
 
     Route::delete('conversations/by-person/{person}', [ConversationController::class, 'destroyByPerson'])
         ->name('admin.topweb_chat.conversations.destroy_by_person')

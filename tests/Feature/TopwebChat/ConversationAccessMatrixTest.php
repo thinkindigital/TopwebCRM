@@ -245,6 +245,17 @@ it('exposes the activity creation entry in the context', function () {
         ->and($partial)->toContain("route('admin.topweb_chat.activities.update'");
 });
 
+it('exposes the inline stage form with pipeline selection', function () {
+    $partial = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
+    );
+
+    expect($partial)->toContain('data-stage-form')
+        ->and($partial)->toContain('data-pipeline-select')
+        ->and($partial)->toContain('data-stage-select')
+        ->and($partial)->toContain('data-stage-error');
+});
+
 it('disables attachment controls without the sensitive-data grant', function () {
     ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
     $this->actingAs($admin, 'user');
