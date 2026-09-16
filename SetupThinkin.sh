@@ -4,9 +4,13 @@
 #
 # Uso:
 #   bash SetupThinkin.sh            # interativo
+#   PORTAINER_API_KEY=... bash SetupThinkin.sh install
 #   DRY_RUN=1 bash SetupThinkin.sh  # lista ações sem executar
 #
-# Premissas: servidor com Docker Swarm, Portainer e Traefik (SetupOrion).
+# O bootstrap instala Docker em Ubuntu/Debian quando necessário, inicializa o
+# Swarm, descobre a rede usada pelo Traefik e instala a base ausente. Uma API
+# key do Portainer pode ser fornecida por ambiente; sem ela o script usa login
+# e senha somente em memória. Nunca registre a linha de comando com secrets.
 # Sem credenciais GitHub: SHA resolvido via API anônima, imagem GHCR pública.
 # Segredos nunca vão para logs, YAML, resumo ou histórico (ver I11.3, issue #52).
 #
@@ -68,7 +72,7 @@ EOF
     confirm "Deseja continuar?" || die "instalação abortada pelo usuário"
 }
 
-INSTALLER_VERSION="0.1.0-i11.1"
+INSTALLER_VERSION="0.2.0-bootstrap"
 GITHUB_REPO="thinkindigital/TopwebCRM"
 RAW_BASE="https://raw.githubusercontent.com/$GITHUB_REPO"
 SUMMARY_DIR="${SUMMARY_DIR:-$HOME/dados_vps}"
@@ -89,6 +93,128 @@ run() {
 
 require_cmd() {
     command -v "$1" >/dev/null 2>&1 || die "comando obrigatório ausente: $1"
+}
+
+normalize_url() {
+    local value="${1%/}"
+    case "$value" in
+        http://*|https://*) printf '%s' "$value" ;;
+        *) printf 'https://%s' "$value" ;;
+    esac
+}
+
+install_docker_engine() {
+    if command -v docker >/dev/null 2>&1; then
+        if docker info >/dev/null 2>&1; then
+            return 0
+        fi
+        if command -v systemctl >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
+            systemctl enable --now docker >/dev/null 2>&1 || true
+            docker info >/dev/null 2>&1 && return 0
+        fi
+    fi
+
+    if [ "$DRY_RUN" = "1" ]; then
+        log "[dry-run] instalaria/iniciaria Docker Engine"
+        return 0
+    fi
+
+    [ "$(id -u)" -eq 0 ] || die "Docker ausente/inativo: execute o SetupThinkin como root para instalar o engine"
+    command -v apt-get >/dev/null 2>&1 || die "Docker ausente e sistema sem apt-get suportado"
+
+    local os_id="" codename="" arch=""
+    if [ -r /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        os_id="${ID:-}"
+        codename="${VERSION_CODENAME:-}"
+    fi
+    case "$os_id" in
+        ubuntu|debian) ;;
+        *) die "instalação automática do Docker suporta Ubuntu/Debian; detectado: ${os_id:-desconhecido}" ;;
+    esac
+    [ -n "$codename" ] || codename="$(lsb_release -cs 2>/dev/null || true)"
+    [ -n "$codename" ] || die "não foi possível detectar o codename da distribuição"
+
+    apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ca-certificates curl gnupg
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL "https://download.docker.com/linux/$os_id/gpg" \
+        | gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
+    printf 'deb [arch=%s signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/%s %s stable\n' \
+        "$(dpkg --print-architecture)" "$os_id" "$codename" \
+        > /etc/apt/sources.list.d/docker.list
+    apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    systemctl enable --now docker
+    docker info >/dev/null 2>&1 || die "Docker foi instalado, mas o daemon não respondeu"
+    log "Docker Engine instalado e ativo"
+}
+
+ensure_swarm() {
+    local state=""
+    state="$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || true)"
+    [ "$state" = "active" ] && return 0
+    if [ "$DRY_RUN" = "1" ]; then
+        log "[dry-run] inicializaria Docker Swarm"
+        return 0
+    fi
+
+    local advertise="${DOCKER_ADVERTISE_ADDR:-}"
+    if [ -z "$advertise" ] && command -v ip >/dev/null 2>&1; then
+        advertise="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}')"
+    fi
+    if [ -n "$advertise" ]; then
+        docker swarm init --advertise-addr "$advertise" >/dev/null
+    else
+        docker swarm init >/dev/null
+    fi
+    log "Docker Swarm inicializado"
+}
+
+step_bootstrap_host() {
+    log "Bootstrap do host — Docker Engine e Swarm"
+    install_docker_engine
+    if ! command -v curl >/dev/null 2>&1 || ! command -v openssl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        [ "$DRY_RUN" = "1" ] || {
+            [ "$(id -u)" -eq 0 ] || die "curl, openssl e jq são necessários; execute como root"
+            apt-get update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl openssl jq
+        }
+    fi
+    require_cmd docker
+    require_cmd curl
+    require_cmd openssl
+    require_cmd jq
+    ensure_swarm
+}
+
+load_secret_file() {
+    local variable="$1" file_variable="$2" path="" permissions="" value=""
+    path="$(printenv "$file_variable" 2>/dev/null || true)"
+    [ -n "$path" ] || return 0
+    [ -r "$path" ] || die "arquivo de secret não pode ser lido: $path"
+    permissions="$(stat -c '%a' "$path" 2>/dev/null || true)"
+    [ -n "$permissions" ] || die "não foi possível verificar permissões do arquivo de secret: $path"
+    if [ $((8#$permissions & 077)) -ne 0 ]; then
+        die "arquivo de secret deve ser privado (sem permissões de grupo/outros): $path"
+    fi
+    value="$(<"$path")"
+    [ -n "$value" ] || die "arquivo de secret vazio: $path"
+    printf -v "$variable" '%s' "$value"
+    export "$variable"
+    unset value
+    log "$variable carregado de arquivo protegido (valor oculto)"
+}
+
+load_external_secrets() {
+    load_secret_file PORTAINER_API_KEY PORTAINER_API_KEY_FILE
+    load_secret_file PORTAINER_PASS PORTAINER_PASS_FILE
+    load_secret_file OPENWA_API_KEY OPENWA_API_KEY_FILE
+    load_secret_file TOPWEBCRM_MAIL_PASSWORD TOPWEBCRM_MAIL_PASSWORD_FILE
+    load_secret_file TOPWEBCRM_ADMIN_PASSWORD TOPWEBCRM_ADMIN_PASSWORD_FILE
 }
 
 # Lê entrada com default; permite override via variável de ambiente.
@@ -126,6 +252,20 @@ ask_opt() {
     export "$var_name"
 }
 
+# Variante opcional para tokens: vazio é permitido e nunca é ecoado.
+ask_secret_opt() {
+    local var_name="$1" prompt="$2" current="" answer=""
+    current="$(printenv "$var_name" 2>/dev/null || true)"
+    if [ -n "$current" ]; then
+        log "$var_name (via ambiente, oculto)"
+        return 0
+    fi
+    read -rsp "$prompt (vazio = configurar depois): " answer || true
+    echo
+    printf -v "$var_name" '%s' "$answer"
+    export "$var_name"
+}
+
 confirm() {
     if [ "$DRY_RUN" = "1" ]; then
         log "[dry-run] confirmação automática: $1 (Y)"
@@ -147,7 +287,62 @@ stack_exists()      { docker stack ls --format '{{.Name}}' 2>/dev/null | grep -q
 network_exists()    { docker network ls --format '{{.Name}}' 2>/dev/null | grep -qx "$1"; }
 volume_exists()     { docker volume ls --format '{{.Name}}' 2>/dev/null | grep -qx "$1"; }
 secret_exists()     { docker secret ls --format '{{.Name}}' 2>/dev/null | grep -qx "$1"; }
-node_label_present(){ docker node inspect self --format '{{.Spec.Labels}}' 2>/dev/null | grep -q "$1"; }
+node_name()         { docker info --format '{{.Name}}' 2>/dev/null; }
+node_label_present(){ docker node inspect "$(node_name)" --format '{{.Spec.Labels}}' 2>/dev/null | grep -q "$1"; }
+
+discover_proxy_network() {
+    local service target network candidate
+    if [ -n "${TOPWEBCRM_PROXY_NETWORK:-}" ] && network_exists "$TOPWEBCRM_PROXY_NETWORK"; then
+        printf '%s' "$TOPWEBCRM_PROXY_NETWORK"
+        return 0
+    fi
+
+    for service in $(docker service ls --format '{{.Name}}' 2>/dev/null | grep -E '(^|_)traefik(_|$)' || true); do
+        while IFS= read -r target; do
+            [ -n "$target" ] || continue
+            network="$(docker network inspect "$target" --format '{{.Name}}' 2>/dev/null || true)"
+            if [ -n "$network" ]; then
+                printf '%s' "$network"
+                return 0
+            fi
+        done < <(docker service inspect "$service" --format '{{json .Spec.TaskTemplate.Networks}}' 2>/dev/null \
+            | jq -r '.[].Target // empty' 2>/dev/null || true)
+    done
+
+    for candidate in TopwebNet renacesso traefik proxy; do
+        if network_exists "$candidate"; then
+            printf '%s' "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+discover_portainer_url() {
+    local service rule host
+    for service in $(docker service ls --format '{{.Name}}' 2>/dev/null | grep -E '(^|_)portainer(_|$)' || true); do
+        rule="$(docker service inspect "$service" --format '{{index .Spec.Labels "traefik.http.routers.portainer.rule"}}' 2>/dev/null || true)"
+        host="$(printf '%s' "$rule" | sed -n 's/.*Host(`\([^`]*\)`).*/\1/p')"
+        [ -n "$host" ] && { printf 'https://%s' "$host"; return 0; }
+    done
+    return 1
+}
+
+discover_install_defaults() {
+    local detected="" portainer_url=""
+    if [ -z "${TOPWEBCRM_PROXY_NETWORK:-}" ]; then
+        detected="$(discover_proxy_network || true)"
+        [ -n "$detected" ] && TOPWEBCRM_PROXY_NETWORK="$detected"
+    fi
+    TOPWEBCRM_PROXY_NETWORK="${TOPWEBCRM_PROXY_NETWORK:-topweb_proxy}"
+    TOPWEBCRM_INTEGRATIONS_NETWORK="${TOPWEBCRM_INTEGRATIONS_NETWORK:-topweb_integrations}"
+    TRAEFIK_NETWORK="${TRAEFIK_NETWORK:-$TOPWEBCRM_PROXY_NETWORK}"
+    if [ -z "${PORTAINER_URL:-}" ]; then
+        portainer_url="$(discover_portainer_url || true)"
+        [ -n "$portainer_url" ] && PORTAINER_URL="$portainer_url"
+    fi
+    export TOPWEBCRM_PROXY_NETWORK TOPWEBCRM_INTEGRATIONS_NETWORK TRAEFIK_NETWORK PORTAINER_URL
+}
 
 step_preflight() {
     log "Etapa 0/5 — pré-voo (issue #50)"
@@ -155,16 +350,21 @@ step_preflight() {
     require_cmd curl
     require_cmd openssl
     require_cmd jq
-    docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -qx 'active' \
-        || die "Docker Swarm não está ativo neste nó"
-    stack_exists "traefik"   || die "stack 'traefik' não encontrada (instale pelo SetupOrion [01])"
-    stack_exists "portainer" || die "stack 'portainer' não encontrada (instale pelo SetupOrion [01])"
+    if ! docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -qx 'active'; then
+        [ "$DRY_RUN" = "1" ] || die "Docker Swarm não está ativo neste nó"
+        log "[dry-run] Docker Swarm seria validado como ativo"
+    fi
     log "pré-voo OK"
 }
 
 step_collect() {
     log "Etapa 1/5 — coleta (tudo sobrescrevível; Enter aceita o default)"
+    discover_install_defaults
     ask TOPWEBCRM_DOMAIN        "Domínio do CRM (https://...)" "" 0
+    TOPWEBCRM_DOMAIN="${TOPWEBCRM_DOMAIN#https://}"
+    TOPWEBCRM_DOMAIN="${TOPWEBCRM_DOMAIN#http://}"
+    TOPWEBCRM_DOMAIN="${TOPWEBCRM_DOMAIN%/}"
+    export TOPWEBCRM_DOMAIN
     ask OPENWA_MODE "OpenWA: stack local ou API remota?" "local" 0
     case "$OPENWA_MODE" in
         local|remoto) ;;
@@ -172,23 +372,35 @@ step_collect() {
     esac
     if [ "$OPENWA_MODE" = "remoto" ]; then
         ask OPENWA_REMOTE_URL "URL base do OpenWA remoto (http://host:2785)" "" 0
+        OPENWA_REMOTE_URL="$(normalize_url "$OPENWA_REMOTE_URL")"
+        ask_secret_opt OPENWA_API_KEY "Chave da API OpenWA"
+        ask_opt OPENWA_SESSION_NAME "Nome da sessão OpenWA para vincular"
+        ask_opt OPENWA_SESSION_UUID "UUID da sessão OpenWA (vazio = usar o nome)"
         OPENWA_DOMAIN="(remoto)"
     else
         ask OPENWA_DOMAIN           "Domínio do OpenWA (https://...)" "" 0
     fi
     ask TOPWEBCRM_APP_NAME      "Nome do CRM" "TopwebCRM" 0
-    ask TOPWEBCRM_ADMIN_NAME    "Nome do administrador" "" 0
-    ask TOPWEBCRM_ADMIN_EMAIL   "E-mail do administrador" "" 0
-    ask TOPWEBCRM_MAIL_HOST     "Host SMTP" "" 0
+    ask TOPWEBCRM_ADMIN_NAME    "Nome do administrador" "TopwebCRM Admin" 0
+    ask TOPWEBCRM_ADMIN_EMAIL   "E-mail do administrador" "admin@$TOPWEBCRM_DOMAIN" 0
+    ask TOPWEBCRM_MAIL_HOST     "Host SMTP" "smtp.zoho.com.br" 0
     ask TOPWEBCRM_MAIL_PORT     "Porta SMTP" "465" 0
     ask TOPWEBCRM_MAIL_ENCRYPTION "Criptografia SMTP (ssl/tls)" "ssl" 0
-    ask TOPWEBCRM_MAIL_USERNAME "Usuário SMTP" "" 0
-    ask TOPWEBCRM_MAIL_FROM_ADDRESS "Remetente" "" 0
+    ask TOPWEBCRM_MAIL_USERNAME "Usuário SMTP" "contato@agenciarenascimento.com.br" 0
+    ask TOPWEBCRM_MAIL_FROM_ADDRESS "Remetente" "$TOPWEBCRM_MAIL_USERNAME" 0
     ask TOPWEBCRM_DATA_MODE "Banco/dados: embutido ou compartilhado?" "embutido" 0
     case "$TOPWEBCRM_DATA_MODE" in
         embutido|compartilhado) ;;
         *) die "TOPWEBCRM_DATA_MODE deve ser embutido ou compartilhado" ;;
     esac
+    if [ "$TOPWEBCRM_DATA_MODE" = "compartilhado" ]; then
+        MYSQL_IMAGE="${MYSQL_IMAGE:-mysql:8.0}"
+        MYSQL_SHARED_NETWORK="${MYSQL_SHARED_NETWORK:-$TOPWEBCRM_INTEGRATIONS_NETWORK}"
+        REDIS_IMAGE="${REDIS_IMAGE:-redis:7.4-alpine}"
+        REDIS_SHARED_NETWORK="${REDIS_SHARED_NETWORK:-$TOPWEBCRM_INTEGRATIONS_NETWORK}"
+        REDIS_PASSWORD="${REDIS_PASSWORD:-}"
+        export MYSQL_IMAGE MYSQL_SHARED_NETWORK REDIS_IMAGE REDIS_SHARED_NETWORK REDIS_PASSWORD
+    fi
     ask FRESH_INSTALL "Instalação nova com banco vazio? (s/n)" "s" 0
     case "$FRESH_INSTALL" in
         s|S|y|Y) INITIAL_INSTALL="true" ;;
@@ -196,28 +408,43 @@ step_collect() {
         *) die "responda s ou n" ;;
     esac
     export INITIAL_INSTALL
-    ask PORTAINER_URL           "URL base do Portainer (https://...)" "" 0
-    ask PORTAINER_USER          "Usuário admin do Portainer" "" 0
-    ask PORTAINER_PASS          "Senha do Portainer" "" 1
-    ask TOPWEBCRM_PROXY_NETWORK "Rede overlay do Traefik" "renacesso" 0
-    ask TOPWEBCRM_INTEGRATIONS_NETWORK "Rede overlay CRM<->OpenWA" "topweb_integrations" 0
+    ask PORTAINER_URL           "URL base do Portainer (https://...)" "${PORTAINER_URL:-https://painel.${TOPWEBCRM_DOMAIN#*.}}" 0
+    PORTAINER_URL="$(normalize_url "$PORTAINER_URL")"
+    export PORTAINER_URL
+    if [ -z "${PORTAINER_API_KEY:-}" ]; then
+        ask_secret_opt PORTAINER_API_KEY "Token API do Portainer"
+    fi
+    if [ -z "${PORTAINER_API_KEY:-}" ] || ! stack_exists portainer; then
+        ask PORTAINER_USER "Usuário admin do Portainer" "admin" 0
+        ask PORTAINER_PASS "Senha do Portainer" "" 1
+    fi
+    ask TOPWEBCRM_PROXY_NETWORK "Rede overlay do Traefik" "$TOPWEBCRM_PROXY_NETWORK" 0
+    ask TOPWEBCRM_INTEGRATIONS_NETWORK "Rede overlay CRM<->OpenWA" "$TOPWEBCRM_INTEGRATIONS_NETWORK" 0
     ask TOPWEBCRM_NODE_LABEL    "Label do nó persistente (chave)" "topwebcrm" 0
+    TRAEFIK_NETWORK="$TOPWEBCRM_PROXY_NETWORK"
+    ask TRAEFIK_SSL_EMAIL "E-mail do Let's Encrypt" "$TOPWEBCRM_ADMIN_EMAIL" 0
+    ask TRAEFIK_IMAGE "Imagem do Traefik" "traefik:v3.5" 0
+    ask PORTAINER_DOMAIN "Domínio do Portainer" "${PORTAINER_URL#https://}" 0
+    ask PORTAINER_IMAGE "Imagem do Portainer" "portainer/portainer-ce:latest" 0
+    ask PORTAINER_AGENT_IMAGE "Imagem do agent Portainer" "portainer/agent:latest" 0
     if [ "${OPENWA_MODE:-local}" = "local" ]; then
         ask OPENWA_IMAGE_TAG        "Tag da imagem OpenWA" "0.23.3" 0
     fi
+    export OPENWA_DOMAIN TRAEFIK_NETWORK TRAEFIK_SSL_EMAIL PORTAINER_DOMAIN \
+        PORTAINER_IMAGE PORTAINER_AGENT_IMAGE
 }
 
 step_confirm() {
     log "Etapa 2/5 — conferência (sem segredos/senhas)"
     cat <<EOF
   CRM:        https://$TOPWEBCRM_DOMAIN ($TOPWEBCRM_APP_NAME)
-  Portainer:  $PORTAINER_URL (usuário $PORTAINER_USER)
+  Portainer:  $PORTAINER_URL (${PORTAINER_API_KEY:+API key}${PORTAINER_API_KEY:-${PORTAINER_USER:-credenciais}})
   Redes:      proxy=$TOPWEBCRM_PROXY_NETWORK integrações=$TOPWEBCRM_INTEGRATIONS_NETWORK
   Nó:         label $TOPWEBCRM_NODE_LABEL=true
   Admin:      $TOPWEBCRM_ADMIN_NAME <$TOPWEBCRM_ADMIN_EMAIL>
   SMTP:       $TOPWEBCRM_MAIL_HOST:$TOPWEBCRM_MAIL_PORT/$TOPWEBCRM_MAIL_ENCRYPTION
   Dados:      $TOPWEBCRM_DATA_MODE
-  OpenWA:     $OPENWA_MODE${OPENWA_REMOTE_URL:+ ($OPENWA_REMOTE_URL)}
+  OpenWA:     $OPENWA_MODE${OPENWA_REMOTE_URL:+ ($OPENWA_REMOTE_URL)}${OPENWA_SESSION_NAME:+ sessão=$OPENWA_SESSION_NAME}
   Banco novo: $FRESH_INSTALL
 EOF
     confirm "As respostas estão corretas?" || die "instalação abortada pelo usuário"
@@ -236,12 +463,18 @@ ensure_node_label() {
         log "label $TOPWEBCRM_NODE_LABEL=true já presente"
         return 0
     fi
-    run docker node update --label-add "$TOPWEBCRM_NODE_LABEL"=true self
+    local node="$(node_name)"
+    [ -n "$node" ] || die "não foi possível identificar o nó manager do Swarm"
+    run docker node update --label-add "$TOPWEBCRM_NODE_LABEL"=true "$node"
 }
 
 ensure_network() {
     local name="$1" mode="$2" # mode: create|require
     if network_exists "$name"; then
+        local network_scope=""
+        network_scope="$(docker network inspect "$name" --format '{{.Driver}} {{.Scope}}' 2>/dev/null || true)"
+        [ "$network_scope" = "overlay swarm" ] \
+            || die "rede '$name' existe, mas não é overlay Swarm (detectado: ${network_scope:-desconhecido})"
         log "rede $name já existe"
         return 0
     fi
@@ -320,11 +553,27 @@ create_secret_stdin() {
 
 step_secrets() {
     log "Etapa 4/5 — secrets (issue #52; valores nunca ecoados nem gravados)"
-    ask TOPWEBCRM_MAIL_PASSWORD  "Senha SMTP" "" 1
-    ask TOPWEBCRM_ADMIN_PASSWORD "Senha do administrador (min. 12)" "" 1
+    ask_secret_opt TOPWEBCRM_MAIL_PASSWORD "Senha SMTP"
+    if [ -z "${TOPWEBCRM_MAIL_PASSWORD:-}" ]; then
+        TOPWEBCRM_MAIL_PASSWORD="$(gen_hex 24)"
+        export TOPWEBCRM_MAIL_PASSWORD
+        MAIL_CONFIG_PENDING="true"
+        warn "senha SMTP não informada: e-mail transacional ficará pendente até a troca do secret"
+    else
+        MAIL_CONFIG_PENDING="false"
+    fi
+    ask_secret_opt TOPWEBCRM_ADMIN_PASSWORD "Senha do administrador"
+    if [ -z "${TOPWEBCRM_ADMIN_PASSWORD:-}" ]; then
+        TOPWEBCRM_ADMIN_PASSWORD="$(gen_hex 24)"
+        export TOPWEBCRM_ADMIN_PASSWORD
+        if declare -F record_secret >/dev/null; then
+            record_secret TOPWEBCRM_ADMIN_PASSWORD "$TOPWEBCRM_ADMIN_PASSWORD"
+        fi
+        log "senha administrativa forte gerada e registrada em arquivo local protegido"
+    fi
     [ "${#TOPWEBCRM_ADMIN_PASSWORD}" -ge 12 ] || die "senha do administrador muito curta"
 
-    local app_key db_pass db_root openwa_master openwa_pepper openwa_db openwa_redis
+    local app_key db_pass db_root openwa_master="" openwa_pepper="" openwa_db="" openwa_redis=""
     app_key="$(gen_app_key)"
     # No modo compartilhado a senha do banco nasce no ensure_mysql_db (deploy).
     if [ "${TOPWEBCRM_DATA_MODE:-embutido}" = "compartilhado" ]; then
@@ -333,10 +582,12 @@ step_secrets() {
         db_pass="$(gen_hex 24)"
     fi
     db_root="$(gen_hex 24)"
-    openwa_master="$(gen_hex 32)"
-    openwa_pepper="$(gen_hex 32)"
-    openwa_db="$(gen_hex 24)"
-    openwa_redis="$(gen_hex 24)"
+    if [ "${OPENWA_MODE:-local}" = "local" ]; then
+        openwa_master="$(gen_hex 32)"
+        openwa_pepper="$(gen_hex 32)"
+        openwa_db="$(gen_hex 24)"
+        openwa_redis="$(gen_hex 24)"
+    fi
 
     create_secret_stdin "${CRM_SECRET_PREFIX}_app_key" "$app_key"
     if [ -n "$db_pass" ]; then
@@ -347,44 +598,55 @@ step_secrets() {
     create_secret_stdin "${CRM_SECRET_PREFIX}_db_root_password" "$db_root"
     create_secret_stdin "${CRM_SECRET_PREFIX}_mail_password" "$TOPWEBCRM_MAIL_PASSWORD"
     create_secret_stdin "${CRM_SECRET_PREFIX}_admin_password" "$TOPWEBCRM_ADMIN_PASSWORD"
-    create_secret_stdin "${OPENWA_SECRET_PREFIX}_api_master_key" "$openwa_master"
-    create_secret_stdin "${OPENWA_SECRET_PREFIX}_api_key_pepper" "$openwa_pepper"
-    create_secret_stdin "${OPENWA_SECRET_PREFIX}_db_password" "$openwa_db"
-    create_secret_stdin "${OPENWA_SECRET_PREFIX}_redis_password" "$openwa_redis"
+    if [ "${OPENWA_MODE:-local}" = "local" ]; then
+        create_secret_stdin "${OPENWA_SECRET_PREFIX}_api_master_key" "$openwa_master"
+        create_secret_stdin "${OPENWA_SECRET_PREFIX}_api_key_pepper" "$openwa_pepper"
+        create_secret_stdin "${OPENWA_SECRET_PREFIX}_db_password" "$openwa_db"
+        create_secret_stdin "${OPENWA_SECRET_PREFIX}_redis_password" "$openwa_redis"
+    fi
 
     unset app_key db_pass db_root openwa_master openwa_pepper openwa_db openwa_redis
-    unset TOPWEBCRM_MAIL_PASSWORD TOPWEBCRM_ADMIN_PASSWORD
 }
-# Autentica no Portainer e ecoa o JWT (stdout). Senha só em memória.
+# Autentica no Portainer e retorna somente o token/header em memória.
 portainer_jwt() {
+    [ -n "${PORTAINER_USER:-}" ] && [ -n "${PORTAINER_PASS:-}" ] \
+        || die "Portainer exige PORTAINER_API_KEY ou usuário/senha"
     curl -fsSL --header 'Content-Type: application/json' \
         --data "$(jq -n --arg u "$PORTAINER_USER" --arg p "$PORTAINER_PASS" '{username:$u,password:$p}')" \
-        "https://$PORTAINER_URL/api/auth" | jq -er '.jwt'
+        "$(normalize_url "$PORTAINER_URL")/api/auth" | jq -er '.jwt'
+}
+
+portainer_auth_header() {
+    if [ -n "${PORTAINER_API_KEY:-}" ]; then
+        printf 'X-API-Key: %s' "$PORTAINER_API_KEY"
+    else
+        printf 'Authorization: Bearer %s' "$(portainer_jwt)"
+    fi
 }
 
 portainer_endpoint_id() {
-    local jwt="$1"
+    local auth="$1"
     if [ -n "${PORTAINER_ENDPOINT_ID:-}" ]; then
         printf '%s' "$PORTAINER_ENDPOINT_ID"
         return 0
     fi
-    curl -fsSL --header "Authorization: Bearer $jwt" \
-        "https://$PORTAINER_URL/api/endpoints" \
-        | jq -er '[.[] | select(.Name=="primary")] | if length>0 then .[0].Id else .[0].Id end'
+    curl -fsSL --header "$auth" \
+        "$(normalize_url "$PORTAINER_URL")/api/endpoints" \
+        | jq -er 'if length == 1 then .[0].Id else ([.[] | select(.Name=="primary")] | if length == 1 then .[0].Id else error("endpoint Portainer ambíguo") end) end'
 }
 
 portainer_swarm_id() {
-    local jwt="$1" endpoint="$2"
-    curl -fsSL --header "Authorization: Bearer $jwt" \
-        "https://$PORTAINER_URL/api/endpoints/$endpoint/docker/swarm" | jq -er '.ID'
+    local auth="$1" endpoint="$2"
+    curl -fsSL --header "$auth" \
+        "$(normalize_url "$PORTAINER_URL")/api/endpoints/$endpoint/docker/swarm" | jq -er '.ID'
 }
 
 portainer_stack_id() {
-    local jwt="$1" endpoint="$2" name="$3"
-    curl -fsSL --header "Authorization: Bearer $jwt" \
-        "https://$PORTAINER_URL/api/stacks" \
+    local auth="$1" endpoint="$2" name="$3"
+    curl -fsSL --header "$auth" \
+        "$(normalize_url "$PORTAINER_URL")/api/stacks" \
         | jq -er --arg n "$name" --argjson e "$endpoint" \
-            '[.[] | select(.Name==$n and .EndpointId==$e)] | if length>0 then .[0].Id else empty end'
+            '[.[] | select(.Name==$n and .EndpointId==$e)] | if length == 1 then .[0].Id elif length == 0 then empty else error("stack Portainer duplicada") end'
 }
 
 fetch_manifest() {
@@ -395,31 +657,111 @@ fetch_manifest() {
 # Cria ou atualiza a stack (update faz repull + redeploy). $1=nome $2=manifest $3=json-env
 deploy_stack() {
     local name="$1" manifest="$2" env_json="$3"
-    local jwt endpoint swarm stack_id tmpfile
-    tmpfile="$(mktemp)"
-    printf '%s' "$manifest" > "$tmpfile"
+    local auth endpoint swarm stack_id portainer_url
     if [ "$DRY_RUN" = "1" ]; then
         log "[dry-run] criaria/atualizaria stack $name ($(printf '%s' "$manifest" | wc -l) linhas, env $(printf '%s' "$env_json" | jq 'length') vars, com repull)"
-        rm -f "$tmpfile"
         return 0
     fi
-    jwt="$(portainer_jwt)"
-    endpoint="$(portainer_endpoint_id "$jwt")"
-    swarm="$(portainer_swarm_id "$jwt" "$endpoint")"
-    stack_id="$(portainer_stack_id "$jwt" "$endpoint" "$name" || true)"
+    auth="$(portainer_auth_header)"
+    portainer_url="$(normalize_url "$PORTAINER_URL")"
+    endpoint="$(portainer_endpoint_id "$auth")"
+    swarm="$(portainer_swarm_id "$auth" "$endpoint")"
+    stack_id="$(portainer_stack_id "$auth" "$endpoint" "$name" || true)"
     if [ -z "$stack_id" ]; then
         log "criando stack $name"
-        stack_id="$(curl -fsSL --header "Authorization: Bearer $jwt" \
-            -F "Name=$name" -F "file=@$tmpfile" -F "SwarmID=$swarm" -F "endpointId=$endpoint" \
-            "https://$PORTAINER_URL/api/stacks/create/swarm/file" | jq -er '.Id')"
+        stack_id="$(jq -n --arg n "$name" --arg f "$manifest" --arg s "$swarm" --argjson e "$env_json" \
+            '{Name:$n,StackFileContent:$f,SwarmID:$s,Env:$e,FromAppTemplate:false}' \
+            | curl -fsSL --request POST --header "$auth" --header 'Content-Type: application/json' \
+                --data-binary @- "$portainer_url/api/stacks/create/swarm/string?endpointId=$endpoint" \
+            | jq -er '.Id')"
     fi
     log "aplicando variáveis + repull na stack $name (id $stack_id)"
     jq -n --arg f "$manifest" --argjson e "$env_json" \
         '{StackFileContent:$f, Env:$e, Prune:false, RepullImageAndRedeploy:true}' \
-      | curl -fsSL --request PUT --header "Authorization: Bearer $jwt" \
+      | curl -fsSL --request PUT --header "$auth" \
         --header 'Content-Type: application/json' --data-binary @- \
-        "https://$PORTAINER_URL/api/stacks/$stack_id?endpointId=$endpoint" >/dev/null
-    rm -f "$tmpfile"
+        "$portainer_url/api/stacks/$stack_id?endpointId=$endpoint" \
+        | jq -e --argjson id "$stack_id" '.Id == $id and .Status == 1' >/dev/null
+}
+
+wait_for_stack() {
+    local name="$1" timeout="${2:-180}" elapsed=0 services replicas
+    if [ "$DRY_RUN" = "1" ]; then
+        log "[dry-run] aguardaria stack $name ficar estável"
+        return 0
+    fi
+    while [ "$elapsed" -lt "$timeout" ]; do
+        services="$(docker stack services "$name" --format '{{.Replicas}}' 2>/dev/null || true)"
+        if [ -n "$services" ]; then
+            replicas="$(printf '%s\n' "$services" | grep -Ev '^(1/1|0/0)$' || true)"
+            if [ -z "$replicas" ]; then
+                log "stack $name estável ($services)"
+                return 0
+            fi
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+    docker stack services "$name" 2>/dev/null || true
+    die "stack $name não ficou saudável em ${timeout}s"
+}
+
+wait_for_url() {
+    local url="$1" timeout="${2:-180}" elapsed=0
+    if [ "$DRY_RUN" = "1" ]; then
+        log "[dry-run] validaria URL $url"
+        return 0
+    fi
+    while [ "$elapsed" -lt "$timeout" ]; do
+        if curl -kfsS --max-time 10 "$url" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+    die "URL não respondeu dentro de ${timeout}s: $url"
+}
+
+configure_remote_openwa() {
+    [ "${OPENWA_MODE:-local}" = "remoto" ] || return 0
+    if [ "$DRY_RUN" = "1" ]; then
+        log "[dry-run] configuraria a instância OpenWA remota e o webhook"
+        return 0
+    fi
+    if [ -z "${OPENWA_API_KEY:-}" ]; then
+        warn "OpenWA remoto sem API key: instância e webhook precisam ser cadastrados no painel"
+        return 0
+    fi
+
+    local api_url="$(normalize_url "$OPENWA_REMOTE_URL")" sessions_json="" session_uuid="" session_name=""
+    sessions_json="$(curl -fsSL --max-time 20 --header "X-API-Key: $OPENWA_API_KEY" \
+        "$api_url/api/sessions")" \
+        || { warn "não foi possível listar sessões do OpenWA remoto; CRM implantado sem novo vínculo"; return 0; }
+
+    session_uuid="$(jq -er --arg uuid "${OPENWA_SESSION_UUID:-}" --arg name "${OPENWA_SESSION_NAME:-}" '
+        [ .[] | select(($uuid == "" or .id == $uuid) and ($name == "" or .name == $name))
+          | select((.status // "") == "ready" and (.engineLoaded // false) == true) ]
+        | if length == 1 then .[0].id
+          elif length == 0 then error("nenhuma sessão ready compatível")
+          else error("mais de uma sessão ready compatível") end' <<<"$sessions_json" 2>/dev/null || true)"
+    [ -n "$session_uuid" ] || {
+        warn "OpenWA remoto tem sessões incompatíveis/ambíguas; informe OPENWA_SESSION_UUID ou OPENWA_SESSION_NAME"
+        return 0
+    }
+    session_name="$(jq -er --arg id "$session_uuid" '.[] | select(.id == $id) | .name' <<<"$sessions_json")"
+
+    wait_for_url "https://${TOPWEBCRM_DOMAIN}/up" 180
+    local cid key_b64 uuid_b64 name_b64 url_b64 php_code
+    cid="$(docker ps -q --filter name="${CRM_INST}_topwebcrm_app")"
+    [ -n "$cid" ] || { warn "container do TopwebCRM não encontrado para configurar OpenWA"; return 0; }
+    key_b64="$(printf '%s' "$OPENWA_API_KEY" | base64 | tr -d '\n')"
+    uuid_b64="$(printf '%s' "$session_uuid" | base64 | tr -d '\n')"
+    name_b64="$(printf '%s' "$session_name" | base64 | tr -d '\n')"
+    url_b64="$(printf '%s' "$api_url" | base64 | tr -d '\n')"
+    php_code="\$uuid=base64_decode('$uuid_b64'); \$name=base64_decode('$name_b64'); \$base=base64_decode('$url_b64'); \$instance=\\Webkul\\TopwebChat\\Models\\Instance::updateOrCreate(['session_uuid'=>\$uuid],['name'=>\$name,'provider'=>'openwa','base_url'=>\$base,'token'=>getenv('OPENWA_API_KEY'),'enabled'=>true]); if(!\$instance->webhook_secret){\$instance->webhook_secret=\\Illuminate\\Support\\Str::random(64);\$instance->save();} \$provider=app(\\Webkul\\TopwebChat\\Providers\\Contracts\\MessagingProvider::class); \$url=app(\\Webkul\\TopwebChat\\Services\\WebhookUrlService::class)->forInstance(\$instance); \$webhooks=\$provider->listWebhooks(\$instance); \$matching=array_values(array_filter(\$webhooks,fn(\$w)=>(\$w['url']??'')===\$url)); if(!\$matching){\$provider->configureWebhook(\$instance,\$url,\$instance->webhook_secret);} elseif(count(\$matching)>1){foreach(array_slice(\$matching,1) as \$duplicate){\$provider->deleteWebhook(\$instance,(string)\$duplicate['id']);}} \$instance->update(['last_synced_at'=>now()]); echo \"openwa-instance=\".\$instance->id.\" session=\".\$instance->name.\" webhook=\".\$url.PHP_EOL;"
+    printf '%s\n%s\n' "$key_b64" "$php_code" \
+        | docker exec -i "$cid" sh -c 'read -r OPENWA_API_KEY_B64; export OPENWA_API_KEY="$(printf %s "$OPENWA_API_KEY_B64" | base64 -d)"; export APP_KEY="$(cat /run/secrets/topwebcrm_app_key)"; export DB_PASSWORD="$(cat /run/secrets/topwebcrm_db_password)"; php artisan tinker'
+    unset key_b64 php_code OPENWA_API_KEY
 }
 
 # Modo compartilhado (I12.6): garante mysql+redis, cria banco/usuário do CRM
@@ -463,13 +805,21 @@ step_deploy() {
     crm_manifest="$(fetch_manifest compose.production.yaml)"
     crm_manifest="$(prefix_manifest "$crm_manifest" topwebcrm "$CRM_SECRET_PREFIX")"
     deploy_stack "$CRM_INST" "$crm_manifest" "$(build_crm_env "$initial")"
+    wait_for_stack "$CRM_INST"
+    wait_for_url "https://${TOPWEBCRM_DOMAIN}/up"
+    if [ "$initial" = "true" ]; then
+        log "instalação inicial concluída; desligando RUN_INITIAL_INSTALL"
+        deploy_stack "$CRM_INST" "$crm_manifest" "$(build_crm_env false)"
+        wait_for_stack "$CRM_INST"
+    fi
 
     if [ "${OPENWA_MODE:-local}" = "local" ]; then
         openwa_manifest="$(fetch_manifest compose.openwa.production.yaml)"
         openwa_manifest="$(prefix_manifest "$openwa_manifest" openwa "$OPENWA_SECRET_PREFIX")"
         deploy_stack "$OPENWA_INST" "$openwa_manifest" "$(build_openwa_env)"
+        wait_for_stack "$OPENWA_INST"
     else
-        log "OpenWA remoto: stack local pulada — cadastre a instância no painel com $OPENWA_REMOTE_URL"
+        configure_remote_openwa
     fi
 
     log "após o deploy: valide https://$TOPWEBCRM_DOMAIN/up (200), login admin e TopwebChat"
@@ -477,39 +827,45 @@ step_deploy() {
 # Update/rollback (issue #54) entra como modo: bash SetupThinkin.sh --update | --rollback <sha>
 
 step_summary() {
+    local portainer_auth_mode="user-password"
+    [ -n "${PORTAINER_API_KEY:-}" ] && portainer_auth_mode="api-key"
     run mkdir -p "$SUMMARY_DIR"
     if [ "$DRY_RUN" = "1" ]; then
         log "[dry-run] gravaria $SUMMARY_FILE (só inputs, sem segredos)"
         return 0
     fi
-    cat > "$SUMMARY_FILE" <<EOF
-# dados_topwebcrm — resumo SEM segredos (gerado $INSTALLER_VERSION)
-TOPWEBCRM_INSTANCE=$CRM_INST
-OPENWA_INSTANCE=$OPENWA_INST
-TOPWEBCRM_DOMAIN=$TOPWEBCRM_DOMAIN
-OPENWA_DOMAIN=$OPENWA_DOMAIN
-TOPWEBCRM_APP_NAME=$TOPWEBCRM_APP_NAME
-TOPWEBCRM_ADMIN_NAME=$TOPWEBCRM_ADMIN_NAME
-TOPWEBCRM_ADMIN_EMAIL=$TOPWEBCRM_ADMIN_EMAIL
-TOPWEBCRM_MAIL_HOST=$TOPWEBCRM_MAIL_HOST
-TOPWEBCRM_MAIL_PORT=${TOPWEBCRM_MAIL_PORT:-465}
-TOPWEBCRM_MAIL_ENCRYPTION=${TOPWEBCRM_MAIL_ENCRYPTION:-ssl}
-TOPWEBCRM_MAIL_USERNAME=$TOPWEBCRM_MAIL_USERNAME
-TOPWEBCRM_MAIL_FROM_ADDRESS=$TOPWEBCRM_MAIL_FROM_ADDRESS
-TOPWEBCRM_DATA_MODE=${TOPWEBCRM_DATA_MODE:-embutido}
-TOPWEBCRM_DB_NAME=${TOPWEBCRM_DB_NAME:-topwebcrm}
-TOPWEBCRM_DB_USER=${TOPWEBCRM_DB_USER:-topwebcrm}
-OPENWA_MODE=${OPENWA_MODE:-local}
-OPENWA_REMOTE_URL=${OPENWA_REMOTE_URL:-}
-PORTAINER_URL=$PORTAINER_URL
-PORTAINER_USER=$PORTAINER_USER
-TOPWEBCRM_PROXY_NETWORK=$TOPWEBCRM_PROXY_NETWORK
-TOPWEBCRM_INTEGRATIONS_NETWORK=$TOPWEBCRM_INTEGRATIONS_NETWORK
-TOPWEBCRM_NODE_LABEL=$TOPWEBCRM_NODE_LABEL
-OPENWA_IMAGE_TAG=$OPENWA_IMAGE_TAG
-TOPWEBCRM_IMAGE_SHA=${TOPWEBCRM_IMAGE_SHA:-}
-OPENWA_ENTRYPOINT_CONFIG=${OPENWA_ENTRYPOINT_CONFIG:-}
-EOF
+    {
+        printf '# dados_topwebcrm — resumo SEM segredos (gerado %s)\n' "$INSTALLER_VERSION"
+        printf '%s=%q\n' TOPWEBCRM_INSTANCE "$CRM_INST"
+        printf '%s=%q\n' OPENWA_INSTANCE "$OPENWA_INST"
+        printf '%s=%q\n' TOPWEBCRM_DOMAIN "$TOPWEBCRM_DOMAIN"
+        printf '%s=%q\n' OPENWA_DOMAIN "$OPENWA_DOMAIN"
+        printf '%s=%q\n' TOPWEBCRM_APP_NAME "$TOPWEBCRM_APP_NAME"
+        printf '%s=%q\n' TOPWEBCRM_ADMIN_NAME "$TOPWEBCRM_ADMIN_NAME"
+        printf '%s=%q\n' TOPWEBCRM_ADMIN_EMAIL "$TOPWEBCRM_ADMIN_EMAIL"
+        printf '%s=%q\n' TOPWEBCRM_MAIL_HOST "$TOPWEBCRM_MAIL_HOST"
+        printf '%s=%q\n' TOPWEBCRM_MAIL_PORT "${TOPWEBCRM_MAIL_PORT:-465}"
+        printf '%s=%q\n' TOPWEBCRM_MAIL_ENCRYPTION "${TOPWEBCRM_MAIL_ENCRYPTION:-ssl}"
+        printf '%s=%q\n' TOPWEBCRM_MAIL_USERNAME "$TOPWEBCRM_MAIL_USERNAME"
+        printf '%s=%q\n' TOPWEBCRM_MAIL_FROM_ADDRESS "$TOPWEBCRM_MAIL_FROM_ADDRESS"
+        printf '%s=%q\n' TOPWEBCRM_DATA_MODE "${TOPWEBCRM_DATA_MODE:-embutido}"
+        printf '%s=%q\n' TOPWEBCRM_DB_NAME "${TOPWEBCRM_DB_NAME:-topwebcrm}"
+        printf '%s=%q\n' TOPWEBCRM_DB_USER "${TOPWEBCRM_DB_USER:-topwebcrm}"
+        printf '%s=%q\n' OPENWA_MODE "${OPENWA_MODE:-local}"
+        printf '%s=%q\n' OPENWA_REMOTE_URL "${OPENWA_REMOTE_URL:-}"
+        printf '%s=%q\n' OPENWA_SESSION_NAME "${OPENWA_SESSION_NAME:-}"
+        printf '%s=%q\n' OPENWA_SESSION_UUID "${OPENWA_SESSION_UUID:-}"
+        printf '%s=%q\n' PORTAINER_URL "$PORTAINER_URL"
+        printf '%s=%q\n' PORTAINER_USER "${PORTAINER_USER:-}"
+        printf '%s=%q\n' PORTAINER_AUTH_MODE "$portainer_auth_mode"
+        printf '%s=%q\n' TOPWEBCRM_PROXY_NETWORK "$TOPWEBCRM_PROXY_NETWORK"
+        printf '%s=%q\n' TOPWEBCRM_INTEGRATIONS_NETWORK "$TOPWEBCRM_INTEGRATIONS_NETWORK"
+        printf '%s=%q\n' TOPWEBCRM_NODE_LABEL "$TOPWEBCRM_NODE_LABEL"
+        printf '%s=%q\n' OPENWA_IMAGE_TAG "${OPENWA_IMAGE_TAG:-}"
+        printf '%s=%q\n' TOPWEBCRM_IMAGE_SHA "${TOPWEBCRM_IMAGE_SHA:-}"
+        printf '%s=%q\n' OPENWA_ENTRYPOINT_CONFIG "${OPENWA_ENTRYPOINT_CONFIG:-}"
+        printf '%s=%q\n' MAIL_CONFIG_PENDING "${MAIL_CONFIG_PENDING:-false}"
+    } > "$SUMMARY_FILE"
     chmod 600 "$SUMMARY_FILE"
     log "resumo em $SUMMARY_FILE"
 }
@@ -524,14 +880,19 @@ load_summary() {
         TOPWEBCRM_MAIL_ENCRYPTION TOPWEBCRM_MAIL_USERNAME TOPWEBCRM_MAIL_FROM_ADDRESS \
         TOPWEBCRM_DATA_MODE TOPWEBCRM_DB_NAME TOPWEBCRM_DB_USER \
         OPENWA_MODE OPENWA_REMOTE_URL \
+        OPENWA_SESSION_NAME OPENWA_SESSION_UUID \
         CRM_INST OPENWA_INST \
         PORTAINER_URL PORTAINER_USER TOPWEBCRM_PROXY_NETWORK \
         TOPWEBCRM_INTEGRATIONS_NETWORK TOPWEBCRM_NODE_LABEL OPENWA_IMAGE_TAG \
         TOPWEBCRM_IMAGE_SHA OPENWA_ENTRYPOINT_CONFIG
-    for v in TOPWEBCRM_DOMAIN OPENWA_DOMAIN PORTAINER_URL PORTAINER_USER; do
+    for v in TOPWEBCRM_DOMAIN OPENWA_DOMAIN PORTAINER_URL; do
         [ -n "$(printenv "$v" 2>/dev/null || true)" ] || die "$v ausente no resumo"
     done
-    ask PORTAINER_PASS "Senha do Portainer" "" 1
+    ask_secret_opt PORTAINER_API_KEY "Token API do Portainer"
+    if [ -z "${PORTAINER_API_KEY:-}" ]; then
+        ask PORTAINER_USER "Usuário admin do Portainer" "${PORTAINER_USER:-admin}" 0
+        ask PORTAINER_PASS "Senha do Portainer" "" 1
+    fi
 }
 
 step_update() {
@@ -655,8 +1016,8 @@ parse_instance() {
 # Gate da base (padrão SetupOrion): tudo exceto traefik/portainer exige ambos.
 require_base_tools() {
     local missing=""
-    tool_installed traefik   || [ -n "${TOOL_DONE[traefik]+x}" ]   || missing="$missing traefik"
-    tool_installed portainer || [ -n "${TOOL_DONE[portainer]+x}" ] || missing="$missing portainer"
+    tool_installed traefik || stack_exists traefik || [ -n "${TOOL_DONE[traefik]+x}" ] || missing="$missing traefik"
+    tool_installed portainer || stack_exists portainer || [ -n "${TOOL_DONE[portainer]+x}" ] || missing="$missing portainer"
     if [ -n "$missing" ]; then
         die "base ausente:$missing — instale primeiro: bash SetupThinkin.sh tool traefik && bash SetupThinkin.sh tool portainer"
     fi
@@ -674,9 +1035,6 @@ ensure_tool() {
     if [ -n "$suffix" ] && [ "${TOOL_SUFFIX_OK[$base]:-0}" != "1" ]; then
         die "ferramenta $base não suporta multi-instância (sufixo _$suffix rejeitado)"
     fi
-    if [ "$base" != "traefik" ] && [ "$base" != "portainer" ]; then
-        require_base_tools
-    fi
     if tool_installed "$inst" || [ -n "${TOOL_DONE[$inst]+x}" ]; then
         log "ferramenta $inst já instalada (pulado)"
         return 0
@@ -691,6 +1049,9 @@ ensure_tool() {
         fi
     done
     unset 'TOOL_RESOLVING[$inst]'
+    if [ "$base" != "traefik" ] && [ "$base" != "portainer" ]; then
+        require_base_tools
+    fi
     log "instalando ferramenta: $inst (${TOOL_DESC[$base]})"
     TOOL_INSTANCE="$inst" TOOL_SUFFIX="$suffix" TOOL_BASE="$base" TOOL_STACK="$inst" \
     SECRETS_RECORD="$SUMMARY_DIR/.secrets-$inst" \
@@ -745,12 +1106,16 @@ prefix_manifest() {
 # TopwebCRM como ferramenta do catálogo (reusa o fluxo E11).
 tool_topwebcrm_install() {
     setup_crm_instance
+    if stack_exists "$CRM_INST"; then
+        log "stack $CRM_INST já existe (mantida; use update para trocar a imagem)"
+        return 0
+    fi
     step_prereqs
     step_secrets
     step_deploy
 }
 
-tool_register topwebcrm "" "CRM + OpenWA (fluxo E11: prereqs, secrets, deploy)" 1
+tool_register topwebcrm "traefik portainer" "CRM + OpenWA (bootstrap, prereqs, secrets, deploy)" 1
 
 # ---------------------------------------------------------------------------
 # I12.2 — traefik + portainer (+update) — issue #57.
@@ -759,22 +1124,27 @@ tool_register topwebcrm "" "CRM + OpenWA (fluxo E11: prereqs, secrets, deploy)" 
 # ---------------------------------------------------------------------------
 
 tool_traefik_collect() {
-    ask TRAEFIK_NETWORK   "Rede overlay externa do proxy" "${TOPWEBCRM_PROXY_NETWORK:-renacesso}" 0
+    discover_install_defaults
+    ask TRAEFIK_NETWORK   "Rede overlay externa do proxy" "${TOPWEBCRM_PROXY_NETWORK:-topweb_proxy}" 0
     ask TRAEFIK_SSL_EMAIL "E-mail do Let's Encrypt" "" 0
     ask TRAEFIK_IMAGE     "Imagem do Traefik" "traefik:v3.5" 0
     ask_opt TRAEFIK_DASHBOARD_DOMAIN "Domínio do dashboard"
-    if [ -n "$TRAEFIK_DASHBOARD_DOMAIN" ]; then
+    if [ -n "${TRAEFIK_DASHBOARD_DOMAIN:-}" ]; then
         ask TRAEFIK_DASHBOARD_USERS "Linha htpasswd do dashboard (gere com: htpasswd -nbB admin)" "" 0
     fi
 }
 
 tool_traefik_install() {
+    if stack_exists traefik; then
+        log "stack traefik já existe (mantida)"
+        return 0
+    fi
     local users_line="${TRAEFIK_DASHBOARD_USERS:-}"
 
     local dash_labels=""
-    if [ -n "$TRAEFIK_DASHBOARD_DOMAIN" ]; then
+    if [ -n "${TRAEFIK_DASHBOARD_DOMAIN:-}" ]; then
         dash_labels=$(cat <<EOF
-      - traefik.http.routers.traefik.rule=Host(\`$TRAEFIK_DASHBOARD_DOMAIN\`)
+      - traefik.http.routers.traefik.rule=Host(\`${TRAEFIK_DASHBOARD_DOMAIN:-}\`)
       - traefik.http.routers.traefik.entrypoints=websecure
       - traefik.http.routers.traefik.tls=true
       - traefik.http.routers.traefik.tls.certresolver=letsencryptresolver
@@ -831,17 +1201,14 @@ volumes:
     name: \${TRAEFIK_LETSENCRYPT_VOLUME:-traefik_letsencrypt}
 EOF
 )"
-    if ! network_exists "$TRAEFIK_NETWORK"; then
-        run docker network create --driver overlay --attachable "$TRAEFIK_NETWORK"
-    else
-        log "rede $TRAEFIK_NETWORK já existe"
-    fi
+    ensure_network "$TRAEFIK_NETWORK" create
     if ! volume_exists "${TRAEFIK_LETSENCRYPT_VOLUME:-traefik_letsencrypt}"; then
         run docker volume create "${TRAEFIK_LETSENCRYPT_VOLUME:-traefik_letsencrypt}"
     else
         log "volume letsencrypt já existe"
     fi
     deploy_stack_file traefik "$manifest"
+    wait_for_stack traefik
 }
 
 # Deploy de manifest local via CLI (bootstrap; Portainer pode não existir ainda).
@@ -868,6 +1235,10 @@ tool_portainer_collect() {
 }
 
 tool_portainer_install() {
+    if stack_exists portainer; then
+        log "stack portainer já existe (mantida)"
+        return 0
+    fi
 
     local manifest=""
     manifest="$(cat <<EOF
@@ -918,27 +1289,32 @@ EOF
         log "volume portainer_data já existe"
     fi
     deploy_stack_file portainer "$manifest"
+    wait_for_stack portainer
+    wait_for_url "$(normalize_url "$PORTAINER_DOMAIN")/api/status" 180
     portainer_admin_init
-    unset PORTAINER_PASS
 }
 
 # Inicializa o admin numa instalação fresca (idempotente: 409 = já existe).
 portainer_admin_init() {
-    local url="https://$PORTAINER_DOMAIN"
+    local url="$(normalize_url "$PORTAINER_DOMAIN")"
     if [ "$DRY_RUN" = "1" ]; then
         log "[dry-run] POST $url/api/users/admin/init (idempotente)"
         return 0
     fi
-    local code=""
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST \
-        -H 'Content-Type: application/json' \
-        -d "$(jq -n --arg u "$PORTAINER_USER" --arg p "$PORTAINER_PASS" '{username:$u,password:$p}')" \
-        "$url/api/users/admin/init" || true)"
-    case "$code" in
-        200) log "admin do Portainer criado" ;;
-        409) log "admin do Portainer já existe (mantido)" ;;
-        *) die "init do Portainer retornou HTTP $code" ;;
-    esac
+    local code="" attempt=0
+    while [ "$attempt" -lt 12 ]; do
+        code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg u "$PORTAINER_USER" --arg p "$PORTAINER_PASS" '{username:$u,password:$p}')" \
+            "$url/api/users/admin/init" || true)"
+        case "$code" in
+            200) log "admin do Portainer criado"; return 0 ;;
+            409) log "admin do Portainer já existe (mantido)"; return 0 ;;
+        esac
+        sleep 5
+        attempt=$((attempt + 1))
+    done
+    die "init do Portainer não concluiu após as tentativas (último HTTP $code)"
 }
 
 tool_register traefik "" "Proxy reverso + TLS (bootstrap via CLI)"
@@ -1364,7 +1740,8 @@ tool_register phpapp "" "App PHP convencional fora do Swarm (multi: phpapp_<nome
 # Higiene final: segredos só vivem na memória durante a execução.
 cleanup_secrets() {
     unset PORTAINER_PASS TOPWEBCRM_MAIL_PASSWORD TOPWEBCRM_ADMIN_PASSWORD \
-        MYSQL_ROOT_PASSWORD REDIS_PASSWORD MYSQL_TOOL_PASSWORD 2>/dev/null || true
+        PORTAINER_API_KEY OPENWA_API_KEY MYSQL_ROOT_PASSWORD REDIS_PASSWORD \
+        MYSQL_TOOL_PASSWORD 2>/dev/null || true
     log "segredos removidos da memória"
 }
 
@@ -1470,17 +1847,21 @@ cmd_update_stack() {
     local name="${1:-}"
     [ -n "$name" ] || die "uso: bash SetupThinkin.sh update <stack>"
     ask PORTAINER_URL "URL base do Portainer (https://...)" "" 0
-    ask PORTAINER_USER "Usuário admin do Portainer" "admin" 0
-    ask PORTAINER_PASS "Senha do Portainer" "" 1
-    local jwt endpoint stack_id file env_json
-    jwt="$(portainer_jwt)"
-    endpoint="$(portainer_endpoint_id "$jwt")"
-    stack_id="$(portainer_stack_id "$jwt" "$endpoint" "$name" || true)"
+    PORTAINER_URL="$(normalize_url "$PORTAINER_URL")"
+    ask_secret_opt PORTAINER_API_KEY "Token API do Portainer"
+    if [ -z "${PORTAINER_API_KEY:-}" ]; then
+        ask PORTAINER_USER "Usuário admin do Portainer" "admin" 0
+        ask PORTAINER_PASS "Senha do Portainer" "" 1
+    fi
+    local auth endpoint stack_id file env_json
+    auth="$(portainer_auth_header)"
+    endpoint="$(portainer_endpoint_id "$auth")"
+    stack_id="$(portainer_stack_id "$auth" "$endpoint" "$name" || true)"
     [ -n "$stack_id" ] || die "stack $name não encontrada no endpoint $endpoint"
-    file="$(curl -fsSL --header "Authorization: Bearer $jwt" \
-        "https://$PORTAINER_URL/api/stacks/$stack_id/file" | jq -er '.StackFileContent')"
-    env_json="$(curl -fsSL --header "Authorization: Bearer $jwt" \
-        "https://$PORTAINER_URL/api/stacks/$stack_id" | jq -c '.Env')"
+    file="$(curl -fsSL --header "$auth" \
+        "$(normalize_url "$PORTAINER_URL")/api/stacks/$stack_id/file" | jq -er '.StackFileContent')"
+    env_json="$(curl -fsSL --header "$auth" \
+        "$(normalize_url "$PORTAINER_URL")/api/stacks/$stack_id" | jq -c '.Env')"
     if [ "$DRY_RUN" = "1" ]; then
         log "[dry-run] atualizaria stack $name (id $stack_id) com repull, preservando manifest+env"
         cleanup_secrets
@@ -1489,9 +1870,9 @@ cmd_update_stack() {
     confirm "Atualizar $name com repull (pode reiniciar serviços)?" || die "abortado"
     jq -n --arg f "$file" --argjson e "$env_json" \
         '{StackFileContent:$f, Env:$e, Prune:false, RepullImageAndRedeploy:true}' \
-      | curl -fsSL --request PUT --header "Authorization: Bearer $jwt" \
+      | curl -fsSL --request PUT --header "$auth" \
         --header 'Content-Type: application/json' --data-binary @- \
-        "https://$PORTAINER_URL/api/stacks/$stack_id?endpointId=$endpoint" >/dev/null
+        "$(normalize_url "$PORTAINER_URL")/api/stacks/$stack_id?endpointId=$endpoint" >/dev/null
     log "stack $name atualizada com repull"
     cleanup_secrets
 }
@@ -1531,6 +1912,7 @@ cmd_show() {
 
 main() {
     log "TopwebCRM installer $INSTALLER_VERSION (E11)"
+    load_external_secrets
     local mode="${1:-install}"
     case "$mode" in
         tools)
@@ -1550,16 +1932,16 @@ main() {
     thinkin_accept
     case "$mode" in
         install)
+            step_bootstrap_host
             step_preflight
             step_collect
             step_confirm
-            step_prereqs
-            step_secrets
-            step_deploy
+            ensure_tool topwebcrm
             step_summary
             cleanup_secrets
             ;;
         tool)
+            step_bootstrap_host
             step_preflight
             local tool="${2:-}"
             [ -n "$tool" ] || { list_tools; die "uso: bash SetupThinkin.sh tool <nome>"; }
@@ -1576,11 +1958,13 @@ main() {
             cleanup_secrets
             ;;
         --update)
+            step_bootstrap_host
             step_preflight
             load_summary
             step_update
             ;;
         --rollback)
+            step_bootstrap_host
             step_preflight
             load_summary
             TOPWEBCRM_IMAGE_SHA="${2:-}"
@@ -1597,6 +1981,6 @@ main() {
     log "concluído."
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if [[ "${BASH_SOURCE[0]:-}" == "${0}" ]]; then
     main "$@"
 fi
