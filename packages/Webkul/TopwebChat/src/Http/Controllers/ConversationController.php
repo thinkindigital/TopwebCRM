@@ -54,6 +54,39 @@ class ConversationController
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
 
+        $this->loadConversation($conversation);
+        $this->dispatchHistorySync($conversation);
+
+        $viewData = $this->contextData($conversation, $user) + [
+            'workspaceStyle' => $this->workspaceStyle(),
+        ];
+
+        return view('topweb_chat::conversations.show', $viewData + $this->queueData(
+            $request,
+            $user,
+            bouncer()->hasPermission('topweb_chat.inbox')
+        ) + [
+            'selectedConversation' => $conversation,
+        ]);
+    }
+
+    public function context(Request $request, Conversation $conversation): Response
+    {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
+
+        $user = auth()->guard('user')->user();
+        $this->access->authorizeView($user, $conversation);
+
+        $this->loadConversation($conversation);
+
+        return response()->view(
+            'topweb_chat::conversations.partials.crm-context',
+            $this->contextData($conversation, $user)
+        );
+    }
+
+    private function loadConversation(Conversation $conversation): void
+    {
         $conversation->load([
             'person',
             'lead.pipeline',
@@ -70,7 +103,10 @@ class ConversationController
             'messages',
             $conversation->messages->reverse()->values()
         );
+    }
 
+    private function dispatchHistorySync(Conversation $conversation): void
+    {
         if ($conversation->instance?->enabled) {
             try {
                 Bus::chain([
@@ -91,9 +127,24 @@ class ConversationController
                 ]);
             }
         }
+    }
 
-        $viewData = [
+    /**
+     * Dados do painel de contexto; mesma fonte para o show e o fragmento.
+     */
+    private function contextData(Conversation $conversation, User $user): array
+    {
+        $isAdministrator = $this->access->isAdministrator($user);
+
+        return [
             'conversation' => $conversation,
+            'user' => $user,
+            'isAdmin' => $isAdministrator,
+            'canReleaseConversation' => $conversation->assigned_user_id
+                && ($isAdministrator || (int) $conversation->assigned_user_id === (int) $user->id),
+            'remoteId' => $this->sensitiveData->canView()
+                ? $conversation->remote_jid
+                : $this->sensitiveData->maskPhone($conversation->remote_jid),
             'historyUnavailable' => Cache::has(
                 "topweb-chat:history-unavailable:{$conversation->instance_id}"
             ),
@@ -109,7 +160,7 @@ class ConversationController
             'leadPipelines' => $conversation->lead
                 ? Pipeline::query()->orderBy('name')->get(['id', 'name'])
                 : collect(),
-            'assignableUsers' => $this->access->isAdministrator($user)
+            'assignableUsers' => $isAdministrator
                 ? User::query()->where('status', 1)->orderBy('name')->get()
                 : collect(),
             'canViewSensitiveMedia' => $this->sensitiveData->canView($user),
@@ -118,24 +169,15 @@ class ConversationController
                 ? $this->nextActions->envelope(
                     $this->nextActions->nextForLead($conversation->lead_id),
                     $user,
-                    $this->access->isAdministrator($user)
+                    $isAdministrator
                 )
                 : null,
             'recentActions' => $this->nextActions->recentEnvelopes(
                 $conversation->lead_id,
                 $user,
-                $this->access->isAdministrator($user)
+                $isAdministrator
             ),
-            'workspaceStyle' => $this->workspaceStyle(),
         ];
-
-        return view('topweb_chat::conversations.show', $viewData + $this->queueData(
-            $request,
-            $user,
-            bouncer()->hasPermission('topweb_chat.inbox')
-        ) + [
-            'selectedConversation' => $conversation,
-        ]);
     }
 
     private function queueData(Request $request, User $user, bool $queueAvailable = true): array

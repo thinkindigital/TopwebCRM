@@ -4,6 +4,7 @@
 // Documenta o comportamento atual por perfil; divergências vs
 // AUTHORIZATION_POLICY e TopwebChat STATE são achados, não auto-fix.
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Webkul\TopwebChat\Models\Conversation;
@@ -243,6 +244,81 @@ it('exposes the activity creation entry in the context', function () {
         ->and($partial)->toContain("route('admin.topweb_chat.activities.store'")
         ->and($partial)->toContain("route('admin.topweb_chat.activities.complete'")
         ->and($partial)->toContain("route('admin.topweb_chat.activities.update'");
+});
+
+it('shows the channel state in human language, not raw status', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    $this->actingAs($admin, 'user');
+
+    $html = $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('data-label-connected')
+        ->and($html)->toContain('Connected')
+        ->and($html)->not->toContain('id="topweb-chat-instance-status">ready<');
+});
+
+it('distinguishes sync degradation from channel outage', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    $this->actingAs($admin, 'user');
+
+    Cache::put(
+        "topweb-chat:provider-unavailable:{$owned->instance_id}", true, now()->addMinutes(5)
+    );
+
+    $html = $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('Sync temporarily unavailable');
+    expect(preg_match('/id="topweb-chat-connection-warning"\s+class="hidden/', $html))->toBe(1);
+
+    $owned->instance->forceFill(['status' => 'disconnected'])->save();
+    Cache::forget("topweb-chat:provider-unavailable:{$owned->instance_id}");
+
+    $html = $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('Channel unavailable — history preserved');
+});
+
+it('serves the context as an authorized server fragment', function () {
+    ['admin' => $admin, 'owner' => $owner, 'stranger' => $stranger, 'owned' => $owned] = accessMatrixContext();
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.context.show', $owned).'?fragment=context')
+        ->assertOk()
+        ->assertSee('grid content-start gap-4', false)
+        ->assertDontSee('data-topwebchat-workspace', false);
+
+    $this->actingAs($stranger, 'user');
+    $this->get(route('admin.topweb_chat.context.show', $owned).'?fragment=context')
+        ->assertForbidden();
+});
+
+it('wires inline context mutations without reload', function () {
+    $context = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
+    );
+    $workspace = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/workspace.blade.php')
+    );
+    $runtime = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/chat-runtime.blade.php')
+    );
+    $composer = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
+    );
+
+    expect($context)->toContain('data-note-form')
+        ->and($context)->toContain('data-activity-form')
+        ->and($workspace)->toContain('data-context-url')
+        ->and($workspace)->toContain('topwebchat:refresh-context')
+        ->and($runtime)->toContain('topwebchat:refresh-timeline')
+        ->and($runtime)->toContain('isContextQuiet')
+        ->and($composer)->toContain('data-channel-error');
 });
 
 it('exposes the inline stage form with pipeline selection', function () {

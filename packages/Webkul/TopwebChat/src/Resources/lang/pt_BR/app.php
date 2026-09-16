@@ -36,6 +36,14 @@ return [
     'actions' => [
         'send_whatsapp' => 'Enviar WhatsApp',
     ],
+    'channel' => [
+        'connected' => 'Conectado',
+        'unavailable' => 'Canal indisponível',
+        'reconnecting' => 'Reconectando',
+        'unknown' => 'Estado do canal desconhecido',
+        'unavailable_hint' => 'Canal indisponível — histórico preservado. Você pode consultar o histórico e continuar trabalhando no CRM. O envio voltará quando o canal for restabelecido.',
+        'sync_degraded' => 'Sincronização temporariamente indisponível — histórico local preservado.',
+    ],
     'queues' => [
         'mine' => 'Meus atendimentos',
         'unassigned' => 'Sem atendente',

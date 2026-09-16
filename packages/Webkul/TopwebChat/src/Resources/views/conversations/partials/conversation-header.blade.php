@@ -39,25 +39,36 @@
         <span class="rounded-full bg-gray-100 px-3 py-1.5 font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
             {{ $conversation->assignedUser?->name ?? trans('topweb_chat::app.conversations.unassigned') }}
         </span>
+        @php
+            $channelStatus = $conversation->instance?->status ?? 'unknown';
+            $channelLabel = $channelStatus === 'ready'
+                ? trans('topweb_chat::app.channel.connected')
+                : (($channelStatus === 'unknown' || $channelStatus === null)
+                    ? trans('topweb_chat::app.channel.unknown')
+                    : trans('topweb_chat::app.channel.unavailable'));
+        @endphp
         <span
             id="topweb-chat-connection-badge"
-            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium {{ $conversation->instance?->status === 'ready' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300' }}"
+            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium {{ $channelStatus === 'ready' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300' }}"
+            data-label-connected="@lang('topweb_chat::app.channel.connected')"
+            data-label-unavailable="@lang('topweb_chat::app.channel.unavailable')"
+            data-label-unknown="@lang('topweb_chat::app.channel.unknown')"
         >
             <span class="h-2 w-2 rounded-full bg-current"></span>
-            <span id="topweb-chat-instance-status">{{ $conversation->instance?->status ?? 'unknown' }}</span>
+            <span id="topweb-chat-instance-status" title="{{ $channelStatus }}">{{ $channelLabel }}</span>
         </span>
     </div>
 </header>
 
 <div
     id="topweb-chat-connection-warning"
-    class="{{ $conversation->instance?->status === 'ready' ? 'hidden' : '' }} border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 flex-shrink-0"
+    class="{{ $channelStatus === 'ready' ? 'hidden' : '' }} border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 flex-shrink-0"
 >
-    @lang('topweb_chat::app.messages.instance_not_connected')
+    <p class="font-medium">@lang('topweb_chat::app.channel.unavailable_hint')</p>
 </div>
 
-@if ($historyUnavailable || $readUnavailable || $providerUnavailable)
+@if (($historyUnavailable || $readUnavailable || $providerUnavailable) && $channelStatus === 'ready')
     <div class="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 flex-shrink-0">
-        @lang('topweb_chat::app.messages.integration_unavailable')
+        @lang('topweb_chat::app.channel.sync_degraded')
     </div>
 @endif

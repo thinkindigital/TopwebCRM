@@ -47,7 +47,14 @@
         </main>
 
         <button type="button" class="twp-scrim" data-context-close tabindex="-1" aria-label="@lang('topweb_chat::app.conversations.back')"></button>
-        <aside id="topweb-chat-context" class="twp-context" data-workspace-region="context">
+        <aside
+            id="topweb-chat-context"
+            class="twp-context"
+            data-workspace-region="context"
+            @if ($selectedConversation)
+                data-context-url="{{ route('admin.topweb_chat.context.show', $conversation) }}"
+            @endif
+        >
             @if ($selectedConversation)
                 <button type="button" class="twp-context-close" data-context-close aria-label="@lang('topweb_chat::app.conversations.back')">×</button>
                 @include('topweb_chat::conversations.partials.crm-context', [
@@ -113,9 +120,75 @@
 
                 document.querySelectorAll(`[data-note-id="${button.dataset.noteId}"]`)
                     .forEach((element) => element.remove());
+                refreshTimeline();
+                await refreshContext();
             } catch (error) {
                 button.removeAttribute('disabled');
                 console.error('TopwebChat note delete failed.', error);
+            }
+        });
+
+        const refreshTimeline = () => {
+            document.dispatchEvent(new CustomEvent('topwebchat:refresh-timeline'));
+        };
+
+        const refreshContext = async () => {
+            const container = document.getElementById('topweb-chat-context');
+            const url = container?.dataset.contextUrl;
+            if (!container || !url) return;
+
+            try {
+                const response = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (!response.ok) throw new Error(`context_refresh_failed:${response.status}`);
+
+                container.innerHTML = await response.text();
+            } catch (error) {
+                console.error('TopwebChat context refresh failed.', error);
+            }
+        };
+
+        document.addEventListener('topwebchat:refresh-context', () => {
+            refreshContext();
+        });
+
+        const submitInlineForm = async (form) => {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: new FormData(form),
+            });
+
+            if (!response.ok) {
+                const error = new Error(`inline_submit_failed:${response.status}`);
+                error.status = response.status;
+                throw error;
+            }
+
+            form.querySelectorAll('textarea').forEach((field) => { field.value = ''; });
+            refreshTimeline();
+            await refreshContext();
+        };
+
+        document.addEventListener('submit', async (event) => {
+            const inlineForm = event.target.closest('[data-note-form], [data-activity-form]');
+            if (inlineForm) {
+                event.preventDefault();
+
+                try {
+                    await submitInlineForm(inlineForm);
+                } catch (error) {
+                    console.error('TopwebChat inline submit failed.', error);
+                }
+
+                return;
             }
         });
 
@@ -158,6 +231,7 @@
                 const body = await response.json();
                 pipelineSelect.value = String(body.lead_pipeline_id);
                 stageSelect.value = String(body.lead_pipeline_stage_id);
+                await refreshContext();
             } catch (error) {
                 showError();
                 console.error('TopwebChat stage update failed.', error);

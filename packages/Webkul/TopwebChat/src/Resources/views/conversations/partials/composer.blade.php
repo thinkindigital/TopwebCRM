@@ -87,5 +87,6 @@
                 @lang('topweb_chat::app.messages.send')
             </button>
         </div>
+        <p data-channel-error class="hidden w-full text-xs text-amber-700 dark:text-amber-300">@lang('topweb_chat::app.channel.unavailable_hint')</p>
     </form>
 @endif

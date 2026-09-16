@@ -24,13 +24,13 @@
                         @endif
                         @if ($conversation->lead && bouncer()->hasPermission('topweb_chat.inbox.activities'))
                             <div class="mt-2 flex flex-wrap gap-2">
-                                <form method="POST" action="{{ route('admin.topweb_chat.activities.complete', [$conversation, $nextAction['id']]) }}">
+                                <form method="POST" action="{{ route('admin.topweb_chat.activities.complete', [$conversation, $nextAction['id']]) }}" data-activity-form>
                                     @csrf
                                     <button class="secondary-button">@lang('topweb_chat::app.activities.complete_action')</button>
                                 </form>
                                 <details>
                                     <summary class="secondary-button cursor-pointer">@lang('topweb_chat::app.activities.reschedule_action')</summary>
-                                    <form method="POST" action="{{ route('admin.topweb_chat.activities.update', [$conversation, $nextAction['id']]) }}" class="mt-2 grid gap-2">
+                                    <form method="POST" action="{{ route('admin.topweb_chat.activities.update', [$conversation, $nextAction['id']]) }}" class="mt-2 grid gap-2" data-activity-form>
                                         @csrf
                                         @method('PUT')
                                         <label class="text-xs font-medium text-gray-700 dark:text-gray-200">
@@ -57,7 +57,7 @@
                     @if ($conversation->lead && bouncer()->hasPermission('topweb_chat.inbox.activities'))
                         <details class="mt-2" data-activity-create>
                             <summary class="primary-button cursor-pointer">@lang('topweb_chat::app.activities.create_action')</summary>
-                            <form method="POST" action="{{ route('admin.topweb_chat.activities.store', $conversation) }}" class="mt-2 grid gap-2">
+                            <form method="POST" action="{{ route('admin.topweb_chat.activities.store', $conversation) }}" class="mt-2 grid gap-2" data-activity-form>
                                 @csrf
                                 <label class="text-xs font-medium text-gray-700 dark:text-gray-200">
                                     @lang('topweb_chat::app.activities.type')
@@ -210,6 +210,7 @@
                         method="POST"
                         action="{{ route('admin.topweb_chat.notes.store', $conversation) }}"
                         class="mt-3 grid gap-3"
+                        data-note-form
                     >
                         @csrf
 

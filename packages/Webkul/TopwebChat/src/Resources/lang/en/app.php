@@ -36,6 +36,14 @@ return [
     'actions' => [
         'send_whatsapp' => 'Send WhatsApp',
     ],
+    'channel' => [
+        'connected' => 'Connected',
+        'unavailable' => 'Channel unavailable',
+        'reconnecting' => 'Reconnecting',
+        'unknown' => 'Unknown channel state',
+        'unavailable_hint' => 'Channel unavailable — history preserved. You can browse history and keep working in the CRM. Sending will resume when the channel is back.',
+        'sync_degraded' => 'Sync temporarily unavailable — local history preserved.',
+    ],
     'queues' => [
         'mine' => 'My conversations',
         'unassigned' => 'Unassigned',

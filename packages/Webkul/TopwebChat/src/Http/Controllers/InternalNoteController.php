@@ -18,7 +18,7 @@ class InternalNoteController
         protected ConversationAccessService $access
     ) {}
 
-    public function store(Request $request, Conversation $conversation): RedirectResponse
+    public function store(Request $request, Conversation $conversation): RedirectResponse|JsonResponse
     {
         abort_unless(bouncer()->hasPermission('topweb_chat.inbox.notes'), 403);
 
@@ -29,11 +29,15 @@ class InternalNoteController
             'content' => ['required', 'string', 'max:10000'],
         ]);
 
-        $this->internalNoteRepository->create([
+        $note = $this->internalNoteRepository->create([
             ...$data,
             'conversation_id' => $conversation->id,
             'user_id' => $user->id,
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['note_id' => $note->id], 201);
+        }
 
         return back()->with('success', trans('topweb_chat::app.notes.created'));
     }

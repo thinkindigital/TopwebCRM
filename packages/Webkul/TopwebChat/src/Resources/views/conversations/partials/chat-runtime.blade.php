@@ -159,7 +159,11 @@
                         updateSyncStatus(true);
 
                         if (instanceStatus) {
-                            instanceStatus.textContent = connected ? 'ready' : instanceStatus.textContent;
+                            const badge = document.getElementById('topweb-chat-connection-badge');
+                            instanceStatus.textContent = connected
+                                ? (badge?.dataset.labelConnected ?? instanceStatus.textContent)
+                                : (badge?.dataset.labelUnavailable ?? instanceStatus.textContent);
+                            instanceStatus.title = connected ? 'ready' : 'unavailable';
                         }
 
                         connectionBadge?.classList.toggle('bg-emerald-50', connected);
@@ -452,7 +456,15 @@
 
                             return;
                         }
-                        window.alert(@json(trans('topweb_chat::app.messages.send_failed')));
+                        const channelDown = document.getElementById('topweb-chat-poll-meta')
+                            ?.dataset.instanceStatus !== 'ready';
+                        const channelError = form?.querySelector('[data-channel-error]');
+
+                        if (channelDown && channelError) {
+                            channelError.classList.remove('hidden');
+                        } else {
+                            window.alert(@json(trans('topweb_chat::app.messages.send_failed')));
+                        }
                     } finally {
                         submit?.toggleAttribute(
                             'disabled',
@@ -519,9 +531,33 @@
 
                 timeline.scrollTop = timeline.scrollHeight;
 
+                document.addEventListener('topwebchat:refresh-timeline', () => {
+                    refresh().catch((error) => {
+                        console.error('TopwebChat manual refresh failed.', error);
+                    });
+                });
+
+                let pollCount = 0;
+
+                const isContextQuiet = () => {
+                    const context = document.getElementById('topweb-chat-context');
+                    if (!context) return false;
+
+                    if (context.querySelector('details[open]')) return false;
+
+                    return !Array.from(
+                        context.querySelectorAll('textarea, input:not([type="hidden"]):not([type="submit"]):not([type="button"])')
+                    ).some((field) => (field.value ?? '').trim() !== '');
+                };
+
                 const poll = async () => {
                     try {
                         await refresh();
+                        pollCount += 1;
+
+                        if (pollCount % 5 === 0 && isContextQuiet()) {
+                            document.dispatchEvent(new CustomEvent('topwebchat:refresh-context'));
+                        }
                     } catch (error) {
                         updateSyncStatus(false);
                         reportClientEvent('error', 'client.refresh_failed', {

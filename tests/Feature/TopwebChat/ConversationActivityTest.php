@@ -392,6 +392,24 @@ it('refuses to reschedule attendance-linked activities', function () {
     )->assertStatus(422);
 });
 
+it('answers activity mutations as JSON for inline editing', function () {
+    ['agent' => $agent, 'lead' => $lead, 'conversation' => $conversation] = activityContext();
+    Event::fake();
+    $activity = Activity::query()->create([
+        'title' => 'visita', 'type' => 'visit', 'is_done' => false,
+        'user_id' => $agent->id, 'schedule_from' => now()->addDay(),
+        'schedule_to' => now()->addDay()->addHour(),
+    ]);
+    $activity->leads()->syncWithoutDetaching([$lead->id]);
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($agent, 'user');
+
+    $this->postJson(
+        route('admin.topweb_chat.activities.complete', [$conversation, $activity]),
+        ['_token' => csrf_token()]
+    )->assertOk()->assertJson(['activity_id' => $activity->id]);
+});
+
 it('refuses creation on a lead outside the wallet', function () {
     ['conversation' => $conversation] = activityContext();
     $outsiderRole = Role::query()->create([

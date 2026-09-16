@@ -19,6 +19,7 @@ Route::prefix('topweb-chat')->group(function () {
     Route::get('conversations/search', [SearchController::class, 'search'])->name('admin.topweb_chat.search');
     Route::get('conversations/{conversation}', [ConversationController::class, 'show'])->name('admin.topweb_chat.show');
     Route::get('conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('admin.topweb_chat.messages.index');
+    Route::get('conversations/{conversation}/context', [ConversationController::class, 'context'])->name('admin.topweb_chat.context.show');
     Route::post('conversations/{conversation}/client-events', [ConversationController::class, 'clientEvent'])->name('admin.topweb_chat.client_events.store');
     Route::post('conversations/{conversation}/messages', [MessageController::class, 'store'])->name('admin.topweb_chat.messages.store');
     Route::post('conversations/{conversation}/messages/batch', [MessageController::class, 'storeBatch'])->name('admin.topweb_chat.messages.batch');

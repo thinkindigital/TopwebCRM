@@ -296,6 +296,19 @@ it('drops the deleted note from the timeline fragment', function () {
     expect($this->get($fragment)->getContent())->not->toContain('nota-removivel');
 });
 
+it('answers note creation as JSON for inline editing', function () {
+    ['agent' => $agent, 'conversation' => $conversation] = noteContext();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($agent, 'user');
+
+    $response = $this->postJson(
+        route('admin.topweb_chat.notes.store', $conversation),
+        ['content' => 'nota json', '_token' => csrf_token()]
+    )->assertCreated();
+
+    expect($response->json('note_id'))->toEqual(InternalNote::query()->first()->id);
+});
+
 it('refuses note creation without the notes permission', function () {
     ['outsider' => $outsider, 'conversation' => $conversation] = noteContext();
     $mine = Conversation::query()->create([
