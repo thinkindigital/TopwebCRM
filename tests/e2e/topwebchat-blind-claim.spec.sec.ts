@@ -28,8 +28,10 @@ test('agente sem concessão sensível e sem assignment assume item cego para si'
     await expect(admin).not.toHaveURL(/login/);
     await admin.goto(`/admin/topweb-chat/conversations/${fixture.blind_conversation_id}`);
 
-    admin.on('dialog', (dialog) => dialog.accept());
-    await admin.locator('.twp-release-form button').click();
+    await Promise.all([
+      admin.waitForURL(/conversations/),
+      admin.locator('.twp-release-form').evaluate((form) => (form as HTMLFormElement).submit()),
+    ]);
     await expect(admin).toHaveURL(/conversations/);
     await admin.goto('/admin/topweb-chat?queue=unassigned');
     await expect(admin.locator(`a[href*="/conversations/${fixture.blind_conversation_id}"]`)).toBeVisible();
