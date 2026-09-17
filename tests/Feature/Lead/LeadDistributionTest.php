@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use Webkul\Lead\Models\Lead;
 use Webkul\Lead\Models\LeadDistributionPool;
 use Webkul\Lead\Models\LeadDistributionPoolUser;
+use Webkul\Lead\Services\LeadDistributionService;
 use Webkul\User\Models\User;
 
 beforeEach(function () {
@@ -151,7 +152,7 @@ function distributionContext(): array
 it('distributes a lead round-robin and keeps its conversation aligned', function () {
     ['first' => $first, 'second' => $second, 'leadId' => $leadId, 'conversationId' => $conversationId] = distributionContext();
 
-    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+    $selected = app(LeadDistributionService::class)->assignRoundRobin(
         Lead::query()->findOrFail($leadId),
         [$first->id, $second->id],
         $conversationId,
@@ -165,7 +166,7 @@ it('distributes a lead round-robin and keeps its conversation aligned', function
 
 it('rotates the next lead after the previous assignment', function () {
     ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
-    $service = app(\Webkul\Lead\Services\LeadDistributionService::class);
+    $service = app(LeadDistributionService::class);
 
     $service->assignRoundRobin(Lead::query()->findOrFail($leadId), [$first->id, $second->id]);
     $nextLeadId = DB::table('leads')->insertGetId([
@@ -182,7 +183,7 @@ it('excludes inactive candidates from the distribution pool', function () {
     ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
     $second->update(['status' => false]);
 
-    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+    $selected = app(LeadDistributionService::class)->assignRoundRobin(
         Lead::query()->findOrFail($leadId),
         [$first->id, $second->id],
     );
@@ -197,7 +198,7 @@ it('uses an active fallback when the eligible pool is empty', function () {
     $second->update(['status' => false]);
     $fallback = User::query()->create(['name' => 'Fallback', 'status' => true]);
 
-    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+    $selected = app(LeadDistributionService::class)->assignRoundRobin(
         Lead::query()->findOrFail($leadId),
         [$first->id, $second->id],
         null,
@@ -212,7 +213,7 @@ it('uses an active fallback when the eligible pool is empty', function () {
 it('initializes a custom pool exactly once before selecting the next user', function () {
     ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
 
-    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+    $selected = app(LeadDistributionService::class)->assignRoundRobin(
         Lead::query()->findOrFail($leadId),
         [$first->id, $second->id],
         null,
@@ -226,7 +227,7 @@ it('initializes a custom pool exactly once before selecting the next user', func
 it('excludes active users that are unavailable from the distribution pool', function () {
     ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
 
-    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+    $selected = app(LeadDistributionService::class)->assignRoundRobin(
         Lead::query()->findOrFail($leadId),
         [$first->id, $second->id],
         null,
@@ -243,7 +244,7 @@ it('excludes active users that are unavailable from the distribution pool', func
 it('selects the highest scored candidate and audits the score-based rule', function () {
     ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
 
-    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assignRoundRobin(
+    $selected = app(LeadDistributionService::class)->assignRoundRobin(
         Lead::query()->findOrFail($leadId),
         [
             ['user_id' => $first->id, 'score' => 10, 'region' => 'sul'],
@@ -257,7 +258,7 @@ it('selects the highest scored candidate and audits the score-based rule', funct
 
 it('uses round-robin to break equal score candidates', function () {
     ['first' => $first, 'second' => $second, 'leadId' => $leadId] = distributionContext();
-    $service = app(\Webkul\Lead\Services\LeadDistributionService::class);
+    $service = app(LeadDistributionService::class);
     $candidates = [
         ['user_id' => $first->id, 'score' => 20, 'region' => 'sul'],
         ['user_id' => $second->id, 'score' => 20, 'region' => 'sul'],
@@ -289,7 +290,7 @@ it('resolves a persisted pool before assigning a lead', function () {
         'region' => 'sul', 'score' => 20,
     ]);
 
-    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assign(
+    $selected = app(LeadDistributionService::class)->assign(
         Lead::query()->findOrFail($leadId),
         'persisted-pool',
         ['region' => 'sul'],
@@ -313,7 +314,7 @@ it('uses the configured fallback when pool constraints have no available member'
         'region' => 'sul', 'score' => 10,
     ]);
 
-    $selected = app(\Webkul\Lead\Services\LeadDistributionService::class)->assign(
+    $selected = app(LeadDistributionService::class)->assign(
         Lead::query()->findOrFail($leadId),
         'constrained-pool',
         ['region' => 'norte'],
