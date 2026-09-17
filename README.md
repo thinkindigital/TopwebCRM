@@ -11,6 +11,11 @@ O repositório contém os dois modos de execução usados pelo projeto:
 
 O TopwebChat já possui cadastro e descoberta de sessões OpenWA, configuração de webhook assinado, sincronização de histórico, envio assíncrono, recebimento de eventos e relacionamento das conversas com pessoas e leads. A aceitação funcional de cada release continua dependendo dos testes automatizados e do checklist de produção; planejamento e pendências vivem no `ORCHESTRATOR-ROADMAP.md` e nos GitHub Issues.
 
+Na inbox do TopwebChat, as quatro filas operacionais são mantidas como filtros
+visíveis: `Minha fila`, `Sem atendente`, `Aguardando cliente` e `Todas as
+conversas`. Elas aparecem como uma grade compacta de cartões com contadores, em
+vez de uma faixa horizontal apertada, preservando a leitura em desktop e mobile.
+
 A base técnica atual é Krayin CRM 2.2, Laravel 12 e PHP 8.3.
 
 ## Arquitetura em uma visão

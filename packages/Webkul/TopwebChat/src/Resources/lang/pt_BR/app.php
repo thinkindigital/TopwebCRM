@@ -59,11 +59,12 @@ return [
         'sync_degraded' => 'Sincronização temporariamente indisponível — histórico local preservado.',
     ],
     'queues' => [
-        'mine' => 'Minhas',
+        'label' => 'Filas de conversas',
+        'mine' => 'Minha fila',
         'unassigned' => 'Sem atendente',
         'waiting' => 'Aguardando cliente',
         'blind_waiting' => 'Aguardando',
-        'all' => 'Todas',
+        'all' => 'Todas as conversas',
     ],
     'search' => [
         'placeholder' => 'Buscar na carteira (nome ou título)',

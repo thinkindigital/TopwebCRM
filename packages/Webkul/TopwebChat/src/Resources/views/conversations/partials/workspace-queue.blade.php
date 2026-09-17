@@ -3,7 +3,7 @@
     <h1 class="twp-title">@lang('topweb_chat::app.menu.title')</h1>
 
     @if ($queueAvailable)
-        <nav class="twp-tabs {{ $isAdmin ? 'twp-tabs-four' : 'twp-tabs-three' }}" aria-label="@lang('topweb_chat::app.menu.title')">
+        <nav class="twp-tabs {{ $isAdmin ? 'twp-tabs-four' : 'twp-tabs-three' }}" aria-label="@lang('topweb_chat::app.queues.label')">
             <a href="{{ route('admin.topweb_chat.index', ['queue' => 'mine']) }}" class="twp-tab" @if ($queue === 'mine') aria-current="page" @endif>
                 <span>@lang('topweb_chat::app.queues.mine')</span>
                 <strong class="topweb-chat-queue-count">{{ $queueCounts['mine'] ?? 0 }}</strong>

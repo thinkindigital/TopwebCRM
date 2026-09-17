@@ -35,9 +35,9 @@ async function openContext(page: any) {
 test('workspace oficial renderiza fila, conversa e contexto', async ({ page }) => {
   await loginAsAdmin(page);
   await page.goto('/admin/topweb-chat?queue=mine');
-  await expect(page.getByRole('link', { name: /Minhas|My conversations/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Aguardando cliente|Waiting for customer/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Todas|All/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Minha fila|My queue/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Aguardando cliente|Waiting on customer/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Todas as conversas|All conversations/i })).toBeVisible();
   await openFirstConversation(page);
 
   await expect(page.locator('[data-topwebchat-workspace]')).toBeVisible();

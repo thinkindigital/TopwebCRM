@@ -59,11 +59,12 @@ return [
         'sync_degraded' => 'Sync temporarily unavailable — local history preserved.',
     ],
     'queues' => [
-        'mine' => 'My conversations',
+        'label' => 'Conversation queues',
+        'mine' => 'My queue',
         'unassigned' => 'Unassigned',
-        'waiting' => 'Waiting for customer',
+        'waiting' => 'Waiting on customer',
         'blind_waiting' => 'Waiting',
-        'all' => 'All',
+        'all' => 'All conversations',
     ],
     'search' => [
         'placeholder' => 'Search wallet (name or title)',
