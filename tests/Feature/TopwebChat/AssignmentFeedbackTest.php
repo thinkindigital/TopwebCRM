@@ -175,7 +175,6 @@ it('blocks generic transfer to a third party', function () {
         'assigned_user_id' => $target->id,
     ])->assertForbidden();
 });
-
 it('tells who won when a claim loses the race', function () {
     ['bruno' => $bruno, 'conversation' => $conversation] = claimContext();
     $this->actingAs($bruno, 'user');
