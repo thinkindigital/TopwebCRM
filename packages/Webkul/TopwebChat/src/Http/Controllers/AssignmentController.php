@@ -125,7 +125,7 @@ class AssignmentController
             // unassigned conversation remains a real authorization failure.
             abort_unless(
                 Conversation::query()->whereKey($conversation->id)
-                ->whereNotNull('assigned_user_id')->exists(),
+                    ->whereNotNull('assigned_user_id')->exists(),
                 403
             );
             return $this->claimConflict($conversation);
@@ -134,16 +134,4 @@ class AssignmentController
         return back()->with('success', trans('topweb_chat::app.assignment.updated'));
     }
 
-    private function claimConflict(Conversation $conversation): RedirectResponse
-    {
-        // V-07: perda de corrida informa quem ficou com a conversa.
-        $owner = Conversation::query()->find($conversation->id)
-            ?->assignedUser?->name
-            ?? trans('topweb_chat::app.conversations.unassigned');
-
-        return back()->with(
-            'error',
-            trans('topweb_chat::app.assignment.taken', ['name' => $owner])
-        );
-    }
 }
