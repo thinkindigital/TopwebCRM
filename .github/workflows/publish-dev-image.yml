@@ -1,18 +1,13 @@
 name: Publish dev image
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - TopwebChat | Root E2E
+    types:
+      - completed
     branches:
       - dev
-    paths:
-      - composer.json
-      - composer.lock
-      - package.json
-      - package-lock.json
-      - packages/**
-      - public/**
-      - docker/php/**
-      - .github/workflows/publish-dev-image.yml
   workflow_dispatch:
 
 concurrency:
@@ -26,7 +21,8 @@ jobs:
   publish:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'push'
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -45,7 +41,7 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          WORKFLOW_RUN_SHA: ${{ github.sha }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
           DISPATCH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -54,8 +50,11 @@ jobs:
           else
             release_sha="$WORKFLOW_RUN_SHA"
           fi
-          echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
-          echo "image_tag=sha-$release_sha" >> "$GITHUB_OUTPUT"
+           {
+             echo "sha=$release_sha"
+             echo "image_tag=sha-$release_sha"
+             echo "build_timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+           } >> "$GITHUB_OUTPUT"
 
       - name: Checkout release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -114,6 +113,10 @@ jobs:
         shell: bash
         env:
           IMAGE_TAG: dev
+          IMAGE_REVISION: ${{ steps.release.outputs.image_tag }}
+          BUILD_SHA: ${{ steps.release.outputs.sha }}
+          BUILD_TIMESTAMP: ${{ steps.release.outputs.build_timestamp }}
+          BUILD_BRANCH: dev
         run: |
           set -euo pipefail
 
@@ -154,19 +157,25 @@ jobs:
           stack_file="$(jq -er '.StackFileContent' <<<"$stack_file_json")"
 
           stack_env="$(
-            jq -c --arg image_tag "$IMAGE_TAG" '
-              .Env
-              | map(
-                  if .name == "TOPWEBCRM_IMAGE_TAG"
-                  then .value = $image_tag
-                  else .
-                  end
-                )
-              | if any(.name == "TOPWEBCRM_IMAGE_TAG")
-                then .
-                else . + [{name: "TOPWEBCRM_IMAGE_TAG", value: $image_tag}]
-                end
-            ' <<<"$stack_json"
+            jq -c \
+              --arg image_tag "$IMAGE_TAG" \
+              --arg image_revision "$IMAGE_REVISION" \
+              --arg build_sha "$BUILD_SHA" \
+              --arg build_timestamp "$BUILD_TIMESTAMP" \
+              --arg build_branch "$BUILD_BRANCH" \
+              '
+                def setenv($name; $value):
+                  if any(.name == $name)
+                  then map(if .name == $name then .value = $value else . end)
+                  else . + [{name: $name, value: $value}]
+                  end;
+                .Env
+                | setenv("TOPWEBCRM_IMAGE_TAG"; $image_tag)
+                | setenv("TOPWEBCRM_IMAGE_REVISION"; $image_revision)
+                | setenv("TOPWEBCRM_BUILD_SHA"; $build_sha)
+                | setenv("TOPWEBCRM_BUILD_TIMESTAMP"; $build_timestamp)
+                | setenv("TOPWEBCRM_BUILD_BRANCH"; $build_branch)
+              ' <<<"$stack_json"
           )"
 
           payload="$(
@@ -191,5 +200,28 @@ jobs:
           )"
 
           jq -e --argjson stack_id "$stack_id" '
-            .Id == $stack_id and .Status == 1
+            .Id == $stack_id and (.Status == 1 or .Status == 3)
           ' <<<"$update_json" >/dev/null
+
+          for attempt in $(seq 1 30); do
+            current_stack_json="$(
+              curl --fail --silent --show-error \
+                --header "$auth_header" \
+                "$PORTAINER_URL/api/stacks/$stack_id?endpointId=$PORTAINER_ENDPOINT_ID"
+            )"
+
+            if jq -e --argjson stack_id "$stack_id" '
+              .Id == $stack_id and .Status == 1
+            ' <<<"$current_stack_json" >/dev/null; then
+              echo "Portainer stack $PORTAINER_STACK_NAME is active after redeploy."
+              break
+            fi
+
+            if [ "$attempt" -eq 30 ]; then
+              echo "::error::Portainer stack did not become active after redeploy."
+              jq '{Id, Status, Message}' <<<"$current_stack_json"
+              exit 1
+            fi
+
+            sleep 2
+          done

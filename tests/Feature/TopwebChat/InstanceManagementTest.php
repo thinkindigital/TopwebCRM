@@ -11,7 +11,7 @@ use Webkul\User\Models\Role;
 use Webkul\User\Models\User;
 
 beforeEach(function () {
-    foreach (['topweb_chat_instances', 'users', 'roles', 'attributes', 'core_config'] as $table) {
+    foreach (['topweb_chat_conversations', 'topweb_chat_instances', 'users', 'roles', 'attributes', 'core_config'] as $table) {
         Schema::dropIfExists($table);
     }
 

@@ -14,12 +14,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 use Webkul\Contact\Models\Person;
+use Webkul\Lead\Models\Pipeline;
 use Webkul\TopwebChat\Jobs\MarkConversationRead;
 use Webkul\TopwebChat\Jobs\SyncConversationHistory;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Repositories\ConversationRepository;
 use Webkul\TopwebChat\Services\ConversationAccessService;
+use Webkul\TopwebChat\Services\InboundLeadAssociationService;
 use Webkul\TopwebChat\Services\MessageService;
 use Webkul\TopwebChat\Services\NextActionService;
 use Webkul\User\Models\User;
@@ -32,7 +34,8 @@ class ConversationController
         protected MessageService $messages,
         protected SensitiveDataService $sensitiveData,
         protected SensitiveFileService $sensitiveFiles,
-        protected NextActionService $nextActions
+        protected NextActionService $nextActions,
+        protected InboundLeadAssociationService $inboundLeadAssociation
     ) {}
 
     public function index(Request $request): View
@@ -40,54 +43,55 @@ class ConversationController
         abort_unless(bouncer()->hasPermission('topweb_chat.inbox'), 403);
 
         $user = auth()->guard('user')->user();
-        $queue = $request->string('queue', 'mine')->toString();
 
-        if (! in_array($queue, ['mine', 'unassigned', 'all'], true)) {
-            $queue = 'mine';
-        }
-
-        if (! $this->access->isAdministrator($user) && $queue === 'all') {
-            $queue = 'mine';
-        }
-
-        // V-01: contadores honestos, derivados do mesmo escopo autorizado.
-        $isAdministrator = $this->access->isAdministrator($user);
-
-        $conversations = $this->conversationRepository
-            ->accessibleQuery($user, $queue)
-            ->paginate(30)
-            ->withQueryString();
-
-        // V-04: um dot por linha, sem conteúdo — uma query para a página toda.
-        $nextActionFlags = $this->nextActions->flagsForLeadIds(
-            $conversations->getCollection()->pluck('lead_id')->filter()->all()
-        );
-
-        return view('topweb_chat::conversations.index', [
-            'queue' => $queue,
-            'conversations' => $conversations,
+        return view('topweb_chat::conversations.index', $this->queueData($request, $user) + [
             'selectedConversation' => null,
-            'nextActionFlags' => $nextActionFlags,
-            'queueCounts' => [
-                'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
-                'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
-                'all' => $isAdministrator
-                    ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
-                    : 0,
-            ],
         ]);
     }
 
-    public function show(Conversation $conversation): View
+    public function show(Request $request, Conversation $conversation): View
     {
         abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
 
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
 
+        $this->loadConversation($conversation);
+        $this->dispatchHistorySync($conversation);
+
+        $viewData = $this->contextData($conversation, $user) + [
+            'workspaceStyle' => $this->workspaceStyle(),
+        ];
+
+        return view('topweb_chat::conversations.show', $viewData + $this->queueData(
+            $request,
+            $user,
+            bouncer()->hasPermission('topweb_chat.inbox')
+        ) + [
+            'selectedConversation' => $conversation,
+        ]);
+    }
+
+    public function context(Request $request, Conversation $conversation): Response
+    {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.view'), 403);
+
+        $user = auth()->guard('user')->user();
+        $this->access->authorizeView($user, $conversation);
+
+        $this->loadConversation($conversation);
+
+        return response()->view(
+            'topweb_chat::conversations.partials.crm-context',
+            $this->contextData($conversation, $user)
+        );
+    }
+
+    private function loadConversation(Conversation $conversation): void
+    {
         $conversation->load([
             'person',
-            'lead',
+            'lead.pipeline',
             'assignedUser',
             'instance',
             'messages' => fn ($query) => $query
@@ -101,7 +105,10 @@ class ConversationController
             'messages',
             $conversation->messages->reverse()->values()
         );
+    }
 
+    private function dispatchHistorySync(Conversation $conversation): void
+    {
         if ($conversation->instance?->enabled) {
             try {
                 Bus::chain([
@@ -122,9 +129,28 @@ class ConversationController
                 ]);
             }
         }
+    }
 
-        return view('topweb_chat::conversations.show', [
+    /**
+     * Dados do painel de contexto; mesma fonte para o show e o fragmento.
+     */
+    private function contextData(Conversation $conversation, User $user): array
+    {
+        $isAdministrator = $this->access->isAdministrator($user);
+        $canTransferLead = $conversation->lead
+            && bouncer()->hasPermission('topweb_chat.inbox.assign')
+            && bouncer()->hasPermission('leads.edit')
+            && $this->access->canAccessLead($user, $conversation->lead);
+
+        return [
             'conversation' => $conversation,
+            'user' => $user,
+            'isAdmin' => $isAdministrator,
+            'canReleaseConversation' => $conversation->assigned_user_id
+                && ($isAdministrator || (int) $conversation->assigned_user_id === (int) $user->id),
+            'remoteId' => $this->sensitiveData->canView()
+                ? $conversation->remote_jid
+                : $this->sensitiveData->maskPhone($conversation->remote_jid),
             'historyUnavailable' => Cache::has(
                 "topweb-chat:history-unavailable:{$conversation->instance_id}"
             ),
@@ -137,7 +163,18 @@ class ConversationController
             'pipelineStages' => $conversation->lead
                 ? $conversation->lead->pipeline->stages
                 : collect(),
-            'assignableUsers' => $this->access->isAdministrator($user)
+            'leadPipelines' => $conversation->lead
+                ? Pipeline::query()->orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'canTransferLead' => $canTransferLead,
+            'leadCandidates' => $conversation->lead
+                ? collect()
+                : ($conversation->person
+                    ? $this->inboundLeadAssociation->operationalLeads($conversation->person)
+                        ->filter(fn ($lead) => $lead->user_id === null
+                            || $this->access->canAccessLead($user, $lead))
+                    : collect()),
+            'assignableUsers' => ($isAdministrator || $canTransferLead)
                 ? User::query()->where('status', 1)->orderBy('name')->get()
                 : collect(),
             'canViewSensitiveMedia' => $this->sensitiveData->canView($user),
@@ -146,15 +183,77 @@ class ConversationController
                 ? $this->nextActions->envelope(
                     $this->nextActions->nextForLead($conversation->lead_id),
                     $user,
-                    $this->access->isAdministrator($user)
+                    $isAdministrator
                 )
                 : null,
             'recentActions' => $this->nextActions->recentEnvelopes(
                 $conversation->lead_id,
                 $user,
-                $this->access->isAdministrator($user)
+                $isAdministrator
             ),
-        ]);
+        ];
+    }
+
+    private function queueData(Request $request, User $user, bool $queueAvailable = true): array
+    {
+        $queue = $request->string('queue', 'mine')->toString();
+
+        if (! in_array($queue, ['mine', 'unassigned', 'waiting', 'all'], true)) {
+            $queue = 'mine';
+        }
+
+        $isAdministrator = $this->access->isAdministrator($user);
+
+        if (! $isAdministrator && $queue === 'all') {
+            $queue = 'mine';
+        }
+
+        if (! $queueAvailable) {
+            return [
+                'queue' => $queue,
+                'queueAvailable' => false,
+                'queueConversations' => collect(),
+                'nextActionFlags' => [],
+                'queueCounts' => ['mine' => 0, 'unassigned' => 0, 'waiting' => 0, 'all' => 0],
+                'workspaceStyle' => $this->workspaceStyle(),
+            ];
+        }
+
+        $conversations = $this->conversationRepository
+            ->accessibleQuery($user, $queue)
+            ->paginate(30)
+            ->withQueryString();
+
+        return [
+            'queue' => $queue,
+            'queueAvailable' => true,
+            'queueConversations' => $conversations,
+            'nextActionFlags' => $this->nextActions->flagsForLeadIds(
+                $conversations->getCollection()->pluck('lead_id')->filter()->all()
+            ),
+            'queueCounts' => [
+                'mine' => $this->conversationRepository->accessibleQuery($user, 'mine')->count(),
+                'unassigned' => $this->conversationRepository->accessibleQuery($user, 'unassigned')->count(),
+                'waiting' => $this->conversationRepository->accessibleQuery($user, 'waiting')->count(),
+                'all' => $isAdministrator
+                    ? $this->conversationRepository->accessibleQuery($user, 'all')->count()
+                    : 0,
+            ],
+            'workspaceStyle' => $this->workspaceStyle(),
+        ];
+    }
+
+    private function workspaceStyle(): string
+    {
+        // S7: configuração administrativa persistida > ENV > R1K.
+        // Persistido ausente ou inválido equivale a ausente (cai no ENV).
+        $style = strtoupper((string) (core()->getConfigData('topwebchat.appearance.style.workspace_style') ?? ''));
+
+        if (! in_array($style, ['R1', 'R1K'], true)) {
+            $style = strtoupper((string) config('topweb-chat.workspace_style', 'R1K'));
+        }
+
+        return in_array($style, ['R1', 'R1K'], true) ? $style : 'R1K';
     }
 
     public function messages(Request $request, Conversation $conversation): Response

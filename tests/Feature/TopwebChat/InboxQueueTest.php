@@ -156,6 +156,17 @@ it('shows queue counters in scope', function () {
         ->assertSee('topweb-chat-queue-count', false);
 });
 
+it('renders the inbox inside the official workspace shell', function () {
+    ['agent' => $agent] = queueContext();
+    $this->actingAs($agent, 'user');
+
+    $this->get(route('admin.topweb_chat.index', ['queue' => 'unassigned']))
+        ->assertOk()
+        ->assertSee('data-topwebchat-workspace', false)
+        ->assertSee('data-workspace-style="R1K"', false)
+        ->assertSee('data-workspace-region="queue"', false);
+});
+
 it('hides identity of unassigned conversations from agents', function () {
     ['agent' => $agent] = queueContext();
     $this->actingAs($agent, 'user');

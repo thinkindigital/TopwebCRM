@@ -163,11 +163,11 @@ it('keeps fragment and JSON in agreement', function () {
 });
 
 it('renders the initial timeline from the same partial', function () {
-    $show = file_get_contents(
-        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/show.blade.php')
+    $workspace = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/workspace.blade.php')
     );
 
-    expect($show)->toContain('conversations.partials.timeline-messages');
+    expect($workspace)->toContain('conversations.partials.timeline-messages');
 });
 
 it('explains ambiguous sends without offering retry', function () {

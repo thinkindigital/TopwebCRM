@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Webkul\Activity\Repositories\ActivityRepository;
 use Webkul\Admin\Http\Controllers\Controller;
 use Webkul\Admin\Http\Resources\ActivityResource;
+use Webkul\Contact\Models\Person;
 use Webkul\Email\Repositories\AttachmentRepository;
 use Webkul\Email\Repositories\EmailRepository;
 
@@ -31,9 +32,32 @@ class ActivityController extends Controller
      */
     public function index($id)
     {
+        $authorizedUserIds = bouncer()->getAuthorizedUserIds();
+
+        $personQuery = Person::query()->whereKey($id);
+
+        if ($authorizedUserIds) {
+            $personQuery->where(function ($query) use ($authorizedUserIds) {
+                $query->whereIn('user_id', $authorizedUserIds)
+                    ->orWhereHas('leads', function ($leadQuery) use ($authorizedUserIds) {
+                        $leadQuery->whereIn('user_id', $authorizedUserIds);
+                    });
+            });
+        }
+
+        abort_unless($personQuery->exists(), 404);
+
         $activities = $this->activityRepository
             ->leftJoin('person_activities', 'activities.id', '=', 'person_activities.activity_id')
+            ->leftJoin('lead_activities', 'activities.id', '=', 'lead_activities.activity_id')
+            ->leftJoin('leads', 'lead_activities.lead_id', '=', 'leads.id')
             ->where('person_activities.person_id', $id)
+            ->where(function ($query) use ($authorizedUserIds) {
+                if ($authorizedUserIds) {
+                    $query->whereIn('activities.user_id', $authorizedUserIds)
+                        ->orWhereIn('leads.user_id', $authorizedUserIds);
+                }
+            })
             ->get();
 
         return ActivityResource::collection($this->concatEmailAsActivities($id, $activities));

@@ -5,6 +5,7 @@
         id="topweb-chat-send-form"
         method="POST"
         action="{{ route('admin.topweb_chat.messages.store', $conversation) }}"
+        data-batch-url="{{ route('admin.topweb_chat.messages.batch', $conversation) }}"
         class="flex shrink-0 items-end gap-3 border-t border-gray-200 bg-white p-3 sm:p-4 dark:border-gray-800 dark:bg-gray-900 flex-shrink-0"
     >
         @csrf
@@ -24,14 +25,18 @@
                     type="button"
                     class="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
                     aria-label="@lang('topweb_chat::app.messages.attach_image')"
-                    @disabled($conversation->instance?->status !== 'ready')
+                    data-requires-channel
+                    @disabled($conversation->instance?->status !== 'ready' || ! $canAttachSensitive)
                 >@lang('topweb_chat::app.messages.attach_image')</button>
                 <input
                     id="topweb-chat-media-input"
                     type="file"
                     name="media"
                     class="hidden"
-                    accept="image/*,video/*"
+                    accept="image/*,video/*,audio/*"
+                    multiple
+                    data-requires-channel
+                    @disabled(! $canAttachSensitive)
                 >
 
                 <button
@@ -39,7 +44,8 @@
                     type="button"
                     class="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
                     aria-label="@lang('topweb_chat::app.messages.attach_document')"
-                    @disabled($conversation->instance?->status !== 'ready')
+                    data-requires-channel
+                    @disabled($conversation->instance?->status !== 'ready' || ! $canAttachSensitive)
                 >@lang('topweb_chat::app.messages.attach_document')</button>
                 <input
                     id="topweb-chat-document-input"
@@ -47,6 +53,9 @@
                     name="document"
                     class="hidden"
                     accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
+                    multiple
+                    data-requires-channel
+                    @disabled(! $canAttachSensitive)
                 >
 
                 @if ($canAttachSensitive)
@@ -55,6 +64,7 @@
                         type="button"
                         class="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
                         aria-label="@lang('topweb_chat::app.messages.attach_location')"
+                        data-requires-channel
                         @disabled($conversation->instance?->status !== 'ready')
                     >@lang('topweb_chat::app.messages.attach_location')</button>
                     <input
@@ -74,13 +84,15 @@
             rows="1"
             class="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800 focus:border-brandColor dark:border-gray-800 dark:bg-gray-950 dark:text-white"
             placeholder="@lang('topweb_chat::app.messages.placeholder')"
+            data-requires-channel
             @disabled($conversation->instance?->status !== 'ready')
         >{{ old('content') }}</textarea>
 
         <div class="flex justify-end">
-            <button class="primary-button min-h-11 rounded-full px-5" @disabled($conversation->instance?->status !== 'ready')>
+            <button type="submit" class="primary-button min-h-11 rounded-full px-5" data-requires-channel @disabled($conversation->instance?->status !== 'ready')>
                 @lang('topweb_chat::app.messages.send')
             </button>
         </div>
+        <p data-channel-error class="hidden w-full text-xs text-amber-700 dark:text-amber-300">@lang('topweb_chat::app.channel.unavailable_hint')</p>
     </form>
 @endif

@@ -2,6 +2,7 @@
 
 namespace Webkul\TopwebChat\Http\Controllers;
 
+use App\Services\SensitiveDataService;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,8 @@ class MessageController
 {
     public function __construct(
         protected MessageService $messages,
-        protected ConversationAccessService $access
+        protected ConversationAccessService $access,
+        protected SensitiveDataService $sensitiveData
     ) {}
 
     public function store(
@@ -26,6 +28,14 @@ class MessageController
 
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
+
+        // S1: upload exige concessão individual; texto continua permitido.
+        if (
+            ($request->hasFile('media') || $request->hasFile('document'))
+            && ! $this->sensitiveData->canView($user)
+        ) {
+            abort(403);
+        }
 
         $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 52428800) / 1024));
 
@@ -110,6 +120,57 @@ class MessageController
         return back()->with('success', trans('topweb_chat::app.messages.queued'));
     }
 
+    public function storeBatch(
+        Request $request,
+        Conversation $conversation
+    ): JsonResponse {
+        abort_unless(bouncer()->hasPermission('topweb_chat.inbox.send'), 403);
+
+        $user = auth()->guard('user')->user();
+        $this->access->authorizeView($user, $conversation);
+
+        // S1/S5: lote inteiro sob a concessão; nada é armazenado sem grant.
+        abort_unless($this->sensitiveData->canView($user), 403);
+
+        $maxFiles = max(1, (int) config('topweb-chat.batch.max_files', 10));
+        $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 52428800) / 1024));
+
+        $data = $request->validate([
+            'attachments' => ['required', 'array', 'min:1', "max:{$maxFiles}"],
+            'attachments.*.file' => ['required', 'file', "max:{$maxKilobytes}"],
+            'attachments.*.operation_key' => ['required', 'uuid', 'distinct'],
+            'content' => ['nullable', 'string', 'max:10000'],
+            'content_operation_key' => ['required_with:content', 'uuid'],
+        ]);
+
+        $totalBytes = collect($data['attachments'])
+            ->sum(fn ($item) => $item['file']->getSize() ?: 0);
+
+        if ($totalBytes > max(1, (int) config('topweb-chat.batch.max_bytes', 104857600))) {
+            abort(422, trans('topweb_chat::app.messages.batch_too_large'));
+        }
+
+        try {
+            $result = $this->messages->queueBatch(
+                $conversation,
+                $user,
+                array_map(
+                    fn ($item) => ['file' => $item['file'], 'operation_key' => $item['operation_key']],
+                    $data['attachments']
+                ),
+                isset($data['content'])
+                    ? ['content' => $data['content'], 'operation_key' => $data['content_operation_key']]
+                    : null
+            );
+        } catch (DomainException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], 409);
+        }
+
+        return response()->json($result, 202);
+    }
+
     public function retry(
         Request $request,
         Conversation $conversation,
@@ -119,6 +180,11 @@ class MessageController
 
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
+
+        // S1: retry de mídia exige a mesma concessão do upload.
+        if ($message->hasMedia() && ! $this->sensitiveData->canView($user)) {
+            abort(403);
+        }
 
         try {
             $message = $this->messages->retry($message, $conversation, $user);

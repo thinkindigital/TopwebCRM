@@ -119,7 +119,7 @@ function claimContext(): array
     return compact('alice', 'bruno', 'conversation');
 }
 
-it('lets a non-sensitive agent self-claim from the blind queue without generic assign permission', function () {
+it('lets a non-sensitive agent self-claim the blind queue without generic assignment', function () {
     $agentRole = Role::query()->create([
         'name' => 'Agente fila', 'permission_type' => 'custom',
         'permissions' => ['topweb_chat', 'topweb_chat.inbox', 'topweb_chat.inbox.view', 'dashboard'],
@@ -147,6 +147,34 @@ it('lets a non-sensitive agent self-claim from the blind queue without generic a
         ->and($conversation->fresh()->assigned_user_id)->toBe($agent->id);
 });
 
+it('blocks generic transfer to a third party', function () {
+    $role = Role::query()->create([
+        'name' => 'Fila sem transferencia', 'permission_type' => 'custom',
+        'permissions' => ['topweb_chat', 'topweb_chat.inbox', 'topweb_chat.inbox.view', 'topweb_chat.inbox.assign', 'dashboard'],
+    ]);
+    $agent = User::query()->create([
+        'name' => 'Agente fila', 'email' => 'fila-transfer@example.com',
+        'role_id' => $role->id, 'status' => true,
+    ]);
+    $target = User::query()->create([
+        'name' => 'Terceiro', 'email' => 'terceiro@example.com',
+        'role_id' => $role->id, 'status' => true,
+    ]);
+    $instance = Instance::query()->create([
+        'name' => 'Generic transfer', 'provider' => 'openwa', 'status' => 'ready', 'enabled' => true,
+    ]);
+    $conversation = Conversation::query()->create([
+        'instance_id' => $instance->id,
+        'remote_jid' => '5511777777777@s.whatsapp.net',
+        'remote_jid_key' => hash('sha256', '5511777777777@s.whatsapp.net'),
+    ]);
+
+    $this->actingAs($agent, 'user');
+
+    $this->put(route('admin.topweb_chat.assignment.update', $conversation), [
+        'assigned_user_id' => $target->id,
+    ])->assertForbidden();
+});
 it('tells who won when a claim loses the race', function () {
     ['bruno' => $bruno, 'conversation' => $conversation] = claimContext();
     $this->actingAs($bruno, 'user');

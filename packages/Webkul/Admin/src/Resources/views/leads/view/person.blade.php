@@ -70,7 +70,7 @@
 
                         {!! view_render_event('admin.leads.view.person.email.before', ['lead' => $lead]) !!}
 
-                        @foreach ($personPayload['emails'] as $email)
+                        @foreach ($personPayload['emails'] ?? [] as $email)
                             <div class="flex gap-1">
                                 @if ($canViewSensitiveData)
                                     <a
@@ -93,7 +93,7 @@
 
                         {!! view_render_event('admin.leads.view.person.contact_numbers.before', ['lead' => $lead]) !!}
 
-                        @foreach ($personPayload['contact_numbers'] as $contactNumber)
+                        @foreach ($personPayload['contact_numbers'] ?? [] as $contactNumber)
                             <div class="flex gap-1">
                                 @if ($canViewSensitiveData)
                                     <a

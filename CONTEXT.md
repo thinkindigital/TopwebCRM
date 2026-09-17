@@ -87,7 +87,11 @@ Este arquivo e exclusivamente um glossario. Regras, fluxos, endpoints e detalhes
 
 **Projecao de Midia do Lead**: vinculo idempotente que apresenta uma midia inbound do TopwebChat como arquivo nativo da Pessoa e do Lead, apontando para o mesmo objeto no storage privado.
 
-**Roleta de Distribuicao**: politica futura que atribui Leads e suas Conversas a Usuarios elegiveis de forma concorrente, justa e auditavel.
+**Roleta de Distribuicao**: politica que atribui Leads e suas Conversas a Usuarios elegiveis de forma concorrente, justa e auditavel.
+
+**Pool de Distribuicao**: configuracao persistida que define a estrategia, os membros habilitados, constraints, pontuacao e fallback de uma Roleta de Distribuicao.
+
+**AvailabilityResolver**: fronteira de aplicacao que resolve em runtime quais membros ativos e habilitados de um Pool de Distribuicao sao compativeis com o contexto e suas constraints; nao representa historico de Atendimento WhatsApp.
 
 ## Integracao
 

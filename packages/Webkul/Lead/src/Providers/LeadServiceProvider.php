@@ -4,6 +4,8 @@ namespace Webkul\Lead\Providers;
 
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use Webkul\Lead\Contracts\AvailabilityResolver;
+use Webkul\Lead\Services\ConfiguredAvailabilityResolver;
 
 class LeadServiceProvider extends ServiceProvider
 {
@@ -22,5 +24,8 @@ class LeadServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function register() {}
+    public function register()
+    {
+        $this->app->singleton(AvailabilityResolver::class, ConfiguredAvailabilityResolver::class);
+    }
 }

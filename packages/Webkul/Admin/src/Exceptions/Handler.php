@@ -77,6 +77,10 @@ class Handler extends ExceptionHandler
      */
     private function renderCustomResponse(Throwable $exception)
     {
+        if ($exception instanceof AuthenticationException) {
+            return $this->unauthenticated(request(), $exception);
+        }
+
         if ($exception instanceof AuthorizationException) {
             return $this->response(403);
         }

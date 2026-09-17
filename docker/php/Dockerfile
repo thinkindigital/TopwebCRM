@@ -26,4 +26,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+# Keep the development image self-contained, including Pest and PHPUnit.
+COPY composer.json composer.lock ./
+COPY packages ./packages
+RUN composer install \
+        --prefer-dist \
+        --no-interaction \
+        --no-progress \
+        --no-scripts
+
 EXPOSE 8000

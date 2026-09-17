@@ -4,10 +4,12 @@
 // Documenta o comportamento atual por perfil; divergências vs
 // AUTHORIZATION_POLICY e TopwebChat STATE são achados, não auto-fix.
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
+use Webkul\TopwebChat\Models\InternalNote;
 use Webkul\User\Models\Role;
 use Webkul\User\Models\User;
 
@@ -199,4 +201,193 @@ it('documents unassigned conversation access for common users', function () {
     // sem auto-fix: mudar quebra o fluxo de claim (assignment).
     $this->actingAs($stranger, 'user');
     $this->get(route('admin.topweb_chat.show', $unassigned))->assertOk();
+});
+
+it('renders the configured official workspace style', function (string $style) {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+
+    config()->set('topweb-chat.workspace_style', $style);
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->assertSee('data-topwebchat-workspace', false)
+        ->assertSee('data-workspace-style="'.$style.'"', false)
+        ->assertSee('data-workspace-region="queue"', false)
+        ->assertSee('data-workspace-region="conversation"', false)
+        ->assertSee('data-workspace-region="context"', false)
+        ->assertDontSee('data-prototype-root', false);
+})->with(['R1', 'R1K']);
+
+it('shows the same note in the timeline and in the side history', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    InternalNote::query()->create([
+        'conversation_id' => $owned->id, 'user_id' => $admin->id,
+        'content' => 'nota-dupla-projecao',
+    ]);
+    $this->actingAs($admin, 'user');
+
+    $html = $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->getContent();
+
+    expect(substr_count($html, 'nota-dupla-projecao'))->toBeGreaterThanOrEqual(2);
+    expect($html)->toContain('data-note-delete');
+});
+
+it('exposes the activity creation entry in the context', function () {
+    $partial = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
+    );
+
+    expect($partial)->toContain('data-activity-create')
+        ->and($partial)->toContain("route('admin.topweb_chat.activities.store'")
+        ->and($partial)->toContain("route('admin.topweb_chat.activities.complete'")
+        ->and($partial)->toContain("route('admin.topweb_chat.activities.update'");
+});
+
+it('shows the channel state in human language, not raw status', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    $this->actingAs($admin, 'user');
+
+    $html = $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('data-label-connected')
+        ->and($html)->toContain('Connected')
+        ->and($html)->not->toContain('id="topweb-chat-instance-status">ready<');
+});
+
+it('distinguishes sync degradation from channel outage', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    $this->actingAs($admin, 'user');
+
+    Cache::put(
+        "topweb-chat:provider-unavailable:{$owned->instance_id}", true, now()->addMinutes(5)
+    );
+
+    $html = $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('Sync temporarily unavailable');
+    expect(preg_match('/id="topweb-chat-connection-warning"\s+class="hidden/', $html))->toBe(1);
+
+    $owned->instance->forceFill(['status' => 'disconnected'])->save();
+    Cache::forget("topweb-chat:provider-unavailable:{$owned->instance_id}");
+
+    $html = $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('Channel unavailable — history preserved');
+});
+
+it('serves the context as an authorized server fragment', function () {
+    ['admin' => $admin, 'owner' => $owner, 'stranger' => $stranger, 'owned' => $owned] = accessMatrixContext();
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.context.show', $owned).'?fragment=context')
+        ->assertOk()
+        ->assertSee('twp-context-stack', false)
+        ->assertDontSee('data-topwebchat-workspace', false);
+
+    $this->actingAs($stranger, 'user');
+    $this->get(route('admin.topweb_chat.context.show', $owned).'?fragment=context')
+        ->assertForbidden();
+});
+
+it('wires inline context mutations without reload', function () {
+    $context = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
+    );
+    $workspace = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/workspace.blade.php')
+    );
+    $runtime = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/chat-runtime.blade.php')
+    );
+    $composer = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
+    );
+
+    expect($context)->toContain('data-note-form')
+        ->and($context)->toContain('data-activity-form')
+        ->and($workspace)->toContain('data-context-url')
+        ->and($workspace)->toContain('topwebchat:refresh-context')
+        ->and($runtime)->toContain('topwebchat:refresh-timeline')
+        ->and($runtime)->toContain('isContextQuiet')
+        ->and($composer)->toContain('data-channel-error');
+});
+
+it('exposes the inline stage form with pipeline selection', function () {
+    $partial = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/crm-context.blade.php')
+    );
+
+    expect($partial)->toContain('data-stage-form')
+        ->and($partial)->toContain('data-pipeline-select')
+        ->and($partial)->toContain('data-stage-select')
+        ->and($partial)->toContain('data-stage-error');
+});
+
+it('disables attachment controls without the sensitive-data grant', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    $this->actingAs($admin, 'user');
+
+    $response = $this->get(route('admin.topweb_chat.show', $owned))->assertOk();
+    $response->assertSee('id="topweb-chat-attach-menu"', false);
+
+    $menu = substr($response->getContent(), strpos($response->getContent(), 'id="topweb-chat-attach-menu"'), 3000);
+    expect($menu)->toContain('disabled');
+
+    $admin->forceFill(['can_view_sensitive_data' => true])->save();
+
+    $response = $this->get(route('admin.topweb_chat.show', $owned))->assertOk();
+    $menu = substr($response->getContent(), strpos($response->getContent(), 'id="topweb-chat-attach-menu"'), 3000);
+    expect($menu)->not->toContain('disabled');
+});
+
+it('prefers the persisted appearance over the environment', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    DB::table('core_config')->insert([
+        'code' => 'topwebchat.appearance.style.workspace_style', 'value' => 'R1',
+    ]);
+    config()->set('topweb-chat.workspace_style', 'R1K');
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->assertSee('data-workspace-style="R1"', false);
+});
+
+it('ignores invalid persisted styles and keeps the fallback chain', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+    DB::table('core_config')->insert([
+        'code' => 'topwebchat.appearance.style.workspace_style', 'value' => 'R9',
+    ]);
+    config()->set('topweb-chat.workspace_style', 'R1');
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.show', $owned))
+        ->assertOk()
+        ->assertSee('data-workspace-style="R1"', false);
+});
+
+it('falls back to R1K and ignores prototype query parameters', function () {
+    ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
+
+    config()->set('topweb-chat.workspace_style', 'unsupported');
+    $this->actingAs($admin, 'user');
+
+    $this->get(route('admin.topweb_chat.show', [
+        'conversation' => $owned,
+        'variant' => 'R1',
+        'scenario' => 'offline',
+    ]))
+        ->assertOk()
+        ->assertSee('data-workspace-style="R1K"', false)
+        ->assertDontSee('data-prototype-root', false)
+        ->assertDontSee('PROTOTYPE', false);
 });

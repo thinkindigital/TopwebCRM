@@ -9,6 +9,7 @@ use Illuminate\Support\ServiceProvider;
 use Webkul\Core\ViewRenderEventManager;
 use Webkul\TopwebChat\Console\Commands\CloseStaleAttendances;
 use Webkul\TopwebChat\Console\Commands\ImportRealEstateDemo;
+use Webkul\TopwebChat\Console\Commands\PrepareE2eFixtures;
 use Webkul\TopwebChat\Console\Commands\ProjectLeadMedia;
 use Webkul\TopwebChat\Console\Commands\ReconcileTopwebChat;
 use Webkul\TopwebChat\Console\Commands\RetryFailedMessages;
@@ -23,6 +24,7 @@ class TopwebChatServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(dirname(__DIR__).'/Config/topweb-chat.php', 'topweb-chat');
+        $this->mergeConfigFrom(dirname(__DIR__).'/Config/core_config.php', 'core_config');
         $this->mergeConfigFrom(dirname(__DIR__).'/Config/menu.php', 'menu.admin');
         $this->mergeConfigFrom(dirname(__DIR__).'/Config/acl.php', 'acl');
 
@@ -41,6 +43,7 @@ class TopwebChatServiceProvider extends ServiceProvider
                 CloseStaleAttendances::class,
                 ImportRealEstateDemo::class,
                 ProjectLeadMedia::class,
+                PrepareE2eFixtures::class,
                 ReconcileTopwebChat::class,
                 RetryFailedMessages::class,
                 SeedRealEstateDemo::class,

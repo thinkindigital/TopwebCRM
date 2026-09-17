@@ -15,6 +15,7 @@
                 let browserLocale = 'pt-BR';
                 try { browserLocale = Intl.getCanonicalLocales(rawBrowserLocale)[0] ?? 'pt-BR'; } catch { browserLocale = 'pt-BR'; }
                 let refreshing = false;
+                let refreshQueued = false;
                 let lastMessageId = Number(
                     timeline?.querySelector('[data-message-id]:last-of-type')?.dataset.messageId || 0
                 );
@@ -132,6 +133,7 @@
 
                 const refresh = async () => {
                     if (refreshing) {
+                        refreshQueued = true;
                         return;
                     }
 
@@ -159,7 +161,13 @@
                         updateSyncStatus(true);
 
                         if (instanceStatus) {
-                            instanceStatus.textContent = connected ? 'ready' : instanceStatus.textContent;
+                            const badge = document.getElementById('topweb-chat-connection-badge');
+                            instanceStatus.textContent = connected
+                                ? (badge?.dataset.labelConnected ?? instanceStatus.textContent)
+                                : (badge?.dataset.labelUnavailable ?? instanceStatus.textContent);
+                            instanceStatus.title = connected
+                                ? (badge?.dataset.titleConnected ?? instanceStatus.textContent)
+                                : (badge?.dataset.titleUnavailable ?? instanceStatus.textContent);
                         }
 
                         connectionBadge?.classList.toggle('bg-emerald-50', connected);
@@ -167,10 +175,15 @@
                         connectionBadge?.classList.toggle('bg-amber-50', !connected);
                         connectionBadge?.classList.toggle('text-amber-700', !connected);
                         connectionWarning?.classList.toggle('hidden', connected);
-                        form?.querySelector('textarea')?.toggleAttribute('disabled', !connected);
-                        form?.querySelector('button')?.toggleAttribute('disabled', !connected);
+                        form?.querySelectorAll('[data-requires-channel]').forEach((control) => {
+                            control.toggleAttribute('disabled', !connected);
+                        });
                     } finally {
                         refreshing = false;
+                        if (refreshQueued) {
+                            refreshQueued = false;
+                            void refresh();
+                        }
                     }
                 };
 
@@ -231,54 +244,151 @@
                     });
                 }
 
-                const handleFileInput = (input, preview) => {
-                    const file = input.files?.[0];
-                    if (!file || !preview) {
+                const batchLabels = {
+                    ready: @json(trans('topweb_chat::app.messages.batch_state_ready')),
+                    sending: @json(trans('topweb_chat::app.messages.batch_state_sending')),
+                    sent: @json(trans('topweb_chat::app.messages.batch_state_sent')),
+                    failed: @json(trans('topweb_chat::app.messages.batch_state_failed')),
+                    itemError: @json(trans('topweb_chat::app.messages.batch_item_error')),
+                };
+
+                const pendingAttachments = [];
+
+                const formatFileSize = (bytes) => {
+                    if (!bytes) return '0 B';
+                    if (bytes < 1024) return `${bytes} B`;
+                    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+                    return `${(bytes / 1048576).toFixed(1)} MB`;
+                };
+
+                const renderTray = () => {
+                    if (!mediaPreview) return;
+
+                    mediaPreview.replaceChildren();
+
+                    if (!pendingAttachments.length) {
                         clearMediaPreview();
                         return;
                     }
 
-                    preview.replaceChildren();
-                    preview.classList.remove('hidden');
-                    preview.classList.add('flex');
+                    mediaPreview.classList.remove('hidden');
+                    mediaPreview.classList.add('flex');
+                    mediaPreview.classList.toggle('flex-col', pendingAttachments.length > 1);
+                    mediaPreview.style.maxHeight = pendingAttachments.length >= 4 ? '154px' : '';
+                    mediaPreview.style.overflowY = pendingAttachments.length >= 4 ? 'auto' : '';
 
-                    if (file.type.startsWith('image/')) {
-                        const thumb = document.createElement('img');
-                        thumb.src = URL.createObjectURL(file);
-                        thumb.alt = file.name;
-                        thumb.className = 'max-h-11 w-auto rounded-lg object-contain';
-                        preview.appendChild(thumb);
-                    } else if (file.type.startsWith('video/')) {
-                        const thumb = document.createElement('video');
-                        thumb.src = URL.createObjectURL(file);
-                        thumb.className = 'max-h-11 w-auto rounded-lg object-contain';
-                        preview.appendChild(thumb);
-                    } else {
-                        const icon = document.createElement('span');
-                        icon.className = 'text-2xl';
-                        icon.textContent = '📄';
-                        preview.appendChild(icon);
-                    }
+                    pendingAttachments.forEach((item) => {
+                        const row = document.createElement('div');
+                        row.className = 'flex w-full items-center gap-2';
+                        row.dataset.trayItem = item.key;
 
-                    const name = document.createElement('span');
-                    name.className = 'max-w-40 truncate';
-                    name.textContent = file.name;
-                    preview.appendChild(name);
+                        const name = document.createElement('span');
+                        name.className = 'max-w-40 flex-1 truncate';
+                        name.textContent = item.file.name;
+                        row.appendChild(name);
 
-                    const remove = document.createElement('button');
-                    remove.type = 'button';
-                    remove.className = 'font-bold text-red-600 hover:text-red-800';
-                    remove.textContent = '×';
-                    remove.setAttribute('aria-label', @json(trans('topweb_chat::app.messages.remove_attachment')));
-                    remove.addEventListener('click', () => {
-                        input.value = '';
-                        clearMediaPreview();
+                        const meta = document.createElement('span');
+                        meta.className = 'opacity-75';
+                        meta.textContent = formatFileSize(item.file.size);
+                        row.appendChild(meta);
+
+                        const state = document.createElement('span');
+                        state.dataset.trayState = item.key;
+                        state.textContent = batchLabels[item.state] ?? item.state;
+                        row.appendChild(state);
+
+                        const remove = document.createElement('button');
+                        remove.type = 'button';
+                        remove.className = 'font-bold text-red-600 hover:text-red-800';
+                        remove.textContent = '×';
+                        remove.dataset.trayRemove = item.key;
+                        remove.setAttribute('aria-label', @json(trans('topweb_chat::app.messages.remove_attachment')));
+                        remove.addEventListener('click', () => {
+                            const index = pendingAttachments.findIndex((entry) => entry.key === item.key);
+                            if (index >= 0) pendingAttachments.splice(index, 1);
+                            renderTray();
+                        });
+                        row.appendChild(remove);
+
+                        mediaPreview.appendChild(row);
                     });
-                    preview.appendChild(remove);
                 };
 
-                mediaInput?.addEventListener('change', () => handleFileInput(mediaInput, mediaPreview));
-                documentInput?.addEventListener('change', () => handleFileInput(documentInput, mediaPreview));
+                const setTrayState = (key, state) => {
+                    const item = pendingAttachments.find((entry) => entry.key === key);
+                    if (item) item.state = state;
+                    const label = mediaPreview?.querySelector(`[data-tray-state="${key}"]`);
+                    if (label) label.textContent = batchLabels[state] ?? state;
+                };
+
+                mediaInput?.addEventListener('change', () => {
+                    Array.from(mediaInput.files ?? []).forEach((file) => {
+                        pendingAttachments.push({ key: crypto.randomUUID(), file, state: 'ready' });
+                    });
+                    mediaInput.value = '';
+                    renderTray();
+                });
+                documentInput?.addEventListener('change', () => {
+                    Array.from(documentInput.files ?? []).forEach((file) => {
+                        pendingAttachments.push({ key: crypto.randomUUID(), file, state: 'ready' });
+                    });
+                    documentInput.value = '';
+                    renderTray();
+                });
+
+                const submitBatch = async (form, contentField, submit) => {
+                    const payload = new FormData();
+                    payload.append('_token', form.querySelector('[name="_token"]')?.value ?? '');
+
+                    const keys = pendingAttachments.map(() => crypto.randomUUID());
+                    pendingAttachments.forEach((item, index) => {
+                        payload.append(`attachments[${index}][file]`, item.file);
+                        payload.append(`attachments[${index}][operation_key]`, keys[index]);
+                        setTrayState(item.key, 'sending');
+                    });
+
+                    const content = contentField?.value.trim() ?? '';
+                    if (content) {
+                        payload.append('content', content);
+                        payload.append('content_operation_key', crypto.randomUUID());
+                    }
+
+                    const response = await fetch(form.dataset.batchUrl, {
+                        method: 'POST',
+                        body: payload,
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        pendingAttachments.forEach((item) => setTrayState(item.key, 'failed'));
+                        throw new Error(`message_batch_failed:${response.status}`);
+                    }
+
+                    const body = await response.json();
+                    const sentKeys = new Set((body.messages ?? []).map((entry) => entry.operation_key));
+                    const failedByKey = new Map((body.rejected ?? []).map((entry) => [entry.operation_key, entry]));
+
+                    for (let index = pendingAttachments.length - 1; index >= 0; index--) {
+                        const item = pendingAttachments[index];
+                        const key = keys[pendingAttachments.indexOf(item)];
+                        if (sentKeys.has(key)) {
+                            setTrayState(item.key, 'sent');
+                            pendingAttachments.splice(index, 1);
+                        } else {
+                            setTrayState(item.key, 'failed');
+                            item.error = failedByKey.get(key)?.error_code ?? 'rejected';
+                        }
+                    }
+
+                    if (contentField) contentField.value = '';
+                    form.querySelector('[name="operation_key"]').value = crypto.randomUUID();
+                    renderTray();
+                    await refresh();
+                    timeline.scrollTop = timeline.scrollHeight;
+                };
 
                 form?.addEventListener('submit', async (event) => {
                     event.preventDefault();
@@ -290,13 +400,32 @@
                         const mediaInput = document.getElementById('topweb-chat-media-input');
                         const documentInput = document.getElementById('topweb-chat-document-input');
                         const contentField = document.getElementById('topweb-chat-content');
-                        const payload = new FormData(form);
 
-                        if (!mediaInput?.files?.length && !documentInput?.files?.length && !contentField?.value.trim()) {
+                        if (!pendingAttachments.length && !contentField?.value.trim()) {
                             contentField?.focus();
 
                             return;
                         }
+
+                        if (pendingAttachments.length >= 2) {
+                            await submitBatch(form, contentField, submit);
+
+                            return;
+                        }
+
+                        if (pendingAttachments.length === 1) {
+                            const single = pendingAttachments[0];
+                            const transfer = new DataTransfer();
+                            transfer.items.add(single.file);
+                            const target = single.file.type.startsWith('image/')
+                                || single.file.type.startsWith('video/')
+                                || single.file.type.startsWith('audio/')
+                                ? mediaInput
+                                : documentInput;
+                            target.files = transfer.files;
+                        }
+
+                        const payload = new FormData(form);
 
                         const response = await fetch(form.action, {
                             method: 'POST',
@@ -318,6 +447,7 @@
                         if (documentInput) {
                             documentInput.value = '';
                         }
+                        pendingAttachments.length = 0;
                         clearMediaPreview();
                         form.querySelector('[name="operation_key"]').value = crypto.randomUUID();
                         await refresh();
@@ -335,12 +465,19 @@
 
                             return;
                         }
-                        window.alert(@json(trans('topweb_chat::app.messages.send_failed')));
+                        const channelDown = document.getElementById('topweb-chat-poll-meta')
+                            ?.dataset.instanceStatus !== 'ready';
+                        const channelError = form?.querySelector('[data-channel-error]');
+
+                        if (channelDown && channelError) {
+                            channelError.classList.remove('hidden');
+                        } else {
+                            window.alert(@json(trans('topweb_chat::app.messages.send_failed')));
+                        }
                     } finally {
-                        submit?.toggleAttribute(
-                            'disabled',
-                            instanceStatus?.textContent !== 'ready'
-                        );
+                        const channelReady = document.getElementById('topweb-chat-poll-meta')
+                            ?.dataset.instanceStatus === 'ready';
+                        submit?.toggleAttribute('disabled', ! channelReady);
                     }
                 });
 
@@ -402,9 +539,33 @@
 
                 timeline.scrollTop = timeline.scrollHeight;
 
+                document.addEventListener('topwebchat:refresh-timeline', () => {
+                    refresh().catch((error) => {
+                        console.error('TopwebChat manual refresh failed.', error);
+                    });
+                });
+
+                let pollCount = 0;
+
+                const isContextQuiet = () => {
+                    const context = document.getElementById('topweb-chat-context');
+                    if (!context) return false;
+
+                    if (context.querySelector('details[open]')) return false;
+
+                    return !Array.from(
+                        context.querySelectorAll('textarea, input:not([type="hidden"]):not([type="submit"]):not([type="button"])')
+                    ).some((field) => (field.value ?? '').trim() !== '');
+                };
+
                 const poll = async () => {
                     try {
                         await refresh();
+                        pollCount += 1;
+
+                        if (pollCount % 5 === 0 && isContextQuiet()) {
+                            document.dispatchEvent(new CustomEvent('topwebchat:refresh-context'));
+                        }
                     } catch (error) {
                         updateSyncStatus(false);
                         reportClientEvent('error', 'client.refresh_failed', {

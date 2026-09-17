@@ -11,6 +11,11 @@ O repositório contém os dois modos de execução usados pelo projeto:
 
 O TopwebChat já possui cadastro e descoberta de sessões OpenWA, configuração de webhook assinado, sincronização de histórico, envio assíncrono, recebimento de eventos e relacionamento das conversas com pessoas e leads. A aceitação funcional de cada release continua dependendo dos testes automatizados e do checklist de produção; planejamento e pendências vivem no `ORCHESTRATOR-ROADMAP.md` e nos GitHub Issues.
 
+Na inbox do TopwebChat, as quatro filas operacionais são mantidas como filtros
+visíveis: `Minha fila`, `Sem atendente`, `Aguardando cliente` e `Todas as
+conversas`. Elas aparecem como uma grade compacta de cartões com contadores, em
+vez de uma faixa horizontal apertada, preservando a leitura em desktop e mobile.
+
 A base técnica atual é Krayin CRM 2.2, Laravel 12 e PHP 8.3.
 
 ## Arquitetura em uma visão
@@ -70,6 +75,23 @@ Os manifests versionados são:
 O fluxo esperado é: CI aprovado em `main`, publicação da imagem `ghcr.io/thinkindigital/topwebcrm:sha-<commit>` e atualização da stack TopwebCRM pela API do Portainer. Reiniciar uma task não equivale a atualizar a imagem.
 
 O runbook único de instalação, release, validação, backup e rollback está em `docs/operations/DEPLOYMENT.md`.
+
+### SetupThinkin
+
+`SetupThinkin.sh` automatiza o bootstrap completo quando `topwebcrm` é escolhido:
+
+- instala/inicia Docker e Swarm em Ubuntu/Debian quando ausentes;
+- descobre a rede overlay do Traefik em vez de assumir um nome fixo;
+- preserva Traefik/Portainer existentes ou instala a base ausente;
+- cria volumes e secrets externos, publica a stack pelo Portainer e aguarda `1/1`;
+- aceita `PORTAINER_API_KEY` por ambiente e nunca grava seu valor;
+- pode selecionar uma sessão `ready` de uma API OpenWA remota e cadastrar o webhook automaticamente.
+
+```bash
+PORTAINER_API_KEY='<token temporário>' bash SetupThinkin.sh install
+```
+
+O token pode vir de `PORTAINER_API_KEY_FILE` (arquivo `600`) para não passar pela linha de comando. A chave `OPENWA_API_KEY` ou `OPENWA_API_KEY_FILE` só é necessária quando o vínculo automático com uma API OpenWA remota for desejado. Sem token do Portainer, o instalador solicita credenciais de forma oculta.
 
 ## Documentação
 

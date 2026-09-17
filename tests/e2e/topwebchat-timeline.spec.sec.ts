@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { e2eFixture, requiredEnv } from './fixture';
 
 // Segurança (negative testing) — sem mocks: requisições reais contra o servidor.
-// Requer env: E2E_BASE_URL, E2E_USER_EMAIL, E2E_USER_PASSWORD (SEM topweb_chat.inbox.view),
-// E2E_CONVERSATION_ID, E2E_MESSAGE_ID (mídia, quando houver).
+// Requer env: E2E_BASE_URL, E2E_USER_EMAIL, E2E_USER_PASSWORD (SEM topweb_chat.inbox.view).
 
 const conversationUrl = (suffix = '') => (
-  `${process.env.E2E_BASE_URL ?? ''}/admin/topweb-chat/conversations/${process.env.E2E_CONVERSATION_ID}${suffix}`
+  `/admin/topweb-chat/conversations/${e2eFixture().operational_conversation_id}${suffix}`
 );
 
 test('sem login: conversa não vaza dados', async ({ page }) => {
@@ -18,10 +18,12 @@ test('sem login: conversa não vaza dados', async ({ page }) => {
 
 test('sem permissão: show, messages, media e client-events bloqueados', async ({ page }) => {
   await page.goto('/admin/login');
-  await page.locator('input[name="email"]').fill(process.env.E2E_USER_EMAIL ?? '');
-  await page.locator('input[name="password"]').fill(process.env.E2E_USER_PASSWORD ?? '');
-  await page.locator('form button.primary-button').click();
+  await page.locator('input[name="email"]').fill(requiredEnv('E2E_USER_EMAIL'));
+  await page.locator('input[name="password"]').fill(requiredEnv('E2E_USER_PASSWORD'));
+  await page.locator('button.primary-button').click();
   await expect(page).not.toHaveURL(/login/);
+  await page.goto('/admin/topweb-chat?queue=all');
+  const loginToken = await page.locator('input[name="_token"]').first().inputValue();
 
   for (const url of [conversationUrl(), conversationUrl('/messages')]) {
     const status = await page.evaluate(async (u) => {
@@ -31,10 +33,6 @@ test('sem permissão: show, messages, media e client-events bloqueados', async (
     expect([401, 403, 404]).toContain(status);
   }
 
-  // Mesmo seletor do show.blade.php (o layout admin não expõe meta csrf-token).
-  const token = await page.evaluate(() => (
-    document.querySelector('#topweb-chat-send-form [name="_token"]')?.getAttribute('value') ?? ''
-  ));
   const postStatus = await page.evaluate(async ({ url, csrf }) => {
     const res = await fetch(url, {
       method: 'POST',
@@ -43,8 +41,9 @@ test('sem permissão: show, messages, media e client-events bloqueados', async (
       body: JSON.stringify({ level: 'info', event: 'client.initialized', context: {} }),
     });
     return res.status;
-  }, { url: conversationUrl('/client-events'), csrf: token });
-  expect([401, 403, 404, 419]).toContain(postStatus);
+  }, { url: conversationUrl('/client-events'), csrf: loginToken });
+
+  expect(postStatus).toBe(403);
 });
 
 test('fragmento exige auth e respeita escopo', async ({ page }) => {
@@ -60,10 +59,11 @@ test('fragmento exige auth e respeita escopo', async ({ page }) => {
 
   // Usuário sem inbox.view: bloqueado também no fragmento.
   await page.goto('/admin/login');
-  await page.locator('input[name="email"]').fill(process.env.E2E_USER_EMAIL ?? '');
-  await page.locator('input[name="password"]').fill(process.env.E2E_USER_PASSWORD ?? '');
-  await page.locator('form button.primary-button').click();
+  await page.locator('input[name="email"]').fill(requiredEnv('E2E_USER_EMAIL'));
+  await page.locator('input[name="password"]').fill(requiredEnv('E2E_USER_PASSWORD'));
+  await page.locator('button.primary-button').click();
   await expect(page).not.toHaveURL(/login/);
+  await page.goto('/admin/topweb-chat?queue=all');
   const denied = await page.evaluate(async (u) => {
     const res = await fetch(u, { headers: { Accept: 'text/html' } });
     return res.status;
@@ -76,9 +76,9 @@ test('notas internas não vazam no fragmento sem permissão', async ({ browser }
   const adminCtx = await browser.newContext();
   const admin = await adminCtx.newPage();
   await admin.goto('/admin/login');
-  await admin.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL ?? '');
-  await admin.locator('input[name="password"]').fill(process.env.E2E_ADMIN_PASSWORD ?? '');
-  await admin.locator('form button.primary-button').click();
+  await admin.locator('input[name="email"]').fill(requiredEnv('E2E_ADMIN_EMAIL'));
+  await admin.locator('input[name="password"]').fill(requiredEnv('E2E_ADMIN_PASSWORD'));
+  await admin.locator('button.primary-button').click();
   await expect(admin).not.toHaveURL(/login/);
   await admin.goto(conversationUrl());
   const token = await admin.evaluate(() => (
@@ -97,9 +97,9 @@ test('notas internas não vazam no fragmento sem permissão', async ({ browser }
   const userCtx = await browser.newContext();
   const user = await userCtx.newPage();
   await user.goto('/admin/login');
-  await user.locator('input[name="email"]').fill(process.env.E2E_USER_EMAIL ?? '');
-  await user.locator('input[name="password"]').fill(process.env.E2E_USER_PASSWORD ?? '');
-  await user.locator('form button.primary-button').click();
+  await user.locator('input[name="email"]').fill(requiredEnv('E2E_USER_EMAIL'));
+  await user.locator('input[name="password"]').fill(requiredEnv('E2E_USER_PASSWORD'));
+  await user.locator('button.primary-button').click();
   await expect(user).not.toHaveURL(/login/);
   const body = await user.evaluate(async (u) => {
     const res = await fetch(u, { headers: { Accept: 'text/html' } });
@@ -110,31 +110,32 @@ test('notas internas não vazam no fragmento sem permissão', async ({ browser }
   await userCtx.close();
 });
 
-test('assignment sem permissão não atribui (bug #104 no status)', async ({ page }) => {
-  // NOTA: o status correto seria 403/419, mas as páginas de erro retornam 500
-  // (bug #104, Core, fora da E14). Aqui vale apenas: sem sucesso e sem atribuição.
+test('assignment sem permissão retorna 403 e não atribui', async ({ page }) => {
+  // Transferência não autorizada precisa falhar com a resposta contratual.
   await page.goto('/admin/login');
-  await page.locator('input[name="email"]').fill(process.env.E2E_USER_EMAIL ?? '');
-  await page.locator('input[name="password"]').fill(process.env.E2E_USER_PASSWORD ?? '');
-  await page.locator('form button.primary-button').click();
+  await page.locator('input[name="email"]').fill(requiredEnv('E2E_USER_EMAIL'));
+  await page.locator('input[name="password"]').fill(requiredEnv('E2E_USER_PASSWORD'));
+  await page.locator('button.primary-button').click();
   await expect(page).not.toHaveURL(/login/);
-  const status = await page.evaluate(async (u) => {
-    const res = await fetch(u, {
+  await page.goto('/admin/topweb-chat?queue=all');
+  const loginToken = await page.locator('input[name="_token"]').first().inputValue();
+  const status = await page.evaluate(async ({ url, csrf }) => {
+    const res = await fetch(url, {
       method: 'PUT', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': 'x' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
       body: JSON.stringify({ assigned_user_id: 1 }),
     });
     return res.status;
-  }, conversationUrl('/assignment'));
-  expect(status).not.toBe(200);
+  }, { url: conversationUrl('/assignment'), csrf: loginToken });
+  expect([401, 403]).toContain(status);
 });
 
 test('client-events rejeita nível e contexto inválidos', async ({ page }) => {
   // Login como ADMIN (tem permissão): a validação 422 precisa ser alcançável.
   await page.goto('/admin/login');
-  await page.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL ?? '');
-  await page.locator('input[name="password"]').fill(process.env.E2E_ADMIN_PASSWORD ?? '');
-  await page.locator('form button.primary-button').click();
+  await page.locator('input[name="email"]').fill(requiredEnv('E2E_ADMIN_EMAIL'));
+  await page.locator('input[name="password"]').fill(requiredEnv('E2E_ADMIN_PASSWORD'));
+  await page.locator('button.primary-button').click();
   await expect(page).not.toHaveURL(/login/);
   await page.goto(conversationUrl());
   await expect(page.locator('#topweb-chat-timeline')).toBeVisible();

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
+use Webkul\TopwebChat\Models\Message;
 use Webkul\User\Models\Role;
 use Webkul\User\Models\User;
 
@@ -142,6 +143,7 @@ function mediaStoreContext(): array
     ]);
     $user = User::query()->create([
         'name' => 'Admin', 'email' => 'admin@example.com', 'role_id' => $role->id, 'status' => true,
+        'can_view_sensitive_data' => true,
     ]);
     $instance = Instance::query()->create([
         'name' => 'E2E', 'provider' => 'openwa', 'status' => 'ready', 'enabled' => true,
@@ -174,6 +176,91 @@ it('stores outbound media with the same authorization as text', function () {
     $response->assertStatus(202);
     expect($response->json('message.type'))->toBe('image')
         ->and($response->json('message.status'))->toBe('queued');
+});
+
+it('refuses text outbound while the instance is not ready', function () {
+    [$user, $conversation] = mediaStoreContext();
+    $conversation->instance->forceFill(['status' => 'disconnected'])->save();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($user, 'user');
+
+    $this->postJson(
+        route('admin.topweb_chat.messages.store', $conversation),
+        ['content' => 'olá?', 'operation_key' => (string) Str::uuid(), '_token' => csrf_token()]
+    )->assertStatus(409);
+
+    expect(Message::query()->count())->toBe(0);
+});
+
+it('refuses outbound media without the sensitive-data grant', function () {
+    [$admin, $conversation] = mediaStoreContext();
+    $plain = User::query()->create([
+        'name' => 'Sem grant', 'email' => 'semgrant@example.com',
+        'role_id' => $admin->role_id, 'status' => true,
+    ]);
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($plain, 'user');
+    $token = csrf_token();
+
+    expect((bool) $plain->fresh()->can_view_sensitive_data)->toBeFalse();
+
+    $this->postJson(
+        route('admin.topweb_chat.messages.store', $conversation),
+        ['media' => UploadedFile::fake()->image('foto.jpg'), 'operation_key' => (string) Str::uuid(), '_token' => $token]
+    )->assertForbidden();
+
+    expect(Storage::disk('private')->allFiles())->toBeEmpty();
+});
+
+it('refuses media retry without the sensitive-data grant', function () {
+    [$admin, $conversation] = mediaStoreContext();
+    $plain = User::query()->create([
+        'name' => 'Sem grant', 'email' => 'semgrant@example.com',
+        'role_id' => $admin->role_id, 'status' => true,
+    ]);
+    $message = Message::query()->create([
+        'conversation_id' => $conversation->id, 'direction' => 'outgoing', 'type' => 'image',
+        'status' => 'failed', 'source' => 'topweb_chat', 'last_error' => 'x',
+    ]);
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($plain, 'user');
+
+    $this->postJson(
+        route('admin.topweb_chat.messages.retry', [$conversation, $message]),
+        ['_token' => csrf_token()]
+    )->assertForbidden();
+});
+
+it('still allows text without the sensitive-data grant', function () {
+    [$admin, $conversation] = mediaStoreContext();
+    $plain = User::query()->create([
+        'name' => 'Sem grant', 'email' => 'semgrant@example.com',
+        'role_id' => $admin->role_id, 'status' => true,
+    ]);
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($plain, 'user');
+
+    $this->postJson(
+        route('admin.topweb_chat.messages.store', $conversation),
+        ['content' => 'ok', 'operation_key' => (string) Str::uuid(), '_token' => csrf_token()]
+    )->assertStatus(202);
+});
+
+it('refuses outbound documents without the sensitive-data grant', function () {
+    [$admin, $conversation] = mediaStoreContext();
+    $plain = User::query()->create([
+        'name' => 'Sem grant', 'email' => 'semgrant@example.com',
+        'role_id' => $admin->role_id, 'status' => true,
+    ]);
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($plain, 'user');
+
+    $this->postJson(
+        route('admin.topweb_chat.messages.store', $conversation),
+        ['document' => UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf'), 'operation_key' => (string) Str::uuid(), '_token' => csrf_token()]
+    )->assertForbidden();
+
+    expect(Storage::disk('private')->allFiles())->toBeEmpty();
 });
 
 it('rejects media without permission or without file', function () {

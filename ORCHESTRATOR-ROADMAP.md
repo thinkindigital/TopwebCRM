@@ -10,7 +10,7 @@ Consolidar fontes de autoridade, glossario, ADRs, tracker e documentacao sem dup
 
 ### [**[E02] Visibilidade de Dados Sensiveis**](https://github.com/thinkindigital/TopwebCRM/issues/6) - `in_progress`
 
-Revalidar a protecao em UI, backend, APIs, busca, exportacao, arquivos e midias. Evidencias anteriores nao sao reproduziveis no checkout atual.
+Revalidar a protecao em UI, backend, APIs, busca, exportacao, arquivos e midias. Evidencias anteriores nao sao reproduziveis no checkout atual. O isolamento de Persons e Activities deve respeitar a carteira derivada de `Lead.user_id` e permanecer coberto por testes negativos.
 
 ### [**[E03] TopwebChat Core OpenWA**](https://github.com/thinkindigital/TopwebCRM/issues/7) - `in_progress`
 
@@ -42,7 +42,7 @@ Adicionar Evolution API somente apos contratos compartilhados e OpenWA estabiliz
 
 ### [**[E10] Propriedade e Distribuicao de Leads**](https://github.com/thinkindigital/TopwebCRM/issues/10) - `in_progress`
 
-Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. D04/E10-S01 entregue (#15 fechada; CI verde): autoridade por dono, fila A3 sem Lead, cascata na transferência. Restam #19 (ingestão) e #20 (roleta). V-06 destravada.
+Aplicar o dono do Lead como fronteira de acesso e, depois, implementar ingestao externa idempotente e roleta concorrente, justa e auditavel. n8n, Meta e Google sao dependencias externas informativas, verificadas somente por seus contratos de API. D04/E10-S01 entregue (#15 fechada; CI verde): autoridade por dono, fila A3 sem Lead, cascata na transferência. E10-S02 (#19) foi entregue com CI verde. E10-S03 (#20) tem o motor com pools persistidos, membership habilitado, fallback configurado, `AvailabilityResolver` runtime e constraints de região/score, com lock concorrente, desempate round-robin e auditoria sem PII. Essas regras foram validadas por smoke concorrente no MySQL dev e suíte Pest completa. Permanecem a superfície administrativa para manutenção dos pools, a origem futura de presença/capacidade e a integração de estratégias adicionais. V-06 destravada.
 
 ### [**[E11] Instalador Automatico TopwebCRM**](https://github.com/thinkindigital/TopwebCRM/issues/49) - `todo`
 
@@ -56,9 +56,11 @@ Catalogo de ferramentas com resolvedor de dependencias estilo SetupOrion: traefi
 
 Operar o engine Baileys do OpenWA como alternativa ao `whatsapp-web.js` via feature flag `TOPWEB_CHAT_ENGINE`, com paridade de `MessagingProvider` e smoke parametrizado. Restam migração assistida, auto-detecção e testes de integração no CI.
 
-### [**[E14] TopwebChat Commercial Workspace**](https://github.com/thinkindigital/TopwebCRM/issues/91) - `done`
+### [**[E14] TopwebChat Commercial Workspace**](https://github.com/thinkindigital/TopwebCRM/issues/91) - `in_progress`
 
-Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/programs/e14-commercial-workspace/MASTER.md`. Slices D-01, E-01–E-03, V-01–V-08 entregues (#92–#103); D04/E10-S01 entregue (#15). Cobertura em `docs/programs/e14-commercial-workspace/COVERAGE.md` (follow-ups executados; QA final aprovado). E08 mantém Kanban/dashboard/busca global.
+Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Activity, renderer fragmento). Fonte: `docs/programs/e14-commercial-workspace/MASTER.md`. A implementação das slices D-01, E-01–E-03, V-01–V-08 e R2-S1–S8 existe no checkout, mas a aceitação operacional ainda está aberta na recuperação obrigatória #108. E08 mantém Kanban/dashboard/busca global.
+
+Follow-up de promoção visual concluído em [#107](https://github.com/thinkindigital/TopwebCRM/issues/107). R1 e R1K são estilos configuráveis de um único workspace. A única issue ativa desta frente é a recuperação/auditoria de paridade [#108](https://github.com/thinkindigital/TopwebCRM/issues/108); ela permanece aberta e não deve ser marcada DONE nesta execução.
 
 ## Marcos
 
@@ -72,7 +74,7 @@ Workspace comercial do chat (fila A3, envelope sensível, próxima ação via Ac
 
 ## Ordem de execucao
 
-NEXT único: E10 (#19 ingestão, #20 roleta) e E08 (busca global/Kanban); E14 done.
+ACTIVE único: #108, recovery audit + live parity + completion gate do Commercial Workspace. E08, E10, E11 e os demais trabalhos ficam pausados até seu encerramento HITL.
 
 1. Concluir E01 e restaurar baseline de testes.
 2. Executar E03 e E05 em slices verticais pequenos.

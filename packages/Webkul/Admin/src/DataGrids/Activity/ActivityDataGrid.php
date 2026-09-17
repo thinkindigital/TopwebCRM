@@ -44,7 +44,8 @@ class ActivityDataGrid extends DataGrid
             ->where(function ($query) {
                 if ($userIds = bouncer()->getAuthorizedUserIds()) {
                     $query->whereIn('activities.user_id', $userIds)
-                        ->orWhereIn('activity_participants.user_id', $userIds);
+                        ->orWhereIn('activity_participants.user_id', $userIds)
+                        ->orWhereIn('leads.user_id', $userIds);
                 }
             })->groupBy('activities.id', 'leads.id', 'users.id');
 

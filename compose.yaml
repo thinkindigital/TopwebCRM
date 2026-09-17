@@ -16,6 +16,7 @@ x-topwebcrm-local-app: &topwebcrm-app
     REDIS_HOST: redis
   volumes:
     - ./:/var/www/html
+    - topwebcrm_vendor:/var/www/html/vendor
 
 services:
   app:
@@ -71,3 +72,4 @@ services:
 volumes:
   topwebcrm_mysql:
   topwebcrm_redis:
+  topwebcrm_vendor:
