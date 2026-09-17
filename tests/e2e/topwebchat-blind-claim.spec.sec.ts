@@ -28,23 +28,11 @@ test('agente sem concessão sensível e sem assignment assume item cego para si'
     await expect(admin).not.toHaveURL(/login/);
     await admin.goto(`/admin/topweb-chat/conversations/${fixture.blind_conversation_id}`);
 
-    const token = await admin.locator('input[name="_token"]').first().inputValue();
-    const response = await admin.evaluate(async ({ id, csrf }) => {
-      const result = await fetch(`/admin/topweb-chat/conversations/${id}/assignment`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-CSRF-TOKEN': csrf,
-        },
-        body: new URLSearchParams({ _method: 'PUT', assigned_user_id: '' }),
-      });
-
-      return result.status;
-    }, { id: fixture.blind_conversation_id, csrf: token });
-
-    expect([200, 302]).toContain(response);
+    admin.on('dialog', (dialog) => dialog.accept());
+    await admin.locator('.twp-release-form button').click();
+    await expect(admin).toHaveURL(/conversations/);
+    await admin.goto('/admin/topweb-chat?queue=unassigned');
+    await expect(admin.locator(`a[href*="/conversations/${fixture.blind_conversation_id}"]`)).toBeVisible();
   } finally {
     await admin.close();
   }

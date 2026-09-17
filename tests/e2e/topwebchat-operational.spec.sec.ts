@@ -84,7 +84,8 @@ test('sem grant: batch direto e exclusão de nota alheia negados, nada persiste'
     });
     return res.status;
   }, { id: conversationId, note: noteId as string, csrf: userToken });
-  expect(deleteDenied).toBe(403);
+  // The Admin ACL middleware returns 401 when the route permission is absent.
+  expect(deleteDenied).toBe(401);
 
   const contextDenied = await user.evaluate(async ({ id }) => {
     const res = await fetch(`/admin/topweb-chat/conversations/${id}/context`, { headers: { Accept: 'text/html' } });

@@ -58,7 +58,7 @@ test('nota interna: cria, aparece na timeline e exclui sem reload', async ({ pag
   await expect(page.locator('#topweb-chat-timeline')).toContainText(secret);
 
   page.on('dialog', (dialog) => dialog.accept());
-  const deleteButton = page.locator(`article[data-note-id] [data-note-delete]`).first();
+  const deleteButton = page.locator('.twp-note-item').filter({ hasText: secret }).locator('[data-note-delete]');
   const noteId = await deleteButton.getAttribute('data-note-id');
   await deleteButton.click();
   await expect(page.locator(`article[data-note-id="${noteId}"]`)).toHaveCount(0);
