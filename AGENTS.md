@@ -49,6 +49,7 @@ modulo. Nao replique essas regras aqui.
 - GitHub Issues sao a fonte persistente de escopo, dependencias e aceite.
 - `ORCHESTRATOR-ROADMAP.md` resume Epics com IDs estaveis e links diretos.
 - `.scratch/` pode apoiar elaboracao temporaria, mas nao substitui o GitHub.
+- Para autenticacao GitHub local, o PAT fica em `/root/.key_pat`; use-o apenas em memoria/processo como `GITHUB_TOKEN`, nunca o exiba, registre em logs ou versione seu conteudo.
 - Uma Epic so e `done` quando codigo, testes, documentacao e evidencia operacional concordam.
 - Ao final de uma DAG, execute a revisao de QA prevista pelo Orchestrator.
 
