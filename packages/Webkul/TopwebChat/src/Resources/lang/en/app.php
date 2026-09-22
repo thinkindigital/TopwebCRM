@@ -122,6 +122,8 @@ return [
         'queued' => 'Message queued for delivery.',
         'send_failed' => 'The message could not be sent.',
         'comm_failed' => 'No response from the server. Check your connection and try again. Error Code: A5001',
+        'error_provider_request_rejected' => 'Send rejected by the provider. Error Code: A5003',
+        'error_provider_request_outcome_unknown' => 'Send unconfirmed by the provider. Error Code: A5002',
         'retry' => 'Try again',
         'retry_queued' => 'Message queued again for delivery.',
         'retry_not_available' => 'This message cannot be retried safely.',
