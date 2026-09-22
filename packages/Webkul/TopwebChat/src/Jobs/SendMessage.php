@@ -14,6 +14,7 @@ use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\AttendanceService;
 use Webkul\TopwebChat\Services\RemoteIdentityService;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 class SendMessage implements ShouldQueue
 {
@@ -40,11 +41,12 @@ class SendMessage implements ShouldQueue
             ! $message->conversation->instance->enabled
             || $message->conversation->instance->status !== 'ready'
         ) {
-            $message->update([
-                'status' => 'failed',
-                'failed_at' => now(),
-                'last_error' => 'provider_instance_not_connected',
-            ]);
+            $this->recordFailure(
+                $message,
+                'provider_instance_not_connected',
+                TopwebChatError::API_PROVIDER_BUSY,
+                'failed'
+            );
 
             return;
         }
@@ -53,6 +55,8 @@ class SendMessage implements ShouldQueue
             'status' => 'sending',
             'attempts' => $message->attempts + 1,
             'last_error' => null,
+            'error_code' => null,
+            'trace_id' => null,
         ]);
 
         try {
@@ -77,34 +81,34 @@ class SendMessage implements ShouldQueue
                 );
             }
         } catch (ProviderRequestException $exception) {
-            // Incidente 20MB: rejeição era silenciosa; status vai ao log
-            // (sem JID, conteúdo ou corpo do provider).
-            Log::warning('TopwebChat provider send failed.', [
-                'message_id' => $message->id,
-                'instance_id' => $message->conversation->instance_id,
-                'status' => $exception->statusCode,
-                'outcome_unknown' => $exception->outcomeUnknown,
-            ]);
+            $errorCode = TopwebChatError::forProvider(
+                $exception->statusCode,
+                $exception->outcomeUnknown
+            );
 
             if ($exception->statusCode === 429) {
                 if (
                     $message->attempts
                     >= config('topweb-chat.send_max_attempts', 5)
                 ) {
-                    $message->update([
-                        'status' => 'failed',
-                        'failed_at' => now(),
-                        'last_error' => 'provider_rate_limit_exhausted',
-                    ]);
+                    $this->recordFailure(
+                        $message,
+                        'provider_rate_limit_exhausted',
+                        $errorCode,
+                        'failed',
+                        $exception->statusCode
+                    );
 
                     return;
                 }
 
-                $message->update([
-                    'status' => 'queued',
-                    'failed_at' => null,
-                    'last_error' => 'provider_rate_limited',
-                ]);
+                $this->recordFailure(
+                    $message,
+                    'provider_rate_limited',
+                    $errorCode,
+                    'queued',
+                    $exception->statusCode
+                );
 
                 self::dispatch($message->id)
                     ->delay(now()->addSeconds($exception->retryAfter));
@@ -112,21 +116,27 @@ class SendMessage implements ShouldQueue
                 return;
             }
 
-            $message->update([
-                'status' => $exception->outcomeUnknown ? 'unknown' : 'failed',
-                'failed_at' => now(),
-                'last_error' => $exception->outcomeUnknown
+            $this->recordFailure(
+                $message,
+                $exception->outcomeUnknown
                     ? 'provider_request_outcome_unknown'
                     : 'provider_request_rejected',
-            ]);
+                $errorCode,
+                $exception->outcomeUnknown ? 'unknown' : 'failed',
+                $exception->statusCode,
+                $exception->outcomeUnknown
+            );
 
             return;
         } catch (Throwable) {
-            $message->update([
-                'status' => 'unknown',
-                'failed_at' => now(),
-                'last_error' => 'provider_request_outcome_unknown',
-            ]);
+            $this->recordFailure(
+                $message,
+                'provider_request_outcome_unknown',
+                TopwebChatError::API_UNCLASSIFIED_FAILURE,
+                'unknown',
+                null,
+                true
+            );
 
             return;
         }
@@ -161,6 +171,8 @@ class SendMessage implements ShouldQueue
                 'status' => $result['status'] ?? 'sent',
                 'sent_at' => $sentAt,
                 'failed_at' => null,
+                'error_code' => null,
+                'trace_id' => null,
                 'metadata' => array_merge($message->metadata ?? [], [
                     'chat_type' => data_get($result, 'data.chat.isGroup')
                         ? 'group'
@@ -195,11 +207,12 @@ class SendMessage implements ShouldQueue
         $disk = Storage::disk(config('sensitive-data.storage.disk', 'private'));
 
         if (! $path || ! $disk->exists($path)) {
-            $message->update([
-                'status' => 'failed',
-                'failed_at' => now(),
-                'last_error' => 'media_file_missing',
-            ]);
+            $this->recordFailure(
+                $message,
+                'media_file_missing',
+                TopwebChatError::STO_OBJECT_NOT_FOUND,
+                'failed'
+            );
 
             return null;
         }
@@ -210,5 +223,40 @@ class SendMessage implements ShouldQueue
             'filename' => data_get($message->metadata, 'media_original_name', "arquivo-{$message->id}"),
             'caption' => $message->content,
         ];
+    }
+
+    private function recordFailure(
+        Message $message,
+        string $legacyError,
+        string $errorCode,
+        string $status,
+        ?int $httpStatus = null,
+        bool $outcomeUnknown = false
+    ): void {
+        $traceId = TopwebChatError::traceId();
+        $definition = TopwebChatError::definition($errorCode);
+
+        $message->update([
+            'status' => $status,
+            'failed_at' => $status === 'queued' ? null : now(),
+            'last_error' => $legacyError,
+            'error_code' => $errorCode,
+            'trace_id' => $traceId,
+        ]);
+
+        Log::log($definition['severity'], 'TopwebChat message send failed.', [
+            'error_code' => $errorCode,
+            'trace_id' => $traceId,
+            'technical_event' => $definition['event'],
+            'severity' => $definition['severity'],
+            'retryable' => $definition['retryable'],
+            'http_status' => $httpStatus ?? $definition['http_status'],
+            'operation' => 'message.send',
+            'message_id' => $message->id,
+            'instance_id' => $message->conversation->instance_id,
+            'provider' => $message->conversation->instance->provider,
+            'attempt' => $message->attempts,
+            'outcome_unknown' => $outcomeUnknown,
+        ]);
     }
 }

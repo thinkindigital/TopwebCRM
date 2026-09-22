@@ -2,7 +2,7 @@
 
 // Incidente 20MB: provider_request_rejected era silencioso no servidor
 // (só last_error no banco). Rejeição loga status para triagem rápida e a
-// timeline exibe código visível (A5002/A5003, #111).
+// timeline exibe código canônico e referência rastreável (#111).
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +14,7 @@ use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 beforeEach(function () {
     foreach (['topweb_chat_messages', 'topweb_chat_conversations', 'topweb_chat_instances'] as $table) {
@@ -58,6 +59,8 @@ beforeEach(function () {
         $table->timestamp('sent_at')->nullable();
         $table->timestamp('failed_at')->nullable();
         $table->string('last_error')->nullable();
+        $table->string('error_code', 32)->nullable();
+        $table->string('trace_id', 26)->nullable();
         $table->timestamps();
     });
 
@@ -107,10 +110,17 @@ it('logs provider rejections with status for fast triage', function () {
 
     app()->call([new SendMessage($message->id), 'handle']);
 
-    expect($message->fresh()->last_error)->toBe('provider_request_rejected');
-    Log::shouldHaveReceived('warning')->withArgs(function ($text, $context) {
-        return str_contains((string) $text, 'TopwebChat')
-            && ($context['status'] ?? null) === 413;
+    $failed = $message->fresh();
+
+    expect($failed->last_error)->toBe('provider_request_rejected')
+        ->and($failed->error_code)->toBe(TopwebChatError::API_OPERATION_REJECTED)
+        ->and($failed->trace_id)->toMatch('/^[0-9A-HJKMNP-TV-Z]{26}$/');
+    Log::shouldHaveReceived('log')->withArgs(function ($level, $text, $context) {
+        return $text === 'TopwebChat message send failed.'
+            && $level === 'warning'
+            && ($context['error_code'] ?? null) === TopwebChatError::API_OPERATION_REJECTED
+            && ($context['technical_event'] ?? null) === 'message.send.provider_rejected'
+            && ($context['http_status'] ?? null) === 413;
     });
 });
 
@@ -119,7 +129,17 @@ it('shows a visible code for rejected and unknown sends', function () {
         base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/timeline-messages.blade.php')
     );
 
-    expect($partial)->toContain('error_');
-    expect(trans('topweb_chat::app.messages.error_provider_request_rejected'))->toContain('A5003');
-    expect(trans('topweb_chat::app.messages.error_provider_request_outcome_unknown'))->toContain('A5002');
+    expect($partial)->toContain('error_code')
+        ->and($partial)->toContain('trace_id');
+    expect(trans('topweb_chat::app.messages.error_api_4001'))->toContain('API-4001')
+        ->and(trans('topweb_chat::app.messages.error_api_3001'))->toContain('API-3001');
+});
+
+it('maps legacy visible codes to the canonical catalog', function () {
+    expect(TopwebChatError::canonical('F4003'))->toBe(TopwebChatError::FIL_SIZE_LIMIT)
+        ->and(TopwebChatError::canonical('F4004'))->toBe(TopwebChatError::FIL_BATCH_SIZE_LIMIT)
+        ->and(TopwebChatError::canonical('A5003'))->toBe(TopwebChatError::API_OPERATION_REJECTED)
+        ->and(TopwebChatError::canonical('A5002'))->toBe(TopwebChatError::API_TIMEOUT)
+        ->and(TopwebChatError::canonical('NET-3001'))->toBe(TopwebChatError::NET_CONNECTION_FAILED)
+        ->and(TopwebChatError::translationKey('NET-3001'))->toBe('topweb_chat::app.messages.error_net_3001');
 });

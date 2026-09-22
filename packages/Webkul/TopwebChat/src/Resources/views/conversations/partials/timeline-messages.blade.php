@@ -30,27 +30,27 @@
         $eventDate = $eventAt?->toDateString();
     @endphp
     @if ($eventDate && $eventDate !== $previousDate)
-        @php($previousDate = $eventDate)
+        @php $previousDate = $eventDate; @endphp
         <div class="my-2 flex justify-center topweb-chat-date-separator">
             <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-300">{{ $eventDate === $today->toDateString() ? 'Hoje' : ($eventDate === $yesterday->toDateString() ? 'Ontem' : $eventAt->format('d/m/Y')) }}</span>
         </div>
     @endif
     @if ($event['kind'] === 'note')
-        @php($note = $event['model'])
+        @php $note = $event['model']; @endphp
         <div class="topweb-chat-internal-note mx-6 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" data-note-id="{{ $note->id }}">
             <p class="font-bold">Nota interna — visível só para a equipe</p>
             <p class="whitespace-pre-wrap break-words">{{ $note->content }}</p>
             <p class="opacity-70">{{ $note->user?->name }} · {{ $note->created_at?->format('d/m/Y H:i') }}</p>
         </div>
     @else
-    @php($message = $event['model'])
+    @php $message = $event['model']; @endphp
     <article
         class="twp-message {{ $message->direction === 'outgoing' ? 'twp-message-outgoing flex justify-end' : 'flex justify-start' }}"
         data-message-id="{{ $message->id }}"
     >
         <div class="twp-message-bubble max-w-[85%] rounded-2xl border px-4 py-2.5 shadow-sm sm:max-w-[72%] {{ $message->direction === 'outgoing' ? 'rounded-br-md' : 'rounded-bl-md' }}">
             @if ($message->hasMedia())
-                @php($mediaMime = (string) data_get($message->metadata, 'media_mime'))
+                @php $mediaMime = (string) data_get($message->metadata, 'media_mime'); @endphp
 
                 @if ($canViewSensitiveMedia && $message->mediaIsStored())
                     @if (str_starts_with($mediaMime, 'image/'))
@@ -89,10 +89,21 @@
                 @if ($message->status === 'unknown')
                     <span class="topweb-chat-status-unknown" title="@lang('topweb_chat::app.messages.status_unknown_hint')">@lang('topweb_chat::app.messages.status_unknown_hint')</span>
                 @endif
-                @if ($message->status === 'failed' && $message->last_error)
-                    @php($errorCodeKey = 'topweb_chat::app.messages.error_'.$message->last_error)
-                    <span class="text-red-600 dark:text-red-400" title="{{ $message->last_error }}">
-                        {{ \Illuminate\Support\Facades\Lang::has($errorCodeKey) ? trans($errorCodeKey) : $message->last_error }}
+                @if (in_array($message->status, ['failed', 'unknown'], true) && ($message->error_code || $message->last_error))
+                    @php
+                        $errorCode = \Webkul\TopwebChat\Support\TopwebChatError::canonical($message->error_code ?: $message->last_error);
+                        $errorCodeKey = \Webkul\TopwebChat\Support\TopwebChatError::translationKey($errorCode);
+                    @endphp
+                    <span
+                        class="text-red-600 dark:text-red-400"
+                        data-error-code="{{ $errorCode }}"
+                        data-trace-id="{{ $message->trace_id }}"
+                        title="{{ $message->trace_id }}"
+                    >
+                        {{ $errorCodeKey && \Illuminate\Support\Facades\Lang::has($errorCodeKey) ? trans($errorCodeKey) : $errorCode }}
+                        @if ($message->trace_id)
+                            <span class="font-mono">Ref: {{ \Webkul\TopwebChat\Support\TopwebChatError::shortTrace($message->trace_id) }}</span>
+                        @endif
                     </span>
                 @endif
                 @if (app(\Webkul\TopwebChat\Services\MessageService::class)->canRetry($message))

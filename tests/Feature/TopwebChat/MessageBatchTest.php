@@ -293,7 +293,7 @@ it('accepts valid files and reports invalid ones per item', function () {
         ->and($response->json('messages.0.operation_key'))->toBe($validKey)
         ->and($response->json('rejected'))->toHaveCount(1)
         ->and($response->json('rejected.0.operation_key'))->toBe($invalidKey)
-        ->and($response->json('rejected.0.error_code'))->toBe('type_not_supported');
+        ->and($response->json('rejected.0.error_code'))->toBe('FIL-1001');
     expect(Message::query()->count())->toBe(1);
 });
 

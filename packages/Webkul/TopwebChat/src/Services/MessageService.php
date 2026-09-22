@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Webkul\TopwebChat\Jobs\SendMessage;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
+use Webkul\TopwebChat\Support\TopwebChatError;
 use Webkul\User\Models\User;
 
 class MessageService
@@ -284,7 +285,7 @@ class MessageService
                 $rejected[] = [
                     'index' => $index,
                     'operation_key' => $item['operation_key'],
-                    'error_code' => $error,
+                    'error_code' => TopwebChatError::canonical($error),
                 ];
 
                 continue;
@@ -307,7 +308,7 @@ class MessageService
                 $rejected[] = [
                     'index' => $index,
                     'operation_key' => $item['operation_key'],
-                    'error_code' => 'rejected',
+                    'error_code' => TopwebChatError::FIL_PROCESSING_REJECTED,
                 ];
 
                 continue;
@@ -372,6 +373,8 @@ class MessageService
                 'status' => 'queued',
                 'failed_at' => null,
                 'last_error' => null,
+                'error_code' => null,
+                'trace_id' => null,
             ]);
 
             return $lockedMessage;

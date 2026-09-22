@@ -24,7 +24,7 @@
                     return;
                 }
 
-                const reportClientEvent = (level, event, context = {}) => {
+                const reportClientEvent = (level, event, context = {}, errorCode = null, traceId = null) => {
                     const token = form?.querySelector('[name="_token"]')?.value;
 
                     if (!token) {
@@ -41,7 +41,7 @@
                             'X-CSRF-TOKEN': token,
                             'X-Requested-With': 'XMLHttpRequest',
                         },
-                        body: JSON.stringify({ level, event, context }),
+                        body: JSON.stringify({ level, event, error_code: errorCode, trace_id: traceId, context }),
                     }).catch(() => {});
                 };
 
@@ -265,9 +265,8 @@
                     reportClientEvent('error', 'client.send_failed', {
                         timeline_connected: timeline.isConnected,
                         form_connected: form?.isConnected || false,
-                        message: 'client_file_too_large',
                         browser_locale: browserLocale,
-                    });
+                    }, 'FIL-6001');
                 };
 
                 const pendingAttachments = [];
@@ -314,6 +313,13 @@
                         state.dataset.trayState = item.key;
                         state.textContent = batchLabels[item.state] ?? item.state;
                         row.appendChild(state);
+
+                        if (item.error) {
+                            const error = document.createElement('span');
+                            error.className = 'font-mono text-red-600';
+                            error.textContent = `Error Code: ${item.error}`;
+                            row.appendChild(error);
+                        }
 
                         const remove = document.createElement('button');
                         remove.type = 'button';
@@ -397,7 +403,7 @@
                             pendingAttachments.splice(index, 1);
                         } else {
                             setTrayState(item.key, 'failed');
-                            item.error = failedByKey.get(key)?.error_code ?? 'rejected';
+                            item.error = failedByKey.get(key)?.error_code ?? 'FIL-4001';
                         }
                     }
 
@@ -480,9 +486,8 @@
                         reportClientEvent('error', 'client.send_failed', {
                             timeline_connected: timeline.isConnected,
                             form_connected: form?.isConnected || false,
-                            message: String(error?.message || error).slice(0, 240),
                             browser_locale: browserLocale,
-                        });
+                        }, error instanceof TypeError ? 'NET-3001' : 'API-9001');
                         if (String(error?.message || '').endsWith(':419')) {
                             window.alert(@json(trans('topweb_chat::app.messages.session_expired')));
                             window.location.reload();

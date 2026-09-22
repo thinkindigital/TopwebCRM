@@ -11,6 +11,7 @@ use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Services\ConversationAccessService;
 use Webkul\TopwebChat\Services\MessageService;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 class MessageController
 {
@@ -212,6 +213,8 @@ class MessageController
             'content' => $message->content,
             'status' => $message->status,
             'last_error' => $message->last_error,
+            'error_code' => TopwebChatError::canonical($message->error_code ?: $message->last_error),
+            'trace_id' => $message->trace_id,
             'sent_at' => ($message->sent_at ?? $message->created_at)?->toIso8601String(),
             'can_retry' => $this->messages->canRetry($message),
             'retry_url' => route('admin.topweb_chat.messages.retry', [
