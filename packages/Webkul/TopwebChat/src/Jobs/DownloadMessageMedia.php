@@ -68,7 +68,7 @@ class DownloadMessageMedia implements ShouldQueue
                 $providerMessageId
             );
         $size = strlen($contents);
-        $maximumSize = config('topweb-chat.openwa.media_max_bytes', 52428800);
+        $maximumSize = config('topweb-chat.openwa.media_max_bytes', 104858624);
 
         if ($size === 0 || $size > $maximumSize) {
             throw new RuntimeException('Provider media is empty or exceeds the configured limit.');
