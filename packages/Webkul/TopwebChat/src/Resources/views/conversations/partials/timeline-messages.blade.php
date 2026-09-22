@@ -52,7 +52,14 @@
             @if ($message->hasMedia())
                 @php($mediaMime = (string) data_get($message->metadata, 'media_mime'))
 
+                {{-- D2: ID do arquivo visível a ambos os perfis; nome/bytes só com concessão. --}}
+                <p class="mb-1 text-xs opacity-60">@lang('topweb_chat::app.messages.file_id_label', ['id' => $message->id])</p>
+
                 @if ($canViewSensitiveMedia && $message->mediaIsStored())
+                    @if (data_get($message->metadata, 'media_original_name'))
+                        <p class="mb-1 truncate text-sm font-medium">{{ data_get($message->metadata, 'media_original_name') }}</p>
+                    @endif
+
                     @if (str_starts_with($mediaMime, 'image/'))
                         <a href="{{ route('admin.topweb_chat.messages.media', [$conversation, $message]) }}" target="_blank" rel="noopener">
                             <img

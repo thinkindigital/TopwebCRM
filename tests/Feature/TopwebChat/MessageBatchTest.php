@@ -343,7 +343,10 @@ it('refuses batch uploads without the send permission', function () {
     expect(Message::query()->count())->toBe(0);
 });
 
-it('refuses batch uploads without the sensitive-data grant', function () {
+// D2 substitui S1 no upload: sem grant, o lote é permitido (operacao de
+// vendas); visualização/download seguem exigindo a concessão. Cobertura
+// completa em MediaGrantTest.
+it('allows batch uploads without the sensitive-data grant', function () {
     [$admin, $conversation] = batchContext();
     $plain = User::query()->create([
         'name' => 'Sem grant', 'email' => 'semgrant@example.com',
@@ -360,8 +363,8 @@ it('refuses batch uploads without the sensitive-data grant', function () {
             ],
             '_token' => csrf_token(),
         ]
-    )->assertForbidden();
+    )->assertStatus(202);
 
-    expect(Message::query()->count())->toBe(0);
-    expect(Storage::disk('private')->allFiles())->toBeEmpty();
+    expect(Message::query()->count())->toBe(1);
+    expect(Storage::disk('private')->allFiles())->not->toBeEmpty();
 });

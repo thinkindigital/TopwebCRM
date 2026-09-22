@@ -29,13 +29,8 @@ class MessageController
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
 
-        // S1: upload exige concessão individual; texto continua permitido.
-        if (
-            ($request->hasFile('media') || $request->hasFile('document'))
-            && ! $this->sensitiveData->canView($user)
-        ) {
-            abort(403);
-        }
+        // D2: upload é operação de vendas — exige só inbox.send + carteira.
+        // Visualização/download de mídia seguem exigindo a concessão individual.
 
         $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 104858624) / 1024));
 
@@ -129,8 +124,8 @@ class MessageController
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
 
-        // S1/S5: lote inteiro sob a concessão; nada é armazenado sem grant.
-        abort_unless($this->sensitiveData->canView($user), 403);
+        // D2: lote é operação de vendas — exige só inbox.send + carteira.
+        // Visualização/download de mídia seguem exigindo a concessão individual.
 
         $maxFiles = max(1, (int) config('topweb-chat.batch.max_files', 10));
         $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 104858624) / 1024));
@@ -181,10 +176,7 @@ class MessageController
         $user = auth()->guard('user')->user();
         $this->access->authorizeView($user, $conversation);
 
-        // S1: retry de mídia exige a mesma concessão do upload.
-        if ($message->hasMedia() && ! $this->sensitiveData->canView($user)) {
-            abort(403);
-        }
+        // D2: retry é reenvio (operação), não visualização — sem gate de concessão.
 
         try {
             $message = $this->messages->retry($message, $conversation, $user);

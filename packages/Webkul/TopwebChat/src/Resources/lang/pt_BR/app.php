@@ -106,6 +106,7 @@ return [
         'batch_state_failed' => 'Falhou',
         'batch_item_error' => 'Este arquivo foi rejeitado.',
         'media_restricted' => 'Mídia protegida. Seu usuário não possui acesso a dados sensíveis.',
+        'file_id_label' => 'Arquivo #:id',
         'new_messages' => 'Novas mensagens',
         'open_media' => 'Abrir arquivo recebido',
         'unsupported' => 'Mensagem não suportada',

@@ -385,7 +385,8 @@ class ConversationController
         return $this->sensitiveFiles->inline(
             (string) data_get($metadata, 'media_path'),
             (string) data_get($metadata, 'media_mime', 'application/octet-stream'),
-            (string) data_get($metadata, 'media_name', 'whatsapp-media.bin')
+            (string) (data_get($metadata, 'media_original_name')
+                ?? data_get($metadata, 'media_name', 'whatsapp-media.bin'))
         );
     }
 

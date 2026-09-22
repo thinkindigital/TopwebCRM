@@ -332,7 +332,9 @@ it('exposes the inline stage form with pipeline selection', function () {
         ->and($partial)->toContain('data-stage-error');
 });
 
-it('disables attachment controls without the sensitive-data grant', function () {
+// D2: anexo é operação de vendas — controles de imagem/documento ficam
+// habilitados sem a concessão (só localização segue restrita).
+it('keeps attachment controls enabled without the sensitive-data grant', function () {
     ['admin' => $admin, 'owned' => $owned] = accessMatrixContext();
     $this->actingAs($admin, 'user');
 
@@ -340,7 +342,7 @@ it('disables attachment controls without the sensitive-data grant', function () 
     $response->assertSee('id="topweb-chat-attach-menu"', false);
 
     $menu = substr($response->getContent(), strpos($response->getContent(), 'id="topweb-chat-attach-menu"'), 3000);
-    expect($menu)->toContain('disabled');
+    expect($menu)->not->toContain('disabled');
 
     $admin->forceFill(['can_view_sensitive_data' => true])->save();
 

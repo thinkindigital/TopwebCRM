@@ -192,7 +192,8 @@ it('refuses text outbound while the instance is not ready', function () {
     expect(Message::query()->count())->toBe(0);
 });
 
-it('refuses outbound media without the sensitive-data grant', function () {
+// D2: envio é operação de vendas — sem gate de concessão (ver MediaGrantTest).
+it('allows outbound media without the sensitive-data grant', function () {
     [$admin, $conversation] = mediaStoreContext();
     $plain = User::query()->create([
         'name' => 'Sem grant', 'email' => 'semgrant@example.com',
@@ -207,12 +208,13 @@ it('refuses outbound media without the sensitive-data grant', function () {
     $this->postJson(
         route('admin.topweb_chat.messages.store', $conversation),
         ['media' => UploadedFile::fake()->image('foto.jpg'), 'operation_key' => (string) Str::uuid(), '_token' => $token]
-    )->assertForbidden();
+    )->assertStatus(202);
 
-    expect(Storage::disk('private')->allFiles())->toBeEmpty();
+    expect(Message::query()->count())->toBe(1);
+    expect(Storage::disk('private')->allFiles())->not->toBeEmpty();
 });
 
-it('refuses media retry without the sensitive-data grant', function () {
+it('allows media retry without the sensitive-data grant', function () {
     [$admin, $conversation] = mediaStoreContext();
     $plain = User::query()->create([
         'name' => 'Sem grant', 'email' => 'semgrant@example.com',
@@ -220,7 +222,9 @@ it('refuses media retry without the sensitive-data grant', function () {
     ]);
     $message = Message::query()->create([
         'conversation_id' => $conversation->id, 'direction' => 'outgoing', 'type' => 'image',
-        'status' => 'failed', 'source' => 'topweb_chat', 'last_error' => 'x',
+        'status' => 'failed', 'source' => 'topweb_chat',
+        'last_error' => 'provider_instance_not_connected',
+        'metadata' => ['has_media' => true, 'media_status' => 'stored', 'media_path' => 'topweb-chat/outbound/x.jpg'],
     ]);
     $this->withSession(['_token' => 'csrf-test-token']);
     $this->actingAs($plain, 'user');
@@ -228,7 +232,9 @@ it('refuses media retry without the sensitive-data grant', function () {
     $this->postJson(
         route('admin.topweb_chat.messages.retry', [$conversation, $message]),
         ['_token' => csrf_token()]
-    )->assertForbidden();
+    )->assertStatus(202);
+
+    expect($message->fresh()->status)->toBe('queued');
 });
 
 it('still allows text without the sensitive-data grant', function () {
@@ -246,7 +252,8 @@ it('still allows text without the sensitive-data grant', function () {
     )->assertStatus(202);
 });
 
-it('refuses outbound documents without the sensitive-data grant', function () {
+// D2: envio é operação de vendas — sem gate de concessão (ver MediaGrantTest).
+it('allows outbound documents without the sensitive-data grant', function () {
     [$admin, $conversation] = mediaStoreContext();
     $plain = User::query()->create([
         'name' => 'Sem grant', 'email' => 'semgrant@example.com',
@@ -258,9 +265,10 @@ it('refuses outbound documents without the sensitive-data grant', function () {
     $this->postJson(
         route('admin.topweb_chat.messages.store', $conversation),
         ['document' => UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf'), 'operation_key' => (string) Str::uuid(), '_token' => csrf_token()]
-    )->assertForbidden();
+    )->assertStatus(202);
 
-    expect(Storage::disk('private')->allFiles())->toBeEmpty();
+    expect(Message::query()->count())->toBe(1);
+    expect(Storage::disk('private')->allFiles())->not->toBeEmpty();
 });
 
 it('rejects media without permission or without file', function () {
