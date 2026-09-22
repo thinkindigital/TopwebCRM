@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 use Webkul\TopwebChat\Exceptions\ProviderRequestException;
@@ -76,6 +77,15 @@ class SendMessage implements ShouldQueue
                 );
             }
         } catch (ProviderRequestException $exception) {
+            // Incidente 20MB: rejeição era silenciosa; status vai ao log
+            // (sem JID, conteúdo ou corpo do provider).
+            Log::warning('TopwebChat provider send failed.', [
+                'message_id' => $message->id,
+                'instance_id' => $message->conversation->instance_id,
+                'status' => $exception->statusCode,
+                'outcome_unknown' => $exception->outcomeUnknown,
+            ]);
+
             if ($exception->statusCode === 429) {
                 if (
                     $message->attempts

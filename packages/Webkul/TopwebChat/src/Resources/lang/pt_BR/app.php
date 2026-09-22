@@ -124,6 +124,8 @@ return [
         'queued' => 'Mensagem adicionada à fila de envio.',
         'send_failed' => 'Não foi possível enviar a mensagem.',
         'comm_failed' => 'Sem resposta do servidor. Verifique sua conexão e tente de novo. Error Code: A5001',
+        'error_provider_request_rejected' => 'Envio rejeitado pelo provedor. Error Code: A5003',
+        'error_provider_request_outcome_unknown' => 'Envio sem confirmação do provedor. Error Code: A5002',
         'retry' => 'Tentar novamente',
         'retry_queued' => 'Mensagem adicionada novamente à fila.',
         'retry_not_available' => 'Esta mensagem não pode ser reenviada com segurança.',
