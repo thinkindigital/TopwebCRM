@@ -190,6 +190,39 @@ it('blocks strangers on conversations owned by someone else', function () {
     $this->getJson(route('admin.topweb_chat.messages.index', $owned))->assertForbidden();
 });
 
+it('accepts canonical client telemetry with bounded context', function () {
+    ['owner' => $owner, 'owned' => $owned] = accessMatrixContext();
+
+    $this->actingAs($owner, 'user');
+
+    $this->postJson(route('admin.topweb_chat.client_events.store', $owned), [
+        'level' => 'error',
+        'event' => 'client.send_failed',
+        'error_code' => 'NET-9001',
+        'trace_id' => '01J00000000000000000000000',
+        'context' => [
+            'attempt' => 1,
+            'http_status' => 503,
+            'operation' => 'message.send',
+            'retryable' => 'conditional',
+            'cause_code' => 'API-9001',
+            'unexpected' => 'discarded',
+        ],
+    ])->assertAccepted();
+});
+
+it('rejects unknown client telemetry events and error codes', function () {
+    ['owner' => $owner, 'owned' => $owned] = accessMatrixContext();
+
+    $this->actingAs($owner, 'user');
+
+    $this->postJson(route('admin.topweb_chat.client_events.store', $owned), [
+        'level' => 'error',
+        'event' => 'client.arbitrary',
+        'error_code' => 'BAD-9999',
+    ])->assertUnprocessable();
+});
+
 it('documents unassigned conversation access for common users', function () {
     ['stranger' => $stranger, 'unassigned' => $unassigned, 'admin' => $admin] = accessMatrixContext();
 

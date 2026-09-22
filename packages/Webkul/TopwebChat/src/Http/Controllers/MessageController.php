@@ -3,10 +3,11 @@
 namespace Webkul\TopwebChat\Http\Controllers;
 
 use App\Services\SensitiveDataService;
-use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Webkul\TopwebChat\Exceptions\TopwebChatFailure;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Services\ConversationAccessService;
@@ -55,14 +56,8 @@ class MessageController
                     $media['caption'] ?? null,
                     $media['operation_key']
                 );
-            } catch (DomainException $exception) {
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'message' => $exception->getMessage(),
-                    ], 409);
-                }
-
-                return back()->with('error', $exception->getMessage());
+            } catch (TopwebChatFailure $exception) {
+                return $this->failureResponse($request, $exception);
             }
         } elseif ($request->hasFile('document')) {
             $document = $request->validate([
@@ -79,14 +74,8 @@ class MessageController
                     $document['caption'] ?? null,
                     $document['operation_key']
                 );
-            } catch (DomainException $exception) {
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'message' => $exception->getMessage(),
-                    ], 409);
-                }
-
-                return back()->with('error', $exception->getMessage());
+            } catch (TopwebChatFailure $exception) {
+                return $this->failureResponse($request, $exception);
             }
         } else {
             $data = $request->validate([
@@ -101,14 +90,8 @@ class MessageController
                     (string) ($data['content'] ?? ''),
                     $data['operation_key']
                 );
-            } catch (DomainException $exception) {
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'message' => $exception->getMessage(),
-                    ], 409);
-                }
-
-                return back()->with('error', $exception->getMessage());
+            } catch (TopwebChatFailure $exception) {
+                return $this->failureResponse($request, $exception);
             }
         }
 
@@ -163,10 +146,8 @@ class MessageController
                     ? ['content' => $data['content'], 'operation_key' => $data['content_operation_key']]
                     : null
             );
-        } catch (DomainException $exception) {
-            return response()->json([
-                'message' => $exception->getMessage(),
-            ], 409);
+        } catch (TopwebChatFailure $exception) {
+            return $this->failureResponse($request, $exception);
         }
 
         return response()->json($result, 202);
@@ -189,12 +170,8 @@ class MessageController
 
         try {
             $message = $this->messages->retry($message, $conversation, $user);
-        } catch (DomainException $exception) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => $exception->getMessage()], 409);
-            }
-
-            return back()->with('error', $exception->getMessage());
+        } catch (TopwebChatFailure $exception) {
+            return $this->failureResponse($request, $exception);
         }
 
         if ($request->expectsJson()) {
@@ -212,9 +189,10 @@ class MessageController
             'type' => $message->type,
             'content' => $message->content,
             'status' => $message->status,
-            'last_error' => $message->last_error,
-            'error_code' => TopwebChatError::canonical($message->error_code ?: $message->last_error),
-            'trace_id' => $message->trace_id,
+            'error' => TopwebChatError::envelope(
+                $message->error_code ?: $message->last_error,
+                $message->trace_id
+            ),
             'sent_at' => ($message->sent_at ?? $message->created_at)?->toIso8601String(),
             'can_retry' => $this->messages->canRetry($message),
             'retry_url' => route('admin.topweb_chat.messages.retry', [
@@ -222,5 +200,34 @@ class MessageController
                 'message' => $message->id,
             ]),
         ];
+    }
+
+    private function failureResponse(Request $request, TopwebChatFailure $exception): RedirectResponse|JsonResponse
+    {
+        $definition = TopwebChatError::definition($exception->errorCode);
+
+        Log::log($definition['severity'], 'TopwebChat message request rejected.', [
+            'error_code' => $exception->errorCode,
+            'trace_id' => $exception->traceId,
+            'technical_event' => $definition['event'],
+            'severity' => $definition['severity'],
+            'retryable' => $definition['retryable'],
+            'http_status' => $exception->httpStatus,
+            'operation' => 'message.queue',
+        ]);
+
+        $error = TopwebChatError::envelope(
+            $exception->errorCode,
+            $exception->traceId
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json(['error' => $error], $exception->httpStatus);
+        }
+
+        return back()->with(
+            'error',
+            $error['message'].' Ref: '.TopwebChatError::shortTrace($exception->traceId)
+        );
     }
 }

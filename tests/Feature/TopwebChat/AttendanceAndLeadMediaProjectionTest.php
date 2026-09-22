@@ -14,6 +14,7 @@ use Webkul\Admin\Http\Resources\ActivityResource;
 use Webkul\Contact\Models\Person;
 use Webkul\Installer\Database\Seeders\User\UserSeeder;
 use Webkul\Lead\Models\Lead;
+use Webkul\TopwebChat\Exceptions\TopwebChatFailure;
 use Webkul\TopwebChat\Jobs\DownloadMessageMedia;
 use Webkul\TopwebChat\Models\Attendance;
 use Webkul\TopwebChat\Models\Conversation;
@@ -30,6 +31,7 @@ use Webkul\TopwebChat\Services\MediaProjectionAccessService;
 use Webkul\TopwebChat\Services\MessageService;
 use Webkul\TopwebChat\Services\RemoteIdentityService;
 use Webkul\TopwebChat\Services\WebhookProcessor;
+use Webkul\TopwebChat\Support\TopwebChatError;
 use Webkul\User\Models\User;
 
 beforeEach(function () {
@@ -187,6 +189,8 @@ beforeEach(function () {
         $table->timestamp('read_at')->nullable();
         $table->timestamp('failed_at')->nullable();
         $table->string('last_error')->nullable();
+        $table->string('error_code', 32)->nullable();
+        $table->string('trace_id', 26)->nullable();
         $table->timestamps();
     });
 
@@ -201,6 +205,8 @@ beforeEach(function () {
         $table->timestamp('processed_at')->nullable();
         $table->timestamp('failed_at')->nullable();
         $table->text('last_error')->nullable();
+        $table->string('error_code', 32)->nullable();
+        $table->string('trace_id', 26)->nullable();
         $table->timestamps();
     });
 
@@ -453,6 +459,40 @@ it('renews an active attendance through the live webhook processor', function ()
         ))->exists())->toBeTrue();
 });
 
+it('classifies provider delivery failures received through a webhook', function () {
+    [, , , $conversation] = attendanceFixture();
+    $providerMessageId = 'provider-delivery-failed';
+    $message = Message::query()->create([
+        'conversation_id' => $conversation->id,
+        'provider_message_id' => $providerMessageId,
+        'provider_message_key' => hash('sha256', $conversation->instance_id.'|'.$providerMessageId),
+        'direction' => 'outgoing',
+        'type' => 'text',
+        'content' => 'Falhará',
+        'status' => 'sent',
+        'source' => 'topweb_chat',
+    ]);
+    $event = WebhookEvent::query()->create([
+        'instance_id' => $conversation->instance_id,
+        'event_key' => hash('sha256', 'webhook-delivery-failed'),
+        'event_type' => 'message.failed',
+        'payload' => [
+            'data' => [
+                'id' => $providerMessageId,
+                'status' => 'failed',
+            ],
+        ],
+        'status' => 'pending',
+    ]);
+
+    app(WebhookProcessor::class)->process($event);
+
+    expect($message->fresh()->status)->toBe('failed')
+        ->and($message->fresh()->error_code)->toBe(TopwebChatError::API_OPERATION_REJECTED)
+        ->and($message->fresh()->trace_id)->toMatch('/^[0-9A-HJKMNP-TV-Z]{26}$/')
+        ->and($event->fresh()->error_code)->toBeNull();
+});
+
 it('projects received media to the lead files without duplicating the private object', function () {
     Storage::fake('private');
     config()->set('sensitive-data.storage.disk', 'private');
@@ -495,6 +535,42 @@ it('projects received media to the lead files without duplicating the private ob
         ->and(Storage::disk('private')->allFiles())->toHaveCount(1)
         ->and($file->activity->leads()->whereKey($lead->id)->exists())->toBeTrue()
         ->and($file->activity->persons()->whereKey($person->id)->exists())->toBeTrue();
+});
+
+it('classifies inbound media storage failures without persisting exception text', function () {
+    Storage::fake('private');
+    config()->set('sensitive-data.storage.disk', 'private');
+    [, , , $conversation] = attendanceFixture();
+    $message = Message::query()->create([
+        'conversation_id' => $conversation->id,
+        'provider_message_id' => 'provider-contact-storage-failure',
+        'provider_message_key' => hash('sha256', 'provider-contact-storage-failure'),
+        'direction' => 'incoming',
+        'type' => 'contact',
+        'content' => "BEGIN:VCARD\nVERSION:3.0\nFN:Test Contact\nEND:VCARD",
+        'status' => 'received',
+        'source' => 'openwa',
+        'metadata' => [
+            'has_media' => true,
+            'media_status' => 'queued',
+        ],
+    ]);
+    $provider = mock(MessagingProvider::class);
+    $sensitiveFiles = mock(SensitiveFileService::class);
+    $sensitiveFiles->shouldReceive('put')->once()->andThrow(
+        new RuntimeException('private-api-key leaked')
+    );
+    $job = new DownloadMessageMedia($message->id);
+
+    try {
+        $job->handle($provider, $sensitiveFiles);
+    } catch (TopwebChatFailure $exception) {
+        $job->failed($exception);
+    }
+
+    expect($message->fresh()->error_code)->toBe(TopwebChatError::STO_UNAVAILABLE)
+        ->and($message->fresh()->trace_id)->toMatch('/^[0-9A-HJKMNP-TV-Z]{26}$/')
+        ->and($message->fresh()->last_error)->not->toContain('private-api-key');
 });
 
 it('reconciles stored media after a lead is associated with the conversation', function () {

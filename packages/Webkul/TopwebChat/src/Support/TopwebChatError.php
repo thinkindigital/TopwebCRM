@@ -2,6 +2,7 @@
 
 namespace Webkul\TopwebChat\Support;
 
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 
 final class TopwebChatError
@@ -16,7 +17,13 @@ final class TopwebChatError
 
     public const STO_OBJECT_NOT_FOUND = 'STO-2001';
 
-    public const NET_CONNECTION_FAILED = 'NET-3001';
+    public const NET_CONNECTION_TIMEOUT = 'NET-3001';
+
+    public const NET_CONNECTION_FAILED = self::NET_CONNECTION_TIMEOUT;
+
+    public const NET_UNCLASSIFIED_FAILURE = 'NET-9001';
+
+    public const STO_UNAVAILABLE = 'STO-3001';
 
     public const API_TIMEOUT = 'API-3001';
 
@@ -32,13 +39,21 @@ final class TopwebChatError
 
     public const WHK_PROCESSING_FAILED = 'WHK-5001';
 
+    public const WHK_MALFORMED = 'WHK-1001';
+
+    public const WHK_INVALID_SIGNATURE = 'WHK-2001';
+
+    public const WHK_EVENT_REJECTED = 'WHK-4001';
+
+    public const MSG_RETRY_NOT_AVAILABLE = 'MSG-4001';
+
     public static function canonical(?string $value): ?string
     {
         if ($value === null || $value === '') {
             return null;
         }
 
-        if (in_array($value, self::catalog(), true)) {
+        if (in_array($value, self::codes(), true)) {
             return $value;
         }
 
@@ -82,6 +97,27 @@ final class TopwebChatError
             : 'topweb_chat::app.messages.error_'.strtolower(str_replace('-', '_', $code));
     }
 
+    public static function envelope(
+        ?string $value,
+        ?string $traceId,
+        string $fallbackCode = self::API_UNCLASSIFIED_FAILURE
+    ): ?array {
+        if (($value === null || $value === '') && $traceId === null) {
+            return null;
+        }
+
+        $code = self::canonical($value) ?? $fallbackCode;
+        $translationKey = self::translationKey($code);
+
+        return [
+            'code' => $code,
+            'message' => $translationKey !== null && Lang::has($translationKey)
+                ? trans($translationKey)
+                : trans('topweb_chat::app.messages.send_failed'),
+            'trace_id' => $traceId,
+        ];
+    }
+
     public static function shortTrace(?string $traceId): ?string
     {
         return $traceId ? substr($traceId, 0, 8) : null;
@@ -120,11 +156,47 @@ final class TopwebChatError
                 'retryable' => false,
                 'http_status' => 404,
             ],
-            self::NET_CONNECTION_FAILED => [
-                'event' => 'client.connection.failed',
+            self::NET_CONNECTION_TIMEOUT => [
+                'event' => 'client.connection.timeout',
+                'severity' => 'warning',
+                'retryable' => true,
+                'http_status' => 504,
+            ],
+            self::NET_UNCLASSIFIED_FAILURE => [
+                'event' => 'client.connection.unclassified',
                 'severity' => 'warning',
                 'retryable' => true,
                 'http_status' => null,
+            ],
+            self::STO_UNAVAILABLE => [
+                'event' => 'attachment.storage.unavailable',
+                'severity' => 'error',
+                'retryable' => 'conditional',
+                'http_status' => 503,
+            ],
+            self::WHK_MALFORMED => [
+                'event' => 'webhook.validation.malformed',
+                'severity' => 'warning',
+                'retryable' => false,
+                'http_status' => 422,
+            ],
+            self::WHK_INVALID_SIGNATURE => [
+                'event' => 'webhook.security.invalid_signature',
+                'severity' => 'warning',
+                'retryable' => false,
+                'http_status' => 401,
+            ],
+            self::WHK_EVENT_REJECTED => [
+                'event' => 'webhook.validation.event_rejected',
+                'severity' => 'warning',
+                'retryable' => false,
+                'http_status' => 422,
+            ],
+            self::MSG_RETRY_NOT_AVAILABLE => [
+                'event' => 'message.retry.rejected',
+                'severity' => 'warning',
+                'retryable' => false,
+                'http_status' => 409,
             ],
             self::API_TIMEOUT => [
                 'event' => 'message.send.provider_timeout',
@@ -178,7 +250,7 @@ final class TopwebChatError
     }
 
     /** @return list<string> */
-    private static function catalog(): array
+    public static function codes(): array
     {
         return [
             self::FIL_INVALID_TYPE,
@@ -186,13 +258,19 @@ final class TopwebChatError
             self::FIL_BATCH_SIZE_LIMIT,
             self::FIL_PROCESSING_REJECTED,
             self::STO_OBJECT_NOT_FOUND,
-            self::NET_CONNECTION_FAILED,
+            self::NET_CONNECTION_TIMEOUT,
+            self::NET_UNCLASSIFIED_FAILURE,
+            self::STO_UNAVAILABLE,
             self::API_TIMEOUT,
             self::API_OPERATION_REJECTED,
             self::API_UNEXPECTED_RESPONSE,
             self::API_RATE_LIMITED,
             self::API_PROVIDER_BUSY,
             self::API_UNCLASSIFIED_FAILURE,
+            self::WHK_MALFORMED,
+            self::WHK_INVALID_SIGNATURE,
+            self::WHK_EVENT_REJECTED,
+            self::MSG_RETRY_NOT_AVAILABLE,
             self::WHK_PROCESSING_FAILED,
         ];
     }

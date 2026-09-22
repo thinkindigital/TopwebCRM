@@ -159,7 +159,7 @@ it('fails oversized attachments locally with FIL-6001 and flags dead connections
         'messages.comm_failed',
         'error instanceof TypeError'
     );
-    expect(trans('topweb_chat::app.messages.comm_failed'))->toContain('NET-3001');
+    expect(trans('topweb_chat::app.messages.comm_failed'))->toContain('NET-9001');
 });
 
 it('uses Topweb Digital branding without the legacy open-source footer copy', function () {

@@ -487,7 +487,7 @@
                             timeline_connected: timeline.isConnected,
                             form_connected: form?.isConnected || false,
                             browser_locale: browserLocale,
-                        }, error instanceof TypeError ? 'NET-3001' : 'API-9001');
+                        }, error instanceof TypeError ? 'NET-9001' : 'API-9001');
                         if (String(error?.message || '').endsWith(':419')) {
                             window.alert(@json(trans('topweb_chat::app.messages.session_expired')));
                             window.location.reload();

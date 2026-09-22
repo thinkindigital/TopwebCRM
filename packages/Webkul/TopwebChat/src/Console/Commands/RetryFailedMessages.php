@@ -53,6 +53,8 @@ class RetryFailedMessages extends Command
                     'status' => 'queued',
                     'failed_at' => null,
                     'last_error' => null,
+                    'error_code' => null,
+                    'trace_id' => null,
                 ]);
 
                 return true;

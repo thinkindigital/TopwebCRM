@@ -5,13 +5,17 @@ namespace Webkul\TopwebChat\Jobs;
 use App\Services\SensitiveFileService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
+use Webkul\TopwebChat\Exceptions\ProviderRequestException;
+use Webkul\TopwebChat\Exceptions\TopwebChatFailure;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\LeadMediaProjector;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 class DownloadMessageMedia implements ShouldQueue
 {
@@ -90,7 +94,11 @@ class DownloadMessageMedia implements ShouldQueue
             $extension
         );
 
-        $sensitiveFiles->put($path, $contents);
+        try {
+            $sensitiveFiles->put($path, $contents);
+        } catch (Throwable) {
+            throw new TopwebChatFailure(TopwebChatError::STO_UNAVAILABLE, 503);
+        }
 
         $mediaName = preg_replace(
             '/[\x00-\x1F\x7F]/u',
@@ -118,6 +126,36 @@ class DownloadMessageMedia implements ShouldQueue
 
         if ($message && ! $message->mediaIsStored()) {
             $this->updateStatus($message, 'failed');
+
+            $errorCode = match (true) {
+                $exception instanceof TopwebChatFailure => $exception->errorCode,
+                $exception instanceof ProviderRequestException => TopwebChatError::forProvider(
+                    $exception->statusCode,
+                    $exception->outcomeUnknown
+                ),
+                default => TopwebChatError::API_UNCLASSIFIED_FAILURE,
+            };
+            $traceId = $exception instanceof TopwebChatFailure
+                ? $exception->traceId
+                : TopwebChatError::traceId();
+
+            $message->update([
+                'last_error' => 'inbound_media_processing_failed',
+                'error_code' => $errorCode,
+                'trace_id' => $traceId,
+            ]);
+
+            $definition = TopwebChatError::definition($errorCode);
+            Log::log($definition['severity'], 'TopwebChat inbound media failed.', [
+                'error_code' => $errorCode,
+                'trace_id' => $traceId,
+                'technical_event' => 'attachment.download.failed',
+                'severity' => $definition['severity'],
+                'retryable' => $definition['retryable'],
+                'http_status' => $definition['http_status'],
+                'operation' => 'attachment.download',
+                'message_id' => $message->id,
+            ]);
         }
     }
 

@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Webkul\TopwebChat\Exceptions\ProviderRequestException;
 use Webkul\TopwebChat\Jobs\ReconcileInstance;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Providers\Contracts\MessagingProvider;
 use Webkul\TopwebChat\Services\WebhookUrlService;
+use Webkul\TopwebChat\Support\TopwebChatError;
 use Webkul\User\Models\User;
 
 class SettingsController
@@ -160,9 +162,30 @@ class SettingsController
 
             $instance->update(['last_synced_at' => now()]);
         } catch (\Throwable $exception) {
-            report($exception);
+            $errorCode = $exception instanceof ProviderRequestException
+                ? TopwebChatError::forProvider($exception->statusCode, $exception->outcomeUnknown)
+                : TopwebChatError::API_UNCLASSIFIED_FAILURE;
+            $traceId = TopwebChatError::traceId();
+            $definition = TopwebChatError::definition($errorCode);
 
-            return back()->with('error', $exception->getMessage());
+            Log::log($definition['severity'], 'TopwebChat webhook configuration failed.', [
+                'error_code' => $errorCode,
+                'trace_id' => $traceId,
+                'technical_event' => 'webhook.configure.failed',
+                'severity' => $definition['severity'],
+                'retryable' => $definition['retryable'],
+                'http_status' => $definition['http_status'],
+                'operation' => 'webhook.configure',
+                'instance_id' => $instance->id,
+            ]);
+
+            return back()->with('error', trans(
+                'topweb_chat::app.settings.webhook_configure_failed',
+                [
+                    'code' => $errorCode,
+                    'trace' => TopwebChatError::shortTrace($traceId),
+                ]
+            ));
         }
 
         return back()->with('success', trans('topweb_chat::app.settings.webhook_configured'));

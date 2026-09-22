@@ -4,10 +4,12 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Webkul\TopwebChat\Jobs\SendMessage;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Models\Message;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 beforeEach(function () {
     foreach (['topweb_chat_messages', 'topweb_chat_conversations', 'topweb_chat_instances'] as $table) {
@@ -65,6 +67,8 @@ beforeEach(function () {
         $table->timestamp('read_at')->nullable();
         $table->timestamp('failed_at')->nullable();
         $table->string('last_error')->nullable();
+        $table->string('error_code', 32)->nullable();
+        $table->string('trace_id', 26)->nullable();
         $table->timestamps();
     });
 
@@ -95,6 +99,10 @@ it('requeues only disconnected failures when the session is ready again', functi
         'conversation_id' => $conv->id, 'direction' => 'outgoing', 'type' => 'text',
         'content' => 'oi', 'status' => $status, 'source' => 'topweb_chat',
         'last_error' => $error, 'failed_at' => $failedAt,
+        'error_code' => $error === 'provider_instance_not_connected'
+            ? TopwebChatError::API_PROVIDER_BUSY
+            : null,
+        'trace_id' => $error ? (string) Str::ulid() : null,
     ]);
 
     $eligible = $mkMessage($mkConv($ready), 'failed', 'provider_instance_not_connected', now()->subHour());
@@ -109,6 +117,8 @@ it('requeues only disconnected failures when the session is ready again', functi
     $this->artisan('topweb-chat:retry-failed')->assertSuccessful();
 
     expect($eligible->fresh()->status)->toBe('queued')
+        ->and($eligible->fresh()->error_code)->toBeNull()
+        ->and($eligible->fresh()->trace_id)->toBeNull()
         ->and($unknown->fresh()->status)->toBe('unknown')
         ->and($otherError->fresh()->status)->toBe('failed')
         ->and($stale->fresh()->status)->toBe('failed')
