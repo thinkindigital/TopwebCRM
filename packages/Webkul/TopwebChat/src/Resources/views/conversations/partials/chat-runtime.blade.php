@@ -250,6 +250,24 @@
                     sent: @json(trans('topweb_chat::app.messages.batch_state_sent')),
                     failed: @json(trans('topweb_chat::app.messages.batch_state_failed')),
                     itemError: @json(trans('topweb_chat::app.messages.batch_item_error')),
+                    tooLarge: @json(trans('topweb_chat::app.messages.media_too_large')),
+                    commFailed: @json(trans('topweb_chat::app.messages.comm_failed')),
+                };
+
+                // #111: pré-checagem local — arquivo acima do limite nem é enviado.
+                const maxFileKb = Number(form?.dataset.maxFileKb || 0);
+                const oversized = () => pendingAttachments.some(
+                    (item) => maxFileKb > 0 && item.file.size > maxFileKb * 1024
+                );
+                const rejectOversized = () => {
+                    pendingAttachments.forEach((item) => setTrayState(item.key, 'failed'));
+                    window.alert(batchLabels.tooLarge);
+                    reportClientEvent('error', 'client.send_failed', {
+                        timeline_connected: timeline.isConnected,
+                        form_connected: form?.isConnected || false,
+                        message: 'client_file_too_large',
+                        browser_locale: browserLocale,
+                    });
                 };
 
                 const pendingAttachments = [];
@@ -407,6 +425,12 @@
                             return;
                         }
 
+                        if (oversized()) {
+                            rejectOversized();
+
+                            return;
+                        }
+
                         if (pendingAttachments.length >= 2) {
                             await submitBatch(form, contentField, submit);
 
@@ -462,6 +486,12 @@
                         if (String(error?.message || '').endsWith(':419')) {
                             window.alert(@json(trans('topweb_chat::app.messages.session_expired')));
                             window.location.reload();
+
+                            return;
+                        }
+                        // #111: sem resposta (rede morta) tem código próprio.
+                        if (error instanceof TypeError) {
+                            window.alert(batchLabels.commFailed);
 
                             return;
                         }

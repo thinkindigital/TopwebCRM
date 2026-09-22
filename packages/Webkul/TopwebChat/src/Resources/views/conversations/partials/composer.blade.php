@@ -6,6 +6,7 @@
         method="POST"
         action="{{ route('admin.topweb_chat.messages.store', $conversation) }}"
         data-batch-url="{{ route('admin.topweb_chat.messages.batch', $conversation) }}"
+        data-max-file-kb="{{ (int) (config('topweb-chat.openwa.media_max_bytes', 104858624) / 1024) }}"
         class="flex shrink-0 items-end gap-3 border-t border-gray-200 bg-white p-3 sm:p-4 dark:border-gray-800 dark:bg-gray-900 flex-shrink-0"
     >
         @csrf
