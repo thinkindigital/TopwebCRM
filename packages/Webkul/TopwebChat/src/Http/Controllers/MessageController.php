@@ -38,6 +38,8 @@ class MessageController
             $media = $request->validate([
                 'media' => ['required', 'file', "max:{$maxKilobytes}"],
                 'caption' => ['nullable', 'string', 'max:1000'],
+                // Slice 3: texto do composer vira legenda no arquivo único.
+                'content' => ['nullable', 'string', 'max:1000'],
                 'operation_key' => ['required', 'uuid'],
             ]);
 
@@ -46,7 +48,7 @@ class MessageController
                     $conversation,
                     $user,
                     $media['media'],
-                    $media['caption'] ?? null,
+                    $media['caption'] ?? $media['content'] ?? null,
                     $media['operation_key']
                 );
             } catch (DomainException $exception) {
@@ -62,6 +64,8 @@ class MessageController
             $document = $request->validate([
                 'document' => ['required', 'file', "max:{$maxKilobytes}"],
                 'caption' => ['nullable', 'string', 'max:1000'],
+                // Slice 3: texto do composer vira legenda no arquivo único.
+                'content' => ['nullable', 'string', 'max:1000'],
                 'operation_key' => ['required', 'uuid'],
             ]);
 
@@ -70,7 +74,7 @@ class MessageController
                     $conversation,
                     $user,
                     $document['document'],
-                    $document['caption'] ?? null,
+                    $document['caption'] ?? $document['content'] ?? null,
                     $document['operation_key']
                 );
             } catch (DomainException $exception) {

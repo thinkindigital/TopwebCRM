@@ -271,6 +271,67 @@ it('allows outbound documents without the sensitive-data grant', function () {
     expect(Storage::disk('private')->allFiles())->not->toBeEmpty();
 });
 
+// Slice 3: arquivo único + texto do composer vira legenda (o OpenWA aceita
+// caption; antes o `content` era silenciosamente descartado e chegava só o anexo).
+it('sends single-file text as caption', function () {
+    [$user, $conversation] = mediaStoreContext();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($user, 'user');
+
+    $response = $this->postJson(
+        route('admin.topweb_chat.messages.store', $conversation),
+        [
+            'media' => UploadedFile::fake()->image('foto.jpg'),
+            'content' => 'apartamento com vista definitiva',
+            'operation_key' => (string) Str::uuid(),
+            '_token' => csrf_token(),
+        ]
+    );
+
+    $response->assertStatus(202);
+    expect($response->json('message.content'))->toBe('apartamento com vista definitiva');
+    expect(Message::query()->count())->toBe(1);
+});
+
+it('prefers an explicit caption over composer text', function () {
+    [$user, $conversation] = mediaStoreContext();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($user, 'user');
+
+    $response = $this->postJson(
+        route('admin.topweb_chat.messages.store', $conversation),
+        [
+            'media' => UploadedFile::fake()->image('foto.jpg'),
+            'caption' => 'legenda explicita',
+            'content' => 'texto do composer',
+            'operation_key' => (string) Str::uuid(),
+            '_token' => csrf_token(),
+        ]
+    );
+
+    $response->assertStatus(202);
+    expect($response->json('message.content'))->toBe('legenda explicita');
+    expect(Message::query()->count())->toBe(1);
+});
+
+it('rejects single-file text beyond the caption limit', function () {
+    [$user, $conversation] = mediaStoreContext();
+    $this->withSession(['_token' => 'csrf-test-token']);
+    $this->actingAs($user, 'user');
+
+    $this->postJson(
+        route('admin.topweb_chat.messages.store', $conversation),
+        [
+            'media' => UploadedFile::fake()->image('foto.jpg'),
+            'content' => str_repeat('a', 1001),
+            'operation_key' => (string) Str::uuid(),
+            '_token' => csrf_token(),
+        ]
+    )->assertStatus(422);
+
+    expect(Message::query()->count())->toBe(0);
+});
+
 it('rejects media without permission or without file', function () {
     [$user, $conversation] = mediaStoreContext();
 
