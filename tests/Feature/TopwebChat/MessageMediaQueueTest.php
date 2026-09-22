@@ -174,3 +174,14 @@ it('rejects oversized and unsafe outbound media', function () {
     expect(Message::query()->count())->toBe(0);
     expect(Storage::disk('private')->allFiles())->toBeEmpty();
 });
+
+it('uses a single 102401KB per-file limit by default', function () {
+    // D1: limite único por arquivo (100MB + 1KB), igual em dev e produção.
+    expect(config('topweb-chat.openwa.media_max_bytes'))->toBe(102401 * 1024);
+});
+
+it('reports oversize failures with a visible error code', function () {
+    // #111: mensagem amigável + código para debug ágil.
+    expect(trans('topweb_chat::app.messages.media_too_large'))->toContain('F4003');
+    expect(trans('topweb_chat::app.messages.batch_too_large'))->toContain('F4004');
+});

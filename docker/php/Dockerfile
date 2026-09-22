@@ -22,6 +22,7 @@ RUN apt-get update \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
 
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/topwebcrm-uploads.ini
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
