@@ -311,7 +311,8 @@ it('rejects the whole batch when the instance is not ready', function () {
             ],
             '_token' => csrf_token(),
         ]
-    )->assertStatus(409);
+    )->assertStatus(503)
+        ->assertJsonPath('error.code', 'API-7001');
 
     expect(Message::query()->count())->toBe(0);
     expect(Storage::disk('private')->allFiles())->toBeEmpty();

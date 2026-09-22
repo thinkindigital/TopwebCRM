@@ -3,10 +3,11 @@
 namespace Webkul\TopwebChat\Services;
 
 use App\Services\SensitiveFileService;
-use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Throwable;
+use Webkul\TopwebChat\Exceptions\TopwebChatFailure;
 use Webkul\TopwebChat\Jobs\ProjectLeadMedia;
 use Webkul\TopwebChat\Jobs\SendMessage;
 use Webkul\TopwebChat\Models\Conversation;
@@ -89,9 +90,7 @@ class MessageService
             $instance = $lockedConversation->instance()->first();
 
             if (! $instance?->enabled || $instance->status !== 'ready') {
-                throw new DomainException(
-                    trans('topweb_chat::app.messages.instance_not_connected')
-                );
+                throw new TopwebChatFailure(TopwebChatError::API_PROVIDER_BUSY, 503);
             }
 
             return Message::query()->create([
@@ -138,17 +137,13 @@ class MessageService
         $maximumBytes = (int) config('topweb-chat.openwa.media_max_bytes', 104858624);
 
         if ($file->getSize() === false || $file->getSize() > $maximumBytes) {
-            throw new DomainException(
-                trans('topweb_chat::app.messages.media_too_large')
-            );
+            throw new TopwebChatFailure(TopwebChatError::FIL_SIZE_LIMIT, 422);
         }
 
         $type = self::outboundMediaType((string) $file->getMimeType());
 
         if ($type === null) {
-            throw new DomainException(
-                trans('topweb_chat::app.messages.media_type_not_supported')
-            );
+            throw new TopwebChatFailure(TopwebChatError::FIL_INVALID_TYPE, 422);
         }
 
         $message = DB::transaction(function () use (
@@ -200,12 +195,14 @@ class MessageService
             $instance = $lockedConversation->instance()->first();
 
             if (! $instance?->enabled || $instance->status !== 'ready') {
-                throw new DomainException(
-                    trans('topweb_chat::app.messages.instance_not_connected')
-                );
+                throw new TopwebChatFailure(TopwebChatError::API_PROVIDER_BUSY, 503);
             }
 
-            $path = $this->sensitiveFiles->store($file, 'topweb-chat/outbound');
+            try {
+                $path = $this->sensitiveFiles->store($file, 'topweb-chat/outbound');
+            } catch (Throwable $exception) {
+                throw new TopwebChatFailure(TopwebChatError::STO_UNAVAILABLE, 503);
+            }
 
             return Message::query()->create([
                 'conversation_id' => $lockedConversation->id,
@@ -273,9 +270,7 @@ class MessageService
         $instance = $conversation->instance()->first();
 
         if (! $instance?->enabled || $instance->status !== 'ready') {
-            throw new DomainException(
-                trans('topweb_chat::app.messages.instance_not_connected')
-            );
+            throw new TopwebChatFailure(TopwebChatError::API_PROVIDER_BUSY, 503);
         }
 
         $accepted = [];
@@ -307,11 +302,12 @@ class MessageService
                     null,
                     $item['operation_key']
                 );
-            } catch (DomainException $exception) {
+            } catch (TopwebChatFailure $exception) {
                 $rejected[] = [
                     'index' => $index,
                     'operation_key' => $item['operation_key'],
-                    'error_code' => TopwebChatError::FIL_PROCESSING_REJECTED,
+                    'error_code' => $exception->errorCode,
+                    'trace_id' => $exception->traceId,
                 ];
 
                 continue;
@@ -359,17 +355,13 @@ class MessageService
                 ->findOrFail($message->id);
 
             if (! $this->canRetry($lockedMessage)) {
-                throw new DomainException(
-                    trans('topweb_chat::app.messages.retry_not_available')
-                );
+                throw new TopwebChatFailure(TopwebChatError::MSG_RETRY_NOT_AVAILABLE, 409);
             }
 
             $instance = $lockedConversation->instance()->first();
 
             if (! $instance?->enabled || $instance->status !== 'ready') {
-                throw new DomainException(
-                    trans('topweb_chat::app.messages.instance_not_connected')
-                );
+                throw new TopwebChatFailure(TopwebChatError::API_PROVIDER_BUSY, 503);
             }
 
             $lockedMessage->update([

@@ -4,10 +4,12 @@ namespace Webkul\TopwebChat\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Webkul\TopwebChat\Jobs\DownloadMessageMedia;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
 use Webkul\TopwebChat\Models\WebhookEvent;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 class WebhookProcessor
 {
@@ -30,6 +32,8 @@ class WebhookProcessor
             'processed_at' => now(),
             'failed_at' => null,
             'last_error' => null,
+            'error_code' => null,
+            'trace_id' => null,
         ]);
     }
 
@@ -182,9 +186,23 @@ class WebhookProcessor
             } elseif (in_array($status, ['read', 'read_self', 'played', 'played_self'], true)) {
                 $updates['read_at'] = $statusAt;
             } elseif ($status === 'failed' && ! $this->isFinalDeliveryState($message->status)) {
+                $traceId = TopwebChatError::traceId();
                 $updates['status'] = 'failed';
                 $updates['failed_at'] = $statusAt;
                 $updates['last_error'] = 'provider_status_'.$status;
+                $updates['error_code'] = TopwebChatError::API_OPERATION_REJECTED;
+                $updates['trace_id'] = $traceId;
+
+                Log::warning('TopwebChat provider delivery failed.', [
+                    'error_code' => TopwebChatError::API_OPERATION_REJECTED,
+                    'trace_id' => $traceId,
+                    'technical_event' => 'message.delivery.provider_rejected',
+                    'severity' => 'warning',
+                    'retryable' => false,
+                    'http_status' => 502,
+                    'operation' => 'message.delivery',
+                    'message_id' => $message->id,
+                ]);
             }
 
             $message->update($updates);

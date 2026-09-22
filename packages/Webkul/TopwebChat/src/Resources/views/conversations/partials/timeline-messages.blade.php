@@ -98,16 +98,18 @@
                 @endif
                 @if (in_array($message->status, ['failed', 'unknown'], true) && ($message->error_code || $message->last_error))
                     @php
-                        $errorCode = \Webkul\TopwebChat\Support\TopwebChatError::canonical($message->error_code ?: $message->last_error);
-                        $errorCodeKey = \Webkul\TopwebChat\Support\TopwebChatError::translationKey($errorCode);
+                        $error = \Webkul\TopwebChat\Support\TopwebChatError::envelope(
+                            $message->error_code ?: $message->last_error,
+                            $message->trace_id
+                        );
                     @endphp
                     <span
                         class="text-red-600 dark:text-red-400"
-                        data-error-code="{{ $errorCode }}"
+                        data-error-code="{{ $error['code'] }}"
                         data-trace-id="{{ $message->trace_id }}"
                         title="{{ $message->trace_id }}"
                     >
-                        {{ $errorCodeKey && \Illuminate\Support\Facades\Lang::has($errorCodeKey) ? trans($errorCodeKey) : $errorCode }}
+                        {{ $error['message'] }}
                         @if ($message->trace_id)
                             <span class="font-mono">Ref: {{ \Webkul\TopwebChat\Support\TopwebChatError::shortTrace($message->trace_id) }}</span>
                         @endif

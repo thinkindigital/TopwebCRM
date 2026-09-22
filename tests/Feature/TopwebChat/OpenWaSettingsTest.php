@@ -141,6 +141,35 @@ it('keeps Settings available when OpenWA cannot be reached', function () {
         ->and($view->getData()['openWaUnavailable'])->toBeTrue();
 });
 
+it('sanitizes webhook configuration failures before showing them to administrators', function () {
+    $instance = Instance::query()->create([
+        'name' => 'OpenWA local',
+        'provider' => 'openwa',
+        'session_uuid' => 'be23262e-5ffb-405b-95e3-8658f043fb30',
+        'token' => 'private-api-key',
+        'webhook_secret' => 'private-webhook-secret',
+        'base_url' => 'http://openwa.test:2785',
+        'enabled' => true,
+    ]);
+
+    $provider = mock(MessagingProvider::class, function (MockInterface $mock) {
+        $mock->shouldReceive('configureWebhook')->once()->andThrow(
+            new RuntimeException('provider token private-api-key leaked')
+        );
+    });
+    $urls = mock(WebhookUrlService::class, function (MockInterface $mock) use ($instance) {
+        $mock->shouldReceive('forInstance')->once()->with($instance)->andReturn('https://crm.test/webhook');
+    });
+
+    $response = (new SettingsController($provider, $urls))->configureWebhook($instance);
+    $flash = session()->get('error');
+
+    expect($response->isRedirect())->toBeTrue()
+        ->and($flash)->toContain('API-9001')
+        ->and($flash)->toMatch('/Ref: [0-9A-HJKMNP-TV-Z]{8}/')
+        ->and($flash)->not->toContain('private-api-key');
+});
+
 it('stores only complete OpenWA sessions', function () {
     Bus::fake();
 

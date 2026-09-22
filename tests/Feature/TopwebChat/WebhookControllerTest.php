@@ -1,11 +1,13 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Webkul\Admin\Http\Middleware\Bouncer;
 use Webkul\Admin\Http\Middleware\Locale;
 use Webkul\TopwebChat\Http\Controllers\WebhookController;
 use Webkul\TopwebChat\Models\Instance;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 it('keeps the OpenWA webhook outside administrative middleware', function () {
     $middleware = Route::getRoutes()
@@ -65,5 +67,66 @@ it('returns JSON validation errors instead of redirecting invalid webhooks', fun
 
     expect($response->getStatusCode())->toBe(422)
         ->and($response->headers->get('content-type'))->toContain('application/json')
-        ->and($response->getData(true))->toHaveKey('errors.event');
+        ->and($response->getData(true)['error']['code'])->toBe(TopwebChatError::WHK_MALFORMED)
+        ->and($response->getData(true)['error']['trace_id'])->toMatch('/^[0-9A-HJKMNP-TV-Z]{26}$/');
+});
+
+it('rejects invalid webhook signatures without logging the provided signature', function () {
+    Log::spy();
+    $payload = json_encode([
+        'event' => 'test',
+        'data' => [],
+    ]);
+    $request = Request::create(
+        '/api/topweb-chat/webhooks/openwa/1',
+        'POST',
+        server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_OPENWA_SIGNATURE' => 'sha256=attacker-controlled-signature',
+        ],
+        content: $payload,
+    );
+    $instance = new Instance([
+        'provider' => 'openwa',
+        'webhook_secret' => 'test-webhook-secret',
+        'enabled' => true,
+    ]);
+
+    $response = app(WebhookController::class)->store($request, $instance);
+
+    expect($response->getStatusCode())->toBe(401)
+        ->and($response->getData(true)['error']['code'])->toBe(TopwebChatError::WHK_INVALID_SIGNATURE);
+    Log::shouldHaveReceived('log')->withArgs(function ($level, $message, $context) {
+        return $message === 'TopwebChat webhook rejected.'
+            && $level === 'warning'
+            && ($context['error_code'] ?? null) === TopwebChatError::WHK_INVALID_SIGNATURE
+            && ! array_key_exists('provided', $context);
+    });
+});
+
+it('rejects unsupported webhook events with a canonical error envelope', function () {
+    $secret = 'test-webhook-secret';
+    $payload = json_encode([
+        'event' => 'unknown.event',
+        'data' => ['value' => 'test'],
+    ]);
+    $request = Request::create(
+        '/api/topweb-chat/webhooks/openwa/1',
+        'POST',
+        server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_OPENWA_SIGNATURE' => 'sha256='.hash_hmac('sha256', $payload, $secret),
+        ],
+        content: $payload,
+    );
+    $instance = new Instance([
+        'provider' => 'openwa',
+        'webhook_secret' => $secret,
+        'enabled' => true,
+    ]);
+
+    $response = app(WebhookController::class)->store($request, $instance);
+
+    expect($response->getStatusCode())->toBe(422)
+        ->and($response->getData(true)['error']['code'])->toBe(TopwebChatError::WHK_EVENT_REJECTED);
 });

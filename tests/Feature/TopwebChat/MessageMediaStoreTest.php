@@ -189,7 +189,8 @@ it('refuses text outbound while the instance is not ready', function () {
     $this->postJson(
         route('admin.topweb_chat.messages.store', $conversation),
         ['content' => 'olá?', 'operation_key' => (string) Str::uuid(), '_token' => csrf_token()]
-    )->assertStatus(409);
+    )->assertStatus(503)
+        ->assertJsonPath('error.code', 'API-7001');
 
     expect(Message::query()->count())->toBe(0);
 });

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -319,9 +320,10 @@ class ConversationController
                         'message' => $message,
                     ])
                     : null,
-                'last_error' => $message->last_error,
-                'error_code' => TopwebChatError::canonical($message->error_code ?: $message->last_error),
-                'trace_id' => $message->trace_id,
+                'error' => TopwebChatError::envelope(
+                    $message->error_code ?: $message->last_error,
+                    $message->trace_id
+                ),
             ]);
 
         return response()->json([
@@ -341,10 +343,32 @@ class ConversationController
 
         $validated = $request->validate([
             'level' => ['required', 'in:info,warning,error'],
-            'event' => ['required', 'string', 'max:80'],
-            'error_code' => ['nullable', 'string', 'regex:/^[A-Z]{2,4}-[1-9][0-9]{3}$/'],
+            'event' => ['required', Rule::in([
+                'client.initialized',
+                'client.send_failed',
+                'client.refresh_failed',
+            ])],
+            'error_code' => ['nullable', Rule::in(TopwebChatError::codes())],
             'trace_id' => ['nullable', 'string', 'size:26', 'regex:/^[0-9A-HJKMNP-TV-Z]{26}$/'],
             'context' => ['nullable', 'array'],
+            'context.payload_last_id' => ['nullable', 'string', 'max:32'],
+            'context.dom_last_id' => ['nullable', 'string', 'max:32'],
+            'context.timeline_connected' => ['nullable', 'boolean'],
+            'context.form_connected' => ['nullable', 'boolean'],
+            'context.scroll_top' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'context.scroll_height' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'context.client_height' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'context.browser_locale' => [
+                'nullable',
+                'string',
+                'max:35',
+                'regex:/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{2,8}){0,3}$/',
+            ],
+            'context.attempt' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'context.http_status' => ['nullable', 'integer', 'between:100,599'],
+            'context.operation' => ['nullable', 'string', 'max:80'],
+            'context.retryable' => ['nullable', 'in:true,false,conditional'],
+            'context.cause_code' => ['nullable', Rule::in(TopwebChatError::codes())],
         ]);
 
         $allowedContext = collect($validated['context'] ?? [])->only([
@@ -356,6 +380,11 @@ class ConversationController
             'scroll_height',
             'client_height',
             'browser_locale',
+            'attempt',
+            'http_status',
+            'operation',
+            'retryable',
+            'cause_code',
         ])->all();
 
         Log::channel('topweb_chat_client')->log(
@@ -367,6 +396,7 @@ class ConversationController
                 'error_code' => $validated['error_code'] ?? null,
                 'trace_id' => $validated['trace_id'] ?? null,
                 'technical_event' => $validated['event'],
+                'environment' => app()->environment(),
                 'user_agent' => mb_substr((string) $request->userAgent(), 0, 255),
             ])
         );

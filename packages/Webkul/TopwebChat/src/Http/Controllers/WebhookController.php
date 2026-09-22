@@ -9,9 +9,34 @@ use Illuminate\Support\Facades\Validator;
 use Webkul\TopwebChat\Jobs\ProcessWebhookEvent;
 use Webkul\TopwebChat\Models\Instance;
 use Webkul\TopwebChat\Models\WebhookEvent;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 class WebhookController
 {
+    /** @var list<string> */
+    private const SUPPORTED_EVENTS = [
+        'test',
+        'message.received',
+        'message.sent',
+        'message.ack',
+        'message.failed',
+        'message.revoked',
+        'message.reaction',
+        'message.edited',
+        'session.status',
+        'session.authenticated',
+        'session.disconnected',
+        'group.join',
+        'group.leave',
+        'group.update',
+        'group.join_request',
+        'call.received',
+        'call.accepted',
+        'call.rejected',
+        'call.missed',
+        'status.received',
+    ];
+
     public function store(Request $request, Instance $instance): JsonResponse
     {
         abort_unless($instance->enabled && $instance->isOpenWA(), 404);
@@ -22,11 +47,11 @@ class WebhookController
         $rawBody = $request->getContent();
 
         if (! $this->validateHmac($rawBody, $signature, $secret)) {
-            Log::warning('Invalid OpenWA webhook signature', [
-                'instance_id' => $instance->id,
-                'provided' => $signature,
-            ]);
-            abort(401, 'Invalid signature');
+            return $this->errorResponse(
+                TopwebChatError::WHK_INVALID_SIGNATURE,
+                401,
+                ['instance_id' => $instance->id]
+            );
         }
 
         $validator = Validator::make($request->all(), [
@@ -39,13 +64,29 @@ class WebhookController
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Invalid OpenWA webhook payload.',
-                'errors' => $validator->errors(),
-            ], 422);
+            return $this->errorResponse(
+                TopwebChatError::WHK_MALFORMED,
+                422,
+                [
+                    'instance_id' => $instance->id,
+                    'validation_errors' => $validator->errors()->toArray(),
+                ]
+            );
         }
 
         $data = $validator->validated();
+
+        if (! in_array($data['event'], self::SUPPORTED_EVENTS, true)) {
+            return $this->errorResponse(
+                TopwebChatError::WHK_EVENT_REJECTED,
+                422,
+                [
+                    'instance_id' => $instance->id,
+                    'event_type' => $data['event'],
+                ]
+            );
+        }
+
         if ($data['event'] === 'test') {
             return response()->json(['accepted' => true], 202);
         }
@@ -67,7 +108,7 @@ class WebhookController
         return response()->json(['accepted' => true], 202);
     }
 
-    private function validateHmac(string $payload, string $signature, string $secret): bool
+    private function validateHmac(string $payload, ?string $signature, string $secret): bool
     {
         if (! $signature) {
             return false;
@@ -81,6 +122,30 @@ class WebhookController
         $expectedSignature = 'sha256='.hash_hmac('sha256', $payload, $secret);
 
         return hash_equals($expectedSignature, $signature);
+    }
+
+    private function errorResponse(string $errorCode, int $status, array $context = []): JsonResponse
+    {
+        $traceId = TopwebChatError::traceId();
+        $definition = TopwebChatError::definition($errorCode);
+
+        Log::log($definition['severity'], 'TopwebChat webhook rejected.', array_merge($context, [
+            'error_code' => $errorCode,
+            'trace_id' => $traceId,
+            'technical_event' => $definition['event'],
+            'severity' => $definition['severity'],
+            'retryable' => $definition['retryable'],
+            'http_status' => $status,
+            'operation' => 'webhook.receive',
+        ]));
+
+        return response()->json([
+            'error' => [
+                'code' => $errorCode,
+                'message' => trans(TopwebChatError::translationKey($errorCode)),
+                'trace_id' => $traceId,
+            ],
+        ], $status);
     }
 
     private function eventKey(Instance $instance, array $payload): string
