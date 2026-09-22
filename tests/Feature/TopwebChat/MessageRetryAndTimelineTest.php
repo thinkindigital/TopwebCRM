@@ -141,8 +141,8 @@ it('keeps media behind an authorized private route', function () {
     );
 });
 
-it('fails oversized attachments locally with F4003 and flags dead connections', function () {
-    // #111: pré-checagem no browser (sem upload inútil) + A5001 sem resposta.
+it('fails oversized attachments locally with FIL-6001 and flags dead connections', function () {
+    // #111: pré-checagem no browser (sem upload inútil) + NET-3001 sem resposta.
     $runtime = file_get_contents(
         base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/chat-runtime.blade.php')
     );
@@ -159,7 +159,7 @@ it('fails oversized attachments locally with F4003 and flags dead connections', 
         'messages.comm_failed',
         'error instanceof TypeError'
     );
-    expect(trans('topweb_chat::app.messages.comm_failed'))->toContain('A5001');
+    expect(trans('topweb_chat::app.messages.comm_failed'))->toContain('NET-3001');
 });
 
 it('uses Topweb Digital branding without the legacy open-source footer copy', function () {

@@ -24,6 +24,7 @@ use Webkul\TopwebChat\Services\ConversationAccessService;
 use Webkul\TopwebChat\Services\InboundLeadAssociationService;
 use Webkul\TopwebChat\Services\MessageService;
 use Webkul\TopwebChat\Services\NextActionService;
+use Webkul\TopwebChat\Support\TopwebChatError;
 use Webkul\User\Models\User;
 
 class ConversationController
@@ -319,6 +320,8 @@ class ConversationController
                     ])
                     : null,
                 'last_error' => $message->last_error,
+                'error_code' => TopwebChatError::canonical($message->error_code ?: $message->last_error),
+                'trace_id' => $message->trace_id,
             ]);
 
         return response()->json([
@@ -339,6 +342,8 @@ class ConversationController
         $validated = $request->validate([
             'level' => ['required', 'in:info,warning,error'],
             'event' => ['required', 'string', 'max:80'],
+            'error_code' => ['nullable', 'string', 'regex:/^[A-Z]{2,4}-[1-9][0-9]{3}$/'],
+            'trace_id' => ['nullable', 'string', 'size:26', 'regex:/^[0-9A-HJKMNP-TV-Z]{26}$/'],
             'context' => ['nullable', 'array'],
         ]);
 
@@ -350,7 +355,6 @@ class ConversationController
             'scroll_top',
             'scroll_height',
             'client_height',
-            'message',
             'browser_locale',
         ])->all();
 
@@ -360,6 +364,9 @@ class ConversationController
             array_merge($allowedContext, [
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
+                'error_code' => $validated['error_code'] ?? null,
+                'trace_id' => $validated['trace_id'] ?? null,
+                'technical_event' => $validated['event'],
                 'user_agent' => mb_substr((string) $request->userAgent(), 0, 255),
             ])
         );

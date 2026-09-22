@@ -182,6 +182,6 @@ it('uses a single 102401KB per-file limit by default', function () {
 
 it('reports oversize failures with a visible error code', function () {
     // #111: mensagem amigável + código para debug ágil.
-    expect(trans('topweb_chat::app.messages.media_too_large'))->toContain('F4003');
-    expect(trans('topweb_chat::app.messages.batch_too_large'))->toContain('F4004');
+    expect(trans('topweb_chat::app.messages.media_too_large'))->toContain('FIL-6001');
+    expect(trans('topweb_chat::app.messages.batch_too_large'))->toContain('FIL-6002');
 });

@@ -7,6 +7,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
 use Webkul\TopwebChat\Models\WebhookEvent;
 use Webkul\TopwebChat\Services\WebhookProcessor;
+use Webkul\TopwebChat\Support\TopwebChatError;
 
 class ProcessWebhookEvent implements ShouldQueue
 {
@@ -33,10 +34,26 @@ class ProcessWebhookEvent implements ShouldQueue
 
     public function failed(Throwable $exception): void
     {
+        $traceId = TopwebChatError::traceId();
+        $definition = TopwebChatError::definition(TopwebChatError::WHK_PROCESSING_FAILED);
+
         WebhookEvent::query()->whereKey($this->eventId)->update([
             'status' => 'failed',
             'failed_at' => now(),
-            'last_error' => mb_substr($exception->getMessage(), 0, 1000),
+            'last_error' => 'webhook_processing_failed',
+            'error_code' => TopwebChatError::WHK_PROCESSING_FAILED,
+            'trace_id' => $traceId,
+        ]);
+
+        logger()->error('TopwebChat webhook processing failed.', [
+            'error_code' => TopwebChatError::WHK_PROCESSING_FAILED,
+            'trace_id' => $traceId,
+            'technical_event' => $definition['event'],
+            'severity' => $definition['severity'],
+            'retryable' => $definition['retryable'],
+            'http_status' => $definition['http_status'],
+            'operation' => 'webhook.process',
+            'webhook_event_id' => $this->eventId,
         ]);
     }
 }

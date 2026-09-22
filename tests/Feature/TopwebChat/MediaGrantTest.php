@@ -84,6 +84,8 @@ beforeEach(function () {
         $table->timestamp('read_at')->nullable();
         $table->timestamp('failed_at')->nullable();
         $table->string('last_error')->nullable();
+        $table->string('error_code', 32)->nullable();
+        $table->string('trace_id', 26)->nullable();
         $table->timestamps();
     });
 
