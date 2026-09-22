@@ -9,6 +9,7 @@ return [
 
     'media' => [
         'received_activity' => 'File received through WhatsApp',
+        'sent_activity' => 'File sent through WhatsApp',
     ],
 
     'common' => [

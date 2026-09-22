@@ -26,8 +26,15 @@ class LeadMediaProjector
                 return $existing;
             }
 
+            // OBS2: enviados também viram arquivo do lead/pessoa (só após
+            // envio confirmado; falha não entra na lista para evitar reenvio
+            // do que nunca chegou).
+            $isIncoming = $lockedMessage->direction === 'incoming';
+            $isOutgoing = $lockedMessage->direction === 'outgoing'
+                && in_array($lockedMessage->status, ['sent', 'delivered', 'read'], true);
+
             if (
-                $lockedMessage->direction !== 'incoming'
+                (! $isIncoming && ! $isOutgoing)
                 || $lockedMessage->source === 'openwa_history'
                 || ! $lockedMessage->mediaIsStored()
             ) {
@@ -51,7 +58,9 @@ class LeadMediaProjector
             }
 
             $activity = Activity::query()->create([
-                'title' => trans('topweb_chat::app.media.received_activity'),
+                'title' => trans($isOutgoing
+                    ? 'topweb_chat::app.media.sent_activity'
+                    : 'topweb_chat::app.media.received_activity'),
                 'type' => 'file',
                 'is_done' => true,
                 'user_id' => $userId,
@@ -84,7 +93,7 @@ class LeadMediaProjector
 
         Message::query()
             ->where('conversation_id', $conversation->id)
-            ->where('direction', 'incoming')
+            ->whereIn('direction', ['incoming', 'outgoing'])
             ->where('source', '!=', 'openwa_history')
             ->whereIn('type', Message::MEDIA_TYPES)
             ->orderBy('id')

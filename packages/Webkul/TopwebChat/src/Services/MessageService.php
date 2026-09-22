@@ -7,6 +7,7 @@ use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Webkul\TopwebChat\Jobs\ProjectLeadMedia;
 use Webkul\TopwebChat\Jobs\SendMessage;
 use Webkul\TopwebChat\Models\Conversation;
 use Webkul\TopwebChat\Models\Message;
@@ -230,6 +231,8 @@ class MessageService
 
         if ($wasRecentlyCreated) {
             SendMessage::dispatch($message->id);
+            // OBS2: enviados entram na fila de projeção p/ lead/pessoa.
+            ProjectLeadMedia::dispatch($message->id);
         }
 
         return $message->fresh();
