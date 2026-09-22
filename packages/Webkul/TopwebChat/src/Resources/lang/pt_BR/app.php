@@ -123,6 +123,7 @@ return [
         'sent' => 'Mensagem enviada.',
         'queued' => 'Mensagem adicionada à fila de envio.',
         'send_failed' => 'Não foi possível enviar a mensagem.',
+        'comm_failed' => 'Sem resposta do servidor. Verifique sua conexão e tente de novo. Error Code: A5001',
         'retry' => 'Tentar novamente',
         'retry_queued' => 'Mensagem adicionada novamente à fila.',
         'retry_not_available' => 'Esta mensagem não pode ser reenviada com segurança.',

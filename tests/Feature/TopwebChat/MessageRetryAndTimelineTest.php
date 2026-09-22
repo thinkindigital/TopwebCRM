@@ -141,6 +141,27 @@ it('keeps media behind an authorized private route', function () {
     );
 });
 
+it('fails oversized attachments locally with F4003 and flags dead connections', function () {
+    // #111: pré-checagem no browser (sem upload inútil) + A5001 sem resposta.
+    $runtime = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/chat-runtime.blade.php')
+    );
+    $composer = file_get_contents(
+        base_path('packages/Webkul/TopwebChat/src/Resources/views/conversations/partials/composer.blade.php')
+    );
+
+    expect($composer)->toContain('data-max-file-kb');
+    expect($runtime)->toContain(
+        'maxFileKb',
+        'file.size',
+        'tooLarge',
+        'commFailed',
+        'messages.comm_failed',
+        'error instanceof TypeError'
+    );
+    expect(trans('topweb_chat::app.messages.comm_failed'))->toContain('A5001');
+});
+
 it('uses Topweb Digital branding without the legacy open-source footer copy', function () {
     $layoutConfig = file_get_contents(
         base_path('packages/Webkul/Admin/src/Config/core_config.php')
