@@ -128,10 +128,10 @@ class AssignmentController
                     ->whereNotNull('assigned_user_id')->exists(),
                 403
             );
+
             return $this->claimConflict($conversation);
         }
 
         return back()->with('success', trans('topweb_chat::app.assignment.updated'));
     }
-
 }
