@@ -140,11 +140,7 @@ class WebhookController
         ]));
 
         return response()->json([
-            'error' => [
-                'code' => $errorCode,
-                'message' => trans(TopwebChatError::translationKey($errorCode)),
-                'trace_id' => $traceId,
-            ],
+            'error' => TopwebChatError::envelope($errorCode, $traceId),
         ], $status);
     }
 

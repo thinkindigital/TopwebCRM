@@ -68,6 +68,11 @@ it('returns JSON validation errors instead of redirecting invalid webhooks', fun
     expect($response->getStatusCode())->toBe(422)
         ->and($response->headers->get('content-type'))->toContain('application/json')
         ->and($response->getData(true)['error']['code'])->toBe(TopwebChatError::WHK_MALFORMED)
+        ->and($response->getData(true)['error']['error_code'])->toBe(TopwebChatError::WHK_MALFORMED)
+        ->and($response->getData(true)['error']['friendly_message'])
+        ->toBe($response->getData(true)['error']['message'])
+        ->and($response->getData(true)['error']['technical_event'])
+        ->toBe('webhook.validation.malformed')
         ->and($response->getData(true)['error']['trace_id'])->toMatch('/^[0-9A-HJKMNP-TV-Z]{26}$/');
 });
 
