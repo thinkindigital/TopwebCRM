@@ -67,6 +67,7 @@ WORKDIR /var/www/html
 
 COPY --from=php-build --chown=www-data:www-data /app ./
 COPY --from=frontend-build --chown=www-data:www-data /app/public ./public
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/topwebcrm-uploads.ini
 COPY docker/php/production-vhost.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php/production-entrypoint.sh /usr/local/bin/topwebcrm-entrypoint
 COPY docker/php/initialize-production.php /usr/local/share/topwebcrm/initialize-production.php

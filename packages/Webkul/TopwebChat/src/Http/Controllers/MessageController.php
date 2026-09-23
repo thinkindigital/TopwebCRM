@@ -39,7 +39,7 @@ class MessageController
             abort(403);
         }
 
-        $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 52428800) / 1024));
+        $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 104858624) / 1024));
 
         if ($request->hasFile('media')) {
             $media = $request->validate([
@@ -117,7 +117,7 @@ class MessageController
         abort_unless($this->sensitiveData->canView($user), 403);
 
         $maxFiles = max(1, (int) config('topweb-chat.batch.max_files', 10));
-        $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 52428800) / 1024));
+        $maxKilobytes = max(1, (int) (config('topweb-chat.openwa.media_max_bytes', 104858624) / 1024));
 
         $data = $request->validate([
             'attachments' => ['required', 'array', 'min:1', "max:{$maxFiles}"],

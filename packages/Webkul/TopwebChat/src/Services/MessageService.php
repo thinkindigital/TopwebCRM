@@ -235,7 +235,7 @@ class MessageService
 
     public static function validateBatchFile(UploadedFile $file): ?string
     {
-        $maximumBytes = (int) config('topweb-chat.openwa.media_max_bytes', 52428800);
+        $maximumBytes = (int) config('topweb-chat.openwa.media_max_bytes', 104858624);
 
         if ($file->getSize() === false || $file->getSize() > $maximumBytes) {
             return 'too_large';

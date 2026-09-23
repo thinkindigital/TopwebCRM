@@ -64,6 +64,7 @@ return [
         'webhook_retry_count' => (int) env('TOPWEB_CHAT_WEBHOOK_RETRY_COUNT', 3),
         'webhook_timeout' => (int) env('TOPWEB_CHAT_WEBHOOK_TIMEOUT', 10),
         'media_inline_max_bytes' => (int) env('TOPWEB_CHAT_MEDIA_INLINE_MAX_BYTES', 1048576), // 1MiB
-        'media_max_bytes' => (int) env('TOPWEB_CHAT_MEDIA_MAX_BYTES', 52428800), // 50MiB
+        // D1: limite único por arquivo (102401KB = 100MB + 1KB), igual em dev e produção.
+        'media_max_bytes' => (int) env('TOPWEB_CHAT_MEDIA_MAX_BYTES', 104858624),
     ],
 ];
