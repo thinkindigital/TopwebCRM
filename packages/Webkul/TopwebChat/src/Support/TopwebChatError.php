@@ -15,13 +15,15 @@ final class TopwebChatError
 
     public const FIL_PROCESSING_REJECTED = 'FIL-4001';
 
+    public const FIL_FILE_BUSY = 'FIL-7001';
+
     public const STO_OBJECT_NOT_FOUND = 'STO-2001';
 
     public const NET_CONNECTION_TIMEOUT = 'NET-3001';
 
-    public const NET_CONNECTION_FAILED = self::NET_CONNECTION_TIMEOUT;
-
     public const NET_UNCLASSIFIED_FAILURE = 'NET-9001';
+
+    public const NET_CONNECTION_FAILED = self::NET_UNCLASSIFIED_FAILURE;
 
     public const STO_UNAVAILABLE = 'STO-3001';
 
@@ -53,12 +55,13 @@ final class TopwebChatError
             return null;
         }
 
-        if (in_array($value, self::codes(), true)) {
+        if (in_array($value, self::codes(), true) || $value === self::FIL_FILE_BUSY) {
             return $value;
         }
 
         return match ($value) {
-            'F4003', 'too_large' => self::FIL_SIZE_LIMIT,
+            'F4003' => self::FIL_FILE_BUSY,
+            'too_large' => self::FIL_SIZE_LIMIT,
             'F4004', 'batch_too_large' => self::FIL_BATCH_SIZE_LIMIT,
             'type_not_supported' => self::FIL_INVALID_TYPE,
             'rejected' => self::FIL_PROCESSING_REJECTED,
@@ -154,6 +157,12 @@ final class TopwebChatError
                 'severity' => 'warning',
                 'retryable' => false,
                 'http_status' => 422,
+            ],
+            self::FIL_FILE_BUSY => [
+                'event' => 'attachment.processing.busy',
+                'severity' => 'warning',
+                'retryable' => true,
+                'http_status' => 409,
             ],
             self::STO_OBJECT_NOT_FOUND => [
                 'event' => 'attachment.storage.object_missing',

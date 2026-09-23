@@ -136,10 +136,10 @@ it('shows a visible code for rejected and unknown sends', function () {
 });
 
 it('maps legacy visible codes to the canonical catalog', function () {
-    expect(TopwebChatError::canonical('F4003'))->toBe(TopwebChatError::FIL_SIZE_LIMIT)
+    expect(TopwebChatError::canonical('F4003'))->toBe(TopwebChatError::FIL_FILE_BUSY)
         ->and(TopwebChatError::canonical('F4004'))->toBe(TopwebChatError::FIL_BATCH_SIZE_LIMIT)
         ->and(TopwebChatError::canonical('A5003'))->toBe(TopwebChatError::API_OPERATION_REJECTED)
         ->and(TopwebChatError::canonical('A5002'))->toBe(TopwebChatError::API_TIMEOUT)
-        ->and(TopwebChatError::canonical('NET-3001'))->toBe(TopwebChatError::NET_CONNECTION_FAILED)
+        ->and(TopwebChatError::canonical('NET-3001'))->toBe(TopwebChatError::NET_CONNECTION_TIMEOUT)
         ->and(TopwebChatError::translationKey('NET-3001'))->toBe('topweb_chat::app.messages.error_net_3001');
 });

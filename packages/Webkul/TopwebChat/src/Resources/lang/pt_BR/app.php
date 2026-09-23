@@ -124,6 +124,7 @@ return [
         'comm_failed' => 'A conexão não respondeu. Verifique sua rede e tente novamente. Código: NET-9001',
         'error_fil_1001' => 'O tipo de arquivo não é aceito. Escolha outro arquivo. Código: FIL-1001',
         'error_fil_4001' => 'O processamento do arquivo foi rejeitado. Tente outro arquivo. Código: FIL-4001',
+        'error_fil_7001' => 'Seu arquivo está temporariamente indisponível. Tente novamente em alguns instantes. Código: FIL-7001',
         'error_fil_6001' => 'O arquivo excede o limite de tamanho. Escolha um arquivo menor. Código: FIL-6001',
         'error_fil_6002' => 'O lote excede o limite total. Remova alguns arquivos e tente novamente. Código: FIL-6002',
         'error_sto_2001' => 'O arquivo ficou indisponível antes do envio. Tente anexá-lo novamente. Código: STO-2001',
