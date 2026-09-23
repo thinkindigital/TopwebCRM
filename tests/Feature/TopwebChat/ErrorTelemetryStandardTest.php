@@ -35,3 +35,19 @@ it('exposes only canonical codes for client telemetry validation', function () {
         ->not->toContain('F4003')
         ->not->toContain('A5003');
 });
+
+it('adds the v1.1 field names without removing the legacy envelope fields', function () {
+    $envelope = TopwebChatError::envelope(
+        TopwebChatError::WHK_INVALID_SIGNATURE,
+        '01J8Q3J5M6K7N8P9Q0R1S2T3U4'
+    );
+
+    expect($envelope)
+        ->toMatchArray([
+            'code' => TopwebChatError::WHK_INVALID_SIGNATURE,
+            'error_code' => TopwebChatError::WHK_INVALID_SIGNATURE,
+            'trace_id' => '01J8Q3J5M6K7N8P9Q0R1S2T3U4',
+            'technical_event' => 'webhook.security.invalid_signature',
+        ])
+        ->and($envelope['message'])->toBe($envelope['friendly_message']);
+});

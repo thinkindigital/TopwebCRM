@@ -108,13 +108,18 @@ final class TopwebChatError
 
         $code = self::canonical($value) ?? $fallbackCode;
         $translationKey = self::translationKey($code);
+        $friendlyMessage = $translationKey !== null && Lang::has($translationKey)
+            ? trans($translationKey)
+            : trans('topweb_chat::app.messages.send_failed');
+        $definition = self::definition($code);
 
         return [
             'code' => $code,
-            'message' => $translationKey !== null && Lang::has($translationKey)
-                ? trans($translationKey)
-                : trans('topweb_chat::app.messages.send_failed'),
+            'message' => $friendlyMessage,
+            'error_code' => $code,
             'trace_id' => $traceId,
+            'friendly_message' => $friendlyMessage,
+            'technical_event' => $definition['event'],
         ];
     }
 
