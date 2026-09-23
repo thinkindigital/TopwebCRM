@@ -4,9 +4,9 @@ use Webkul\TopwebChat\Support\TopwebChatError;
 
 it('uses the v1.1 stable categories for transport, storage and webhooks', function () {
     expect(TopwebChatError::NET_CONNECTION_TIMEOUT)->toBe('NET-3001')
-         ->and(TopwebChatError::NET_UNCLASSIFIED_FAILURE)->toBe('NET-9001')
-         ->and(TopwebChatError::STO_UNAVAILABLE)->toBe('STO-3001')
-         ->and(TopwebChatError::WHK_MALFORMED)->toBe('WHK-1001')
+        ->and(TopwebChatError::NET_UNCLASSIFIED_FAILURE)->toBe('NET-9001')
+        ->and(TopwebChatError::STO_UNAVAILABLE)->toBe('STO-3001')
+        ->and(TopwebChatError::WHK_MALFORMED)->toBe('WHK-1001')
         ->and(TopwebChatError::WHK_INVALID_SIGNATURE)->toBe('WHK-2001')
         ->and(TopwebChatError::WHK_EVENT_REJECTED)->toBe('WHK-4001')
         ->and(TopwebChatError::canonical('NET-3001'))->toBe(TopwebChatError::NET_CONNECTION_TIMEOUT)
