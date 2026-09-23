@@ -126,6 +126,7 @@ return [
         'comm_failed' => 'The connection did not respond. Check your network and try again. Code: NET-9001',
         'error_fil_1001' => 'This file type is not accepted. Choose another file. Code: FIL-1001',
         'error_fil_4001' => 'File processing was rejected. Try another file. Code: FIL-4001',
+        'error_fil_7001' => 'The file is temporarily unavailable. Try again in a moment. Code: FIL-7001',
         'error_fil_6001' => 'The file exceeds the size limit. Choose a smaller file. Code: FIL-6001',
         'error_fil_6002' => 'The batch exceeds the total limit. Remove files and try again. Code: FIL-6002',
         'error_sto_2001' => 'The file became unavailable before sending. Attach it again. Code: STO-2001',
